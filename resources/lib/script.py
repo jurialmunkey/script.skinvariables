@@ -12,7 +12,6 @@ import resources.lib.utils as utils
 
 class Script(object):
     def __init__(self):
-        super(Script, self).__init__()
         self.home = xbmcgui.Window(10000)
         self.params = {}
 
@@ -80,7 +79,7 @@ class Script(object):
                     txt += '\n    </variable>'
         txt += '\n</includes>'
 
-        filepath = 'special://skin/{}/script-skinvariables-includes.xml'.format(self.params.get('path'))
+        filepath = 'special://skin/{}/script-skinvariables-includes.xml'.format(self.params.get('folder', '1080i'))
         f = xbmcvfs.File(filepath, 'w')
         f.write(utils.try_encode_string(txt))
         f.close()
