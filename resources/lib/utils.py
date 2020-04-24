@@ -56,7 +56,7 @@ def kodi_log(value, level=0):
         logvalue = u'{0}{1}'.format(_addonlogname, value)
         if sys.version_info < (3, 0):
             logvalue = logvalue.encode('utf-8', 'ignore')
-        elif level == 1:
+        if level == 1:
             xbmc.log(logvalue, level=xbmc.LOGNOTICE)
         else:
             xbmc.log(logvalue, level=xbmc.LOGDEBUG)
