@@ -51,13 +51,16 @@ In the skinvariables.json you create a template like so
 
 ## Building the Variables
 
-To build the variables from the template, in `Home.xml` add the command  
+To build the variables from the template
 ```
-<onload>runscript(script.skinvariables,folder=1080i)</onload>
+runscript(script.skinvariables)
 ```
 
-Replace `1080i` with the folder where you skin xml files are located.  
-This command will generate a file in that folder called `script-skinvariables-includes.xml`
+The script will only build the variables if the template has changed.  
+You can force a rebuild by adding the force argument `runscript(script.skinvariables,force)`
+
+This command will generate a file in the skin's xml folder called `script-skinvariables-includes.xml`  
+You can specify the folder with the folder argument `runscript(script.skinvariables,folder=1080i)`
 
 You need to add this file to your `Includes.xml`  
 ```
