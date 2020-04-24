@@ -30,13 +30,13 @@ class Script(object):
 
     def make_variables(self):
         try:
-            vfs_file = xbmcvfs.File('special://skin/shortcuts/skin-variables.json')
+            vfs_file = xbmcvfs.File('special://skin/shortcuts/skinvariables.json')
             content = vfs_file.read()
             meta = loads(content) or []
         finally:
             vfs_file.close()
 
-        if not self.params.get('force_build'):  # Allow overriding over built check
+        if not self.params.get('force'):  # Allow overriding over built check
             this_version = len(content)
             last_version = utils.try_parse_int(xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)'))
             if this_version and last_version and this_version == last_version:
@@ -80,7 +80,7 @@ class Script(object):
                     txt += '\n    </variable>'
         txt += '\n</includes>'
 
-        filepath = 'special://skin/{}/script-skinvariables-includes.xml'.format(self.params.get('make_variables'))
+        filepath = 'special://skin/{}/script-skinvariables-includes.xml'.format(self.params.get('path'))
         f = xbmcvfs.File(filepath, 'w')
         f.write(utils.try_encode_string(txt))
         f.close()
