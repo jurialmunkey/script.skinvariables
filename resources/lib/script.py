@@ -29,6 +29,8 @@ class Script(object):
                 self.params.setdefault(arg, True)
 
     def make_variables(self):
+        p_dialog = xbmcgui.DialogProgressBG()
+        p_dialog.create('Skin Variables', 'Constructing Variables...')
         try:
             vfs_file = xbmcvfs.File('special://skin/shortcuts/skinvariables.json')
             content = vfs_file.read()
@@ -40,17 +42,28 @@ class Script(object):
             this_version = len(content)
             last_version = utils.try_parse_int(xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)'))
             if this_version and last_version and this_version == last_version:
+                p_dialog.close()
                 return  # Already updated
 
         if not meta:
+            p_dialog.close()
             return
 
+        i_total = 0
+        for variable in meta:
+            if not variable.get('name'):
+                continue
+            i_total += len(variable.get('containers', [])) + 1
+
+        i_count = 0
         txt = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<includes>'
         for variable in meta:
             v_name = variable.get('name')
-            values = variable.get('values')
-            if not v_name or not values:
-                continue  # Skip items without names or values to make
+            values = variable.get('values', [])
+            expression = variable.get('expression') if not values else None
+            tag_name = 'expression' if expression else 'variable'
+            if not v_name:
+                continue  # Skip items without names
             containers = variable.get('containers', [])
             containers.append('')
             li_a = variable.get('listitems', {}).get('start', 0)
@@ -58,26 +71,31 @@ class Script(object):
             listitems = [i for i in range(li_a, int(li_z) + 1)] if li_z else []
             listitems.append('')
             for container in containers:
+                i_count += 1
+                p_dialog.update((i_count * 100) // i_total, message=u'{}_C{}'.format(v_name, container))
                 for listitem in listitems:
-                    txt += '\n    <variable name=\"{}'.format(v_name)
-                    txt += '_C{}'.format(container) if container else ''
-                    txt += '_{}'.format(listitem) if listitem or listitem == 0 else ''
+                    txt_name = v_name
+                    txt_name += '_C{}'.format(container) if container else ''
+                    txt_name += '_{}'.format(listitem) if listitem or listitem == 0 else ''
+                    txt += '\n    <{} name=\"{}'.format(tag_name, txt_name)
                     txt += '\">'
+                    li_name = 'Container({}).ListItem'.format(container) if container else 'ListItem'
+                    li_name += '({})'.format(listitem) if listitem else ''
+                    f_dict = {
+                        'listitem': li_name,
+                        'listitemabsolute': li_name.replace('ListItem(', 'ListItemAbsolute('),
+                        'listitemnowrap': li_name.replace('ListItem(', 'ListItemNoWrap('),
+                        'listitemposition': li_name.replace('ListItem(', 'ListItemPosition(')}
+                    if expression:
+                        txt += expression.format(**f_dict)
                     for value in values:
                         for k, v in value.items():
                             if not k or not v:
                                 continue
-                            li_name = 'Container({}).ListItem'.format(container) if container else 'ListItem'
-                            li_name += '({})'.format(listitem) if listitem else ''
-                            f_dict = {
-                                'listitem': li_name,
-                                'listitemabsolute': li_name.replace('ListItem(', 'ListItemAbsolute('),
-                                'listitemnowrap': li_name.replace('ListItem(', 'ListItemNoWrap('),
-                                'listitemposition': li_name.replace('ListItem(', 'ListItemPosition(')}
                             cond = k.format(**f_dict)
                             valu = v.format(**f_dict)
                             txt += '\n        <value condition=\"{}\">{}</value>'.format(cond, valu)
-                    txt += '\n    </variable>'
+                    txt += '</{}>'.format(tag_name) if expression else '\n    </{}>'.format(tag_name)
         txt += '\n</includes>'
 
         folders = [self.params.get('folder')] if self.params.get('folder') else []
@@ -95,6 +113,7 @@ class Script(object):
                 addonfile.close()
 
         if not folders:
+            p_dialog.close()
             return
 
         for folder in folders:
@@ -104,6 +123,7 @@ class Script(object):
             f.close()
         xbmc.executebuiltin('Skin.SetString(script-skinvariables-hash,{})'.format(len(content)))
         xbmc.executebuiltin('ReloadSkin()')
+        p_dialog.close()
 
     def router(self):
         self.make_variables()
