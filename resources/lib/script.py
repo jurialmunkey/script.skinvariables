@@ -113,6 +113,7 @@ class Script(object):
                 addonfile.close()
 
         if not folders:
+            p_dialog.close()
             return
 
         for folder in folders:
@@ -122,6 +123,7 @@ class Script(object):
             f.close()
         xbmc.executebuiltin('Skin.SetString(script-skinvariables-hash,{})'.format(len(content)))
         xbmc.executebuiltin('ReloadSkin()')
+        p_dialog.close()
 
     def router(self):
         self.make_variables()
