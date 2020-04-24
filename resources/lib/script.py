@@ -48,9 +48,11 @@ class Script(object):
         txt = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<includes>'
         for variable in meta:
             v_name = variable.get('name')
-            values = variable.get('values')
-            if not v_name or not values:
-                continue  # Skip items without names or values to make
+            values = variable.get('values', [])
+            expression = variable.get('expression') if not values else None
+            tag_name = 'expression' if expression else 'variable'
+            if not v_name:
+                continue  # Skip items without names
             containers = variable.get('containers', [])
             containers.append('')
             li_a = variable.get('listitems', {}).get('start', 0)
@@ -59,25 +61,27 @@ class Script(object):
             listitems.append('')
             for container in containers:
                 for listitem in listitems:
-                    txt += '\n    <variable name=\"{}'.format(v_name)
+                    txt += '\n    <{} name=\"{}'.format(tag_name, v_name)
                     txt += '_C{}'.format(container) if container else ''
                     txt += '_{}'.format(listitem) if listitem or listitem == 0 else ''
                     txt += '\">'
+                    li_name = 'Container({}).ListItem'.format(container) if container else 'ListItem'
+                    li_name += '({})'.format(listitem) if listitem else ''
+                    f_dict = {
+                        'listitem': li_name,
+                        'listitemabsolute': li_name.replace('ListItem(', 'ListItemAbsolute('),
+                        'listitemnowrap': li_name.replace('ListItem(', 'ListItemNoWrap('),
+                        'listitemposition': li_name.replace('ListItem(', 'ListItemPosition(')}
+                    if expression:
+                        txt += expression.format(**f_dict)
                     for value in values:
                         for k, v in value.items():
                             if not k or not v:
                                 continue
-                            li_name = 'Container({}).ListItem'.format(container) if container else 'ListItem'
-                            li_name += '({})'.format(listitem) if listitem else ''
-                            f_dict = {
-                                'listitem': li_name,
-                                'listitemabsolute': li_name.replace('ListItem(', 'ListItemAbsolute('),
-                                'listitemnowrap': li_name.replace('ListItem(', 'ListItemNoWrap('),
-                                'listitemposition': li_name.replace('ListItem(', 'ListItemPosition(')}
                             cond = k.format(**f_dict)
                             valu = v.format(**f_dict)
                             txt += '\n        <value condition=\"{}\">{}</value>'.format(cond, valu)
-                    txt += '\n    </variable>'
+                    txt += '</{}>'.format(tag_name) if expression else '\n    </{}>'.format(tag_name)
         txt += '\n</includes>'
 
         folders = [self.params.get('folder')] if self.params.get('folder') else []
