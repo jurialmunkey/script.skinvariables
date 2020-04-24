@@ -29,6 +29,8 @@ class Script(object):
                 self.params.setdefault(arg, True)
 
     def make_variables(self):
+        p_dialog = xbmcgui.DialogProgressBG()
+        p_dialog.create('Skin Variables', 'Constructing Variables...')
         try:
             vfs_file = xbmcvfs.File('special://skin/shortcuts/skinvariables.json')
             content = vfs_file.read()
@@ -40,11 +42,20 @@ class Script(object):
             this_version = len(content)
             last_version = utils.try_parse_int(xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)'))
             if this_version and last_version and this_version == last_version:
+                p_dialog.close()
                 return  # Already updated
 
         if not meta:
+            p_dialog.close()
             return
 
+        i_total = 0
+        for variable in meta:
+            if not variable.get('name'):
+                continue
+            i_total += len(variable.get('containers', [])) + 1
+
+        i_count = 0
         txt = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<includes>'
         for variable in meta:
             v_name = variable.get('name')
@@ -60,10 +71,13 @@ class Script(object):
             listitems = [i for i in range(li_a, int(li_z) + 1)] if li_z else []
             listitems.append('')
             for container in containers:
+                i_count += 1
+                p_dialog.update((i_count * 100) // i_total, message=u'{}_C{}'.format(v_name, container))
                 for listitem in listitems:
-                    txt += '\n    <{} name=\"{}'.format(tag_name, v_name)
-                    txt += '_C{}'.format(container) if container else ''
-                    txt += '_{}'.format(listitem) if listitem or listitem == 0 else ''
+                    txt_name = v_name
+                    txt_name += '_C{}'.format(container) if container else ''
+                    txt_name += '_{}'.format(listitem) if listitem or listitem == 0 else ''
+                    txt += '\n    <{} name=\"{}'.format(tag_name, txt_name)
                     txt += '\">'
                     li_name = 'Container({}).ListItem'.format(container) if container else 'ListItem'
                     li_name += '({})'.format(listitem) if listitem else ''
