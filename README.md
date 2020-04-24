@@ -38,10 +38,10 @@ In the skinvariables.json you create a template like so
 
 | Key | Purpose |
 | :--- | :--- |
-| "name" | The name of the variable to build. One variable will be built for each specified container and each listitem position in the range specified. Variables follow the naming pattern `{name}_C{containerID}_{listitemposition}` |
-| "containers" | Each of the container IDs that you wish to build a variable for. A variable will also be built without a specified container |
-| "listitems" | Builds a variable for each listitem position in the range. A variable will also be built for a listitem without a specified position. |
-| "values" | The rules of the variable. In each pair, the left side is the `<value condition="CONDITION">` and the right side is the resulting value. |
+| "name" | \[required\] The name of the variable to build. One variable will be built for each specified container and each listitem position in the range specified. Variables follow the naming pattern `{name}_C{containerID}_{listitemposition}` |
+| "containers" | \[optional\] Each of the container IDs that you wish to build a variable for. A variable will also be built without a specified container |
+| "listitems" | \[optional\] Builds a variable for each listitem position in the range. A variable will also be built for a listitem without a specified position. |
+| "values" | \[required\] The rules of the variable. In each pair, the left side is the `<value condition="CONDITION">` and the right side is the resulting value. |
 | {listitem} | Replaced by the specific container and listitem - e.g. in Image_Landscape_C51_5 it will be `Container(51).ListItem(5).` |
 | {listitemabsolute} | Like {listitem} but the absolute position - e.g. `Container(51).ListItemAbsolute(5).` |
 | {listitemnowrap} | Like {listitem} but the nowrap position - e.g. `Container(51).ListItemNoWrap(5).` |
