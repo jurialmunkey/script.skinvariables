@@ -8,6 +8,7 @@ import xbmcgui
 import xbmcvfs
 from json import loads
 import resources.lib.utils as utils
+import xml.etree.ElementTree as ET
 
 
 class Script(object):
@@ -79,12 +80,30 @@ class Script(object):
                     txt += '\n    </variable>'
         txt += '\n</includes>'
 
-        filepath = 'special://skin/{}/script-skinvariables-includes.xml'.format(self.params.get('folder', '1080i'))
-        f = xbmcvfs.File(filepath, 'w')
-        f.write(utils.try_encode_string(txt))
-        f.close()
-        xbmc.executebuiltin('ReloadSkin()')
+        folders = [self.params.get('folder')] if self.params.get('folder') else []
+        if not folders:  # Get skin folders from addon
+            try:
+                addonfile = xbmcvfs.File('special://skin/addon.xml')
+                content = addonfile.read()
+                xmltree = ET.ElementTree(ET.fromstring(content))
+                for child in xmltree.getroot():
+                    if child.attrib.get('point') == 'xbmc.gui.skin':
+                        for grandchild in child:
+                            if grandchild.tag == 'res' and grandchild.attrib.get('folder'):
+                                folders.append(grandchild.attrib.get('folder'))
+            finally:
+                addonfile.close()
+
+        if not folders:
+            return
+
+        for folder in folders:
+            filepath = 'special://skin/{}/script-skinvariables-includes.xml'.format(folder)
+            f = xbmcvfs.File(filepath, 'w')
+            f.write(utils.try_encode_string(txt))
+            f.close()
         xbmc.executebuiltin('Skin.SetString(script-skinvariables-hash,{})'.format(len(content)))
+        xbmc.executebuiltin('ReloadSkin()')
 
     def router(self):
         self.make_variables()

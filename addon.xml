@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="script.skinvariables"
-version="0.0.1"
+version="0.0.2"
 name="Skin Variables"
 provider-name="jurialmunkey">
 <requires>
@@ -16,6 +16,6 @@ provider-name="jurialmunkey">
     <icon>icon.png</icon>
     <fanart>fanart.jpg</fanart>
   </assets>
-  <news>0.0.1 - Initial Release</news>
+  <news>0.0.2 - Get folders from addon.xml if no folder specified[CR]0.0.1 - Initial Release</news>
 </extension>
 </addon>
