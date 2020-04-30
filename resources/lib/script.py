@@ -124,8 +124,8 @@ class Script(object):
         if not folders:
             try:
                 addonfile = xbmcvfs.File('special://skin/addon.xml')
-                content = addonfile.read()
-                xmltree = ET.ElementTree(ET.fromstring(content))
+                addoncontent = addonfile.read()
+                xmltree = ET.ElementTree(ET.fromstring(addoncontent))
                 for child in xmltree.getroot():
                     if child.attrib.get('point') == 'xbmc.gui.skin':
                         for grandchild in child:
