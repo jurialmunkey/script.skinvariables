@@ -39,8 +39,8 @@ class Script(object):
             vfs_file.close()
 
         if not self.params.get('force'):  # Allow overriding over built check
-            this_version = len(content)
-            last_version = utils.try_parse_int(xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)'))
+            this_version = 'hash-{}'.format(len(content))
+            last_version = xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)')
             if this_version and last_version and this_version == last_version:
                 p_dialog.close()
                 return  # Already updated
@@ -121,7 +121,7 @@ class Script(object):
             f = xbmcvfs.File(filepath, 'w')
             f.write(utils.try_encode_string(txt))
             f.close()
-        xbmc.executebuiltin('Skin.SetString(script-skinvariables-hash,{})'.format(len(content)))
+        xbmc.executebuiltin('Skin.SetString(script-skinvariables-hash,hash-{})'.format(len(content)))
         xbmc.executebuiltin('ReloadSkin()')
         p_dialog.close()
 
