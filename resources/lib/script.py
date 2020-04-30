@@ -73,15 +73,18 @@ class Script(object):
             for container in containers:
                 i_count += 1
                 p_dialog.update((i_count * 100) // i_total, message=u'{}_C{}'.format(v_name, container))
+
+                # Build Variables for each ListItem Position in Container
                 for listitem in listitems:
                     txt_name = v_name
                     txt_name += '_C{}'.format(container) if container else ''
                     txt_name += '_{}'.format(listitem) if listitem or listitem == 0 else ''
-                    txt += '\n    <{} name=\"{}'.format(tag_name, txt_name)
-                    txt += '\">'
+                    txt += '\n    <{} name=\"{}\">'.format(tag_name, txt_name)
                     li_name = 'Container({}).ListItem'.format(container) if container else 'ListItem'
                     li_name += '({})'.format(listitem) if listitem else ''
                     f_dict = {
+                        'id': container or '',
+                        'position': listitem or 0,
                         'listitem': li_name,
                         'listitemabsolute': li_name.replace('ListItem(', 'ListItemAbsolute('),
                         'listitemnowrap': li_name.replace('ListItem(', 'ListItemNoWrap('),
@@ -96,10 +99,29 @@ class Script(object):
                             valu = v.format(**f_dict)
                             txt += '\n        <value condition=\"{}\">{}</value>'.format(cond, valu)
                     txt += '</{}>'.format(tag_name) if expression else '\n    </{}>'.format(tag_name)
+
+            # Build variable for parent containers
+            if variable.get('parent'):
+                p_var = variable.get('parent')
+                txt_name = v_name + '_Parent'
+                txt += '\n    <{} name=\"{}\">'.format(tag_name, txt_name)
+                for container in containers:
+                    valu = v_name
+                    valu += '_C{}'.format(container) if container else ''
+                    valu = '$VAR[{}]'.format(valu)
+                    f_dict = {'id': container or ''}
+                    cond = p_var.format(**f_dict) if container else 'True'
+                    txt += '\n        <value condition=\"{}\">{}</value>'.format(cond, valu)
+                txt += '\n    </{}>'.format(tag_name)
+
+        # Finish file
         txt += '\n</includes>'
 
+        # Get folder to save to
         folders = [self.params.get('folder')] if self.params.get('folder') else []
-        if not folders:  # Get skin folders from addon
+
+        # Get skin folders from addon if no folder specified
+        if not folders:
             try:
                 addonfile = xbmcvfs.File('special://skin/addon.xml')
                 content = addonfile.read()
