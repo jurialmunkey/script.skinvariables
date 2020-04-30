@@ -84,7 +84,7 @@ class Script(object):
                     li_name += '({})'.format(listitem) if listitem else ''
                     f_dict = {
                         'id': container or '',
-                        'position': listitem or 0,
+                        'pos': listitem or 0,
                         'listitem': li_name,
                         'listitemabsolute': li_name.replace('ListItem(', 'ListItemAbsolute('),
                         'listitemnowrap': li_name.replace('ListItem(', 'ListItemNoWrap('),
