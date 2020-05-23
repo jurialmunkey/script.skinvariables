@@ -93,17 +93,17 @@ def write_file(filepath=None, content=None):
     f.close()
 
 
-def write_skinfile(filename=None, folders=None, content=None, hash=None, reload=True):
+def write_skinfile(filename=None, folders=None, content=None, hashvalue=None, hashname=None, reloadskin=True):
     if not filename or not folders or not content:
         return
 
     for folder in folders:
         write_file(filepath='special://skin/{}/{}'.format(folder, filename), content=content)
 
-    if hash:
-        xbmc.executebuiltin('Skin.SetString(hash-{},{})'.format(filename, hash))
+    if hashvalue and hashname:
+        xbmc.executebuiltin('Skin.SetString({},{})'.format(hashname, hashvalue))
 
-    if reload:
+    if reloadskin:
         xbmc.executebuiltin('ReloadSkin()')
 
 

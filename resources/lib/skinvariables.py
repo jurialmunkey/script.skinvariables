@@ -102,10 +102,11 @@ class SkinVariables(object):
         if not self.meta:
             return
 
+        hashvalue = 'hash-{}'.format(len(self.content))
+
         if not force:  # Allow overriding over built check
-            this_version = 'hash-{}'.format(len(self.content))
-            last_version = xbmc.getInfoLabel('Skin.String(hash-script-skinvariables-includes.xml)')
-            if this_version and last_version and this_version == last_version:
+            last_version = xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)')
+            if hashvalue and last_version and hashvalue == last_version:
                 return  # Already updated
 
         p_dialog = xbmcgui.DialogProgressBG()
@@ -126,6 +127,6 @@ class SkinVariables(object):
             utils.write_skinfile(
                 folders=folders, filename='script-skinvariables-includes.xml',
                 content=utils.make_xml_includes(xmltree, p_dialog=p_dialog),
-                hash='hash-{}'.format(len(self.content)))
+                hashvalue=hashvalue, hashname='script-skinvariables-hash')
 
         p_dialog.close()

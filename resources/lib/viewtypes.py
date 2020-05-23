@@ -101,7 +101,8 @@ class ViewTypes(object):
             for i in self.meta.get('rules', {}).get(contentid, {}).get('viewtypes', []):
                 ids.append(i)
                 items.append(self.meta.get('viewtypes', {}).get(i))
-            choice = xbmcgui.Dialog().select(ADDON.getLocalizedString(32004), items)
+            header = '{} {} ({})'.format(ADDON.getLocalizedString(32004), pluginname, contentid)
+            choice = xbmcgui.Dialog().select(header, items)
             viewid = ids[choice] if choice != -1 else None
         if not viewid:
             return  # No viewtype chosen
@@ -109,23 +110,28 @@ class ViewTypes(object):
         self.addon_meta[pluginname][contentid] = viewid
         if overwrite:
             utils.write_file(filepath=self.addon_datafile, content=dumps(self.addon_meta))
+        return viewid
 
     def update_xml(self, force=False, skinfolder=None, contentid=None, viewid=None, pluginname=None):
         if not self.meta:
             return
 
+        hashvalue = 'hash-{}'.format(len(self.content))
+
         with utils.busy_dialog():
             if not force:
-                this_version = 'hash-{}'.format(len(self.content))
-                last_version = xbmc.getInfoLabel('Skin.String(hash-script-skinviewtypes-includes.xml)')
-                if not this_version or not last_version or this_version != last_version:
+                last_version = xbmc.getInfoLabel('Skin.String(script-skinviewtypes-hash)')
+                if not last_version or hashvalue != last_version:
                     force = True
             if force:
                 self.addon_meta = self.make_defaultjson()
 
         if contentid:
             pluginname = pluginname or 'library'
-            self.add_pluginview(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
+            force = self.add_pluginview(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
+
+        if not force:
+            return
 
         with utils.busy_dialog():
             xmltree = self.make_xmltree()
@@ -136,4 +142,4 @@ class ViewTypes(object):
                 utils.write_skinfile(
                     folders=folders, filename='script-skinviewtypes-includes.xml',
                     content=utils.make_xml_includes(xmltree),
-                    hash='hash-{}'.format(len(self.content)))
+                    hashname='script-skinviewtypes-hash', hashvalue=hashvalue)
