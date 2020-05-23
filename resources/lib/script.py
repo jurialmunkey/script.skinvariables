@@ -4,6 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import sys
 from resources.lib.skinvariables import SkinVariables
+from resources.lib.viewtypes import ViewTypes
 
 
 class Script(object):
@@ -23,4 +24,14 @@ class Script(object):
                 self.params.setdefault(arg, True)
 
     def router(self):
-        SkinVariables().update_xml(skinfolder=self.params.get('folder'), force=self.params.get('force'))
+        if self.params.get('action') == 'buildviews':
+            ViewTypes().update_xml(
+                skinfolder=self.params.get('folder'),
+                force=self.params.get('force'),
+                contentid=self.params.get('contentid'),
+                viewid=self.params.get('viewid'),
+                pluginname=self.params.get('pluginname'))
+        else:
+            SkinVariables().update_xml(
+                skinfolder=self.params.get('folder'),
+                force=self.params.get('force'))
