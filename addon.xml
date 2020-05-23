@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="script.skinvariables"
-version="0.0.7"
+version="0.0.8"
 name="Skin Variables"
 provider-name="jurialmunkey">
 <requires>
@@ -16,6 +16,6 @@ provider-name="jurialmunkey">
     <icon>icon.png</icon>
     <fanart>fanart.jpg</fanart>
   </assets>
-  <news>0.0.7 - Code rebase</news>
+  <news>0.0.8 - Viewmodes script[CR]0.0.7 - Code rebase</news>
 </extension>
 </addon>

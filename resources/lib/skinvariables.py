@@ -4,61 +4,12 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import xbmc
 import xbmcgui
-import xbmcvfs
 import xbmcaddon
 from json import loads
 import resources.lib.utils as utils
-import xml.etree.ElementTree as ET
+
+
 ADDON = xbmcaddon.Addon()
-XML_HEADER = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>'
-
-
-def make_xml_itertxt(xmltree, indent=1, indent_spaces=4, p_dialog=None):
-    """
-    xmltree = [{'name': '', 'tags': {'tagname': 'tagvalue'}, 'content': '' or []}]
-    <{name} {tagname}="{tagvalue}">{content}</{name}>
-    """
-    txt = ''
-    indent_str = ' ' * indent_spaces * indent
-
-    p_total = len(xmltree) if p_dialog else 0
-    p_dialog_txt = ''
-    for p_count, i in enumerate(xmltree):
-        if not i.get('name', ''):
-            continue  # No tag name so ignore
-
-        txt += '\n' + indent_str + '<{}'.format(i.get('name'))  # Start our tag
-
-        for k, v in i.get('tags', {}).items():
-            if not k:
-                continue
-            txt += ' {}=\"{}\"'.format(k, v)  # Add tag attributes
-            p_dialog_txt = v
-
-        if not i.get('content'):
-            txt += '/>'
-            continue  # No content so close tag and move onto next line
-
-        txt += '>'
-
-        if p_dialog:
-            p_dialog.update((p_count * 100) // p_total, message=u'{}'.format(p_dialog_txt))
-
-        if isinstance(i.get('content'), list):
-            txt += make_xml_itertxt(i.get('content'), indent=indent + 1)
-            txt += '\n' + indent_str  # Need to indent before closing tag
-        else:
-            txt += i.get('content')
-        txt += '</{}>'.format(i.get('name'))  # Finish
-    return txt
-
-
-def make_xml(lines=[], p_dialog=None):
-    txt = XML_HEADER
-    txt += '\n<includes>'
-    txt += make_xml_itertxt(lines, p_dialog=p_dialog)
-    txt += '\n</includes>'
-    return txt
 
 
 class SkinVariables(object):
@@ -82,12 +33,12 @@ class SkinVariables(object):
         content = []
         for value in values:
             build_var = {}
-            build_var['name'] = 'value'
-            build_var['tags'] = {}
+            build_var['tag'] = 'value'
+            build_var['attrib'] = {}
             for k, v in value.items():
                 if not k or not v:
                     continue
-                build_var['tags']['condition'] = k.format(**f_dict)
+                build_var['attrib']['condition'] = k.format(**f_dict)
                 build_var['content'] = v.format(**f_dict)
             content.append(build_var)
         return content
@@ -109,12 +60,12 @@ class SkinVariables(object):
         for container in containers:
             # Build Variables for each ListItem Position in Container
             for listitem in listitems:
-                build_var = {'name': 'expression' if expression else 'variable', 'tags': {}, 'content': []}
+                build_var = {'tag': 'expression' if expression else 'variable', 'attrib': {}, 'content': []}
 
                 tag_name = var_name
                 tag_name += '_C{}'.format(container) if container else ''
                 tag_name += '_{}'.format(listitem) if listitem or listitem == 0 else ''
-                build_var['tags']['name'] = tag_name
+                build_var['attrib']['name'] = tag_name
 
                 li_name = 'Container({}).ListItem'.format(container) if container else 'ListItem'
                 li_name += '({})'.format(listitem) if listitem else ''
@@ -133,7 +84,7 @@ class SkinVariables(object):
         # Build variable for parent containers
         if variable.get('parent'):
             p_var = variable.get('parent')
-            build_var = {'name': 'variable', 'tags': {'name': var_name + '_Parent'}, 'content': []}
+            build_var = {'tag': 'variable', 'attrib': {'name': var_name + '_Parent'}, 'content': []}
 
             content = []
             for container in containers:
@@ -142,36 +93,10 @@ class SkinVariables(object):
                 valu = '$VAR[{}]'.format(valu)
                 f_dict = {'id': container or ''}
                 cond = p_var.format(**f_dict) if container else 'True'
-                content.append({'name': 'value', 'tags': {'condition': cond}, 'content': valu})
+                content.append({'tag': 'value', 'attrib': {'condition': cond}, 'content': valu})
             build_var['content'] = content
             skin_vars.append(build_var)
         return skin_vars
-
-    def get_folders(self):
-        folders = []
-        try:
-            addonfile = xbmcvfs.File('special://skin/addon.xml')
-            addoncontent = addonfile.read()
-        finally:
-            addonfile.close()
-        xmltree = ET.ElementTree(ET.fromstring(addoncontent))
-        for child in xmltree.getroot():
-            if child.attrib.get('point') == 'xbmc.gui.skin':
-                for grandchild in child:
-                    if grandchild.tag == 'res' and grandchild.attrib.get('folder'):
-                        folders.append(grandchild.attrib.get('folder'))
-        return folders
-
-    def write_xml(self, folders=None, txt=None):
-        if not folders or not txt:
-            return
-        for folder in folders:
-            filepath = 'special://skin/{}/script-skinvariables-includes.xml'.format(folder)
-            f = xbmcvfs.File(filepath, 'w')
-            f.write(utils.try_encode_string(txt))
-            f.close()
-        xbmc.executebuiltin('Skin.SetString(script-skinvariables-hash,hash-{})'.format(len(self.content)))
-        xbmc.executebuiltin('ReloadSkin()')
 
     def update_xml(self, force=False, skinfolder=None):
         if not self.meta:
@@ -179,7 +104,7 @@ class SkinVariables(object):
 
         if not force:  # Allow overriding over built check
             this_version = 'hash-{}'.format(len(self.content))
-            last_version = xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)')
+            last_version = xbmc.getInfoLabel('Skin.String(hash-script-skinvariables-includes.xml)')
             if this_version and last_version and this_version == last_version:
                 return  # Already updated
 
@@ -196,7 +121,11 @@ class SkinVariables(object):
             xmltree = xmltree + item if item else xmltree
 
         # Get folder to save to
-        folders = [skinfolder] if skinfolder else self.get_folders()
-        self.write_xml(folders, make_xml(xmltree, p_dialog=p_dialog)) if folders else None
+        folders = [skinfolder] if skinfolder else utils.get_skinfolders()
+        if folders:
+            utils.write_skinfile(
+                folders=folders, filename='script-skinvariables-includes.xml',
+                content=utils.make_xml_includes(xmltree, p_dialog=p_dialog),
+                hash='hash-{}'.format(len(self.content)))
 
         p_dialog.close()
