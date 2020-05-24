@@ -24,6 +24,7 @@ class ViewTypes(object):
         self.addon_content = utils.load_filecontent(self.addon_datafile)
         self.addon_meta = loads(self.addon_content) or {} if self.addon_content else {}
         self.prefix = self.meta.get('prefix', 'Exp_View') + '_'
+        self.skinfolders = utils.get_skinfolders()
 
     def make_defaultjson(self, overwrite=True):
         addon_meta = {'library': {}, 'plugins': {}}
@@ -114,7 +115,7 @@ class ViewTypes(object):
         xmltree = self.make_xmltree()
 
         # # Get folder to save to
-        folders = [skinfolder] if skinfolder else utils.get_skinfolders()
+        folders = [skinfolder] if skinfolder else self.skinfolders
         if folders:
             utils.write_skinfile(
                 folders=folders, filename='script-skinviewtypes-includes.xml',
@@ -212,7 +213,7 @@ class ViewTypes(object):
                 self.addon_meta[usr_pluginname] = self.make_defaultjson(overwrite=False).get(usr_pluginname, {})
                 for i in self.addon_meta:  # Also clean all custom plugin setups
                     self.addon_meta.pop(i) if i != 'library' else None
-            elif choice and usr_pluginname =='library':
+            elif choice and usr_pluginname == 'library':
                 self.addon_meta[usr_pluginname] = self.make_defaultjson(overwrite=False).get(usr_pluginname, {})
             elif choice and usr_pluginname:  # Specific plugin so just remove the whole entry
                 self.addon_meta.pop(usr_pluginname)
@@ -226,6 +227,14 @@ class ViewTypes(object):
             force = force or choice
 
         return self.dialog_configure(contentid=contentid, pluginname=pluginname, viewid=viewid, force=force)
+
+    def xmlfile_exists(self, skinfolder=None):
+        folders = [skinfolder] if skinfolder else self.skinfolders
+
+        for folder in folders:
+            if not xbmcvfs.exists('special://skin/{}/script-skinviewtypes-includes.xml'.format(folder)):
+                return False
+        return True
 
     def update_xml(self, force=False, skinfolder=None, contentid=None, viewid=None, pluginname=None, configure=False):
         if not self.meta:
@@ -252,7 +261,7 @@ class ViewTypes(object):
             pluginname = pluginname or 'library'
             force = self.add_pluginview(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
 
-        if not force:
+        if not force and self.xmlfile_exists():
             return
 
         with utils.busy_dialog():
