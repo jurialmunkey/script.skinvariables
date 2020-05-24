@@ -93,7 +93,7 @@ class ViewTypes(object):
 
         return xmltree
 
-    def add_pluginview(self, contentid=None, pluginname=None, viewid=None, overwrite=True):
+    def add_pluginview(self, contentid=None, pluginname=None, viewid=None):
         if not contentid or not pluginname or not self.meta.get('rules', {}).get(contentid):
             return
         if not viewid:
@@ -108,14 +108,134 @@ class ViewTypes(object):
             return  # No viewtype chosen
         self.addon_meta.setdefault(pluginname, {})
         self.addon_meta[pluginname][contentid] = viewid
-        if overwrite:
-            utils.write_file(filepath=self.addon_datafile, content=dumps(self.addon_meta))
         return viewid
 
-    def update_xml(self, force=False, skinfolder=None, contentid=None, viewid=None, pluginname=None):
+    def make_xmlfile(self, skinfolder=None, hashvalue=None):
+        xmltree = self.make_xmltree()
+
+        # # Get folder to save to
+        folders = [skinfolder] if skinfolder else utils.get_skinfolders()
+        if folders:
+            utils.write_skinfile(
+                folders=folders, filename='script-skinviewtypes-includes.xml',
+                content=utils.make_xml_includes(xmltree),
+                hashname='script-skinviewtypes-hash', hashvalue=hashvalue)
+
+        utils.write_file(filepath=self.addon_datafile, content=dumps(self.addon_meta))
+
+    def add_newplugin(self):
+        """
+        Get list of available plugins and allow user to choose which to views to add
+        """
+        method = "Addons.GetAddons"
+        properties = ["name", "thumbnail"]
+        params_a = {"type": "xbmc.addon.video", "properties": properties}
+        params_b = {"type": "xbmc.addon.audio", "properties": properties}
+        params_c = {"type": "xbmc.addon.image", "properties": properties}
+        response_a = utils.get_jsonrpc(method, params_a).get('result', {}).get('addons') or []
+        response_b = utils.get_jsonrpc(method, params_b).get('result', {}).get('addons') or []
+        response_c = utils.get_jsonrpc(method, params_c).get('result', {}).get('addons') or []
+        response = response_a + response_b + response_c
+        dialog_list, dialog_ids = [], []
+        for i in response:
+            dialog_item = xbmcgui.ListItem(label=i.get('name'), label2='{}'.format(i.get('addonid')))
+            dialog_item.setArt({'icon': i.get('thumbnail'), 'thumb': i.get('thumbnail')})
+            dialog_list.append(dialog_item)
+            dialog_ids.append(i.get('addonid'))
+        idx = xbmcgui.Dialog().select('Choose plugin to customise', dialog_list, useDetails=True)
+        if idx == -1:
+            return
+        pluginname = dialog_ids[idx]
+        contentids = [i for i in sorted(self.meta.get('rules', {}))]
+        idx = xbmcgui.Dialog().select('Choose content to customise', contentids)
+        if idx == -1:
+            return self.add_newplugin()  # Go back to previous dialog
+        contentid = contentids[idx]
+        return self.add_pluginview(pluginname=pluginname, contentid=contentid)
+
+    def get_addondetails(self, addonid=None, prop=None):
+        """
+        Get details of a plugin
+        """
+        if not addonid or not prop:
+            return
+        method = "Addons.GetAddonDetails"
+        params = {"addonid": addonid, "properties": [prop]}
+        return utils.get_jsonrpc(method, params).get('result', {}).get('addon', {}).get(prop)
+
+    def dc_listcomp(self, listitems, listprefix='', idprefix='', contentid=''):
+        return [
+            ('{}{} ({})'.format(listprefix, k.capitalize(), self.meta.get('viewtypes', {}).get(v)), (idprefix, k))
+            for k, v in listitems if not contentid or contentid == k]
+
+    def dialog_configure(self, contentid=None, pluginname=None, viewid=None, force=False):
+        dialog_list = []
+
+        if not pluginname or pluginname == 'library':
+            dialog_list += self.dc_listcomp(
+                sorted(self.addon_meta.get('library', {}).items()), listprefix='Library - ', idprefix='library', contentid=contentid)
+
+        if not pluginname or pluginname == 'plugins':
+            dialog_list += self.dc_listcomp(
+                sorted(self.addon_meta.get('plugins', {}).items()), listprefix='Plugins - ', idprefix='plugins', contentid=contentid)
+
+        if not pluginname or pluginname != 'library':
+            for k, v in self.addon_meta.items():
+                if k in ['library', 'plugins']:
+                    continue
+                if pluginname and pluginname != 'plugins' and pluginname != k:
+                    continue  # Only add the named plugin if not just doing generic plugins
+                name = self.get_addondetails(addonid=k, prop='name')
+                dialog_list += self.dc_listcomp(
+                    sorted(v.items()), listprefix=name + ' - ', idprefix=k, contentid=contentid)
+                dialog_list.append(('Reset all {} views...'.format(name), (k, 'default')))
+
+        if not contentid:
+            if not pluginname or pluginname == 'plugins':
+                dialog_list.append(('Reset all {} views...'.format('plugin'), ('plugins', 'default')))
+            if not pluginname or pluginname == 'library':
+                dialog_list.append(('Reset all {} views...'.format('library'), ('library', 'default')))
+            if not pluginname or pluginname != 'library':
+                dialog_list.append(('Add plugin view...', (None, 'add_pluginview')))
+
+        idx = xbmcgui.Dialog().select('Customise viewtypes', [i[0] for i in dialog_list])
+        if idx == -1:
+            return force  # User cancelled
+
+        usr_pluginname, usr_contentid = dialog_list[idx][1]
+        if usr_contentid == 'default':
+            choice = xbmcgui.Dialog().yesno(
+                'Reset {} Views'.format(usr_pluginname),
+                'Do you wish to reset all {} views to default'.format(usr_pluginname))
+
+            if choice and usr_pluginname == 'plugins':
+                self.addon_meta[usr_pluginname] = self.make_defaultjson(overwrite=False).get(usr_pluginname, {})
+                for i in self.addon_meta:  # Also clean all custom plugin setups
+                    self.addon_meta.pop(i) if i != 'library' else None
+            elif choice and usr_pluginname =='library':
+                self.addon_meta[usr_pluginname] = self.make_defaultjson(overwrite=False).get(usr_pluginname, {})
+            elif choice and usr_pluginname:  # Specific plugin so just remove the whole entry
+                self.addon_meta.pop(usr_pluginname)
+
+            force = force or choice
+        elif usr_contentid == 'add_pluginview':
+            choice = self.add_newplugin()
+            force = force or choice
+        else:
+            choice = self.add_pluginview(contentid=usr_contentid.lower(), pluginname=usr_pluginname.lower())
+            force = force or choice
+
+        return self.dialog_configure(contentid=contentid, pluginname=pluginname, viewid=viewid, force=force)
+
+    def update_xml(self, force=False, skinfolder=None, contentid=None, viewid=None, pluginname=None, configure=False):
         if not self.meta:
             return
 
+        # Make these strings for simplicity
+        contentid = contentid or ''
+        pluginname = pluginname or ''
+
+        # Simple hash value based on character size of file
         hashvalue = 'hash-{}'.format(len(self.content))
 
         with utils.busy_dialog():
@@ -123,10 +243,12 @@ class ViewTypes(object):
                 last_version = xbmc.getInfoLabel('Skin.String(script-skinviewtypes-hash)')
                 if not last_version or hashvalue != last_version:
                     force = True
-            if force:
+            if force or not self.addon_meta:
                 self.addon_meta = self.make_defaultjson()
 
-        if contentid:
+        if configure:  # Configure kwparam so open gui
+            force = self.dialog_configure(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
+        elif contentid:  # If contentid defined but no configure kwparam then just select a view
             pluginname = pluginname or 'library'
             force = self.add_pluginview(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
 
@@ -134,12 +256,4 @@ class ViewTypes(object):
             return
 
         with utils.busy_dialog():
-            xmltree = self.make_xmltree()
-
-            # # Get folder to save to
-            folders = [skinfolder] if skinfolder else utils.get_skinfolders()
-            if folders:
-                utils.write_skinfile(
-                    folders=folders, filename='script-skinviewtypes-includes.xml',
-                    content=utils.make_xml_includes(xmltree),
-                    hashname='script-skinviewtypes-hash', hashvalue=hashvalue)
+            self.make_xmlfile(skinfolder=skinfolder, hashvalue=hashvalue)

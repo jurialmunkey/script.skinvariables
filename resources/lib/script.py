@@ -28,6 +28,7 @@ class Script(object):
             ViewTypes().update_xml(
                 skinfolder=self.params.get('folder'),
                 force=self.params.get('force'),
+                configure=self.params.get('configure'),
                 contentid=self.params.get('contentid'),
                 viewid=self.params.get('viewid'),
                 pluginname=self.params.get('pluginname'))

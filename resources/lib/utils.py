@@ -1,6 +1,7 @@
 import sys
 import xbmc
 import xbmcvfs
+import json
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 
@@ -15,6 +16,23 @@ def busy_dialog():
         yield
     finally:
         xbmc.executebuiltin('Dialog.Close(busydialognocancel)')
+
+
+def get_jsonrpc(method=None, params=None):
+    if not method or not params:
+        return {}
+    query = {
+        "jsonrpc": "2.0",
+        "params": params,
+        "method": method,
+        "id": 1}
+    try:
+        jrpc = xbmc.executeJSONRPC(json.dumps(query))
+        response = json.loads(try_decode_string(jrpc, errors='ignore'))
+    except Exception as exc:
+        kodi_log(u'SkinVariables - JSONRPC Error:\n{}'.format(exc), 1)
+        response = {}
+    return response
 
 
 def make_xml_itertxt(xmltree, indent=1, indent_spaces=4, p_dialog=None):
@@ -143,12 +161,12 @@ def try_parse_int(string):
         return 0
 
 
-def try_decode_string(string, encoding='utf-8'):
+def try_decode_string(string, encoding='utf-8', errors=None):
     """helper to decode strings for PY 2 """
     if sys.version_info.major == 3:
         return string
     try:
-        return string.decode(encoding)
+        return string.decode(encoding, errors) if errors else string.decode(encoding)
     except Exception:
         return string
 
