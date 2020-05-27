@@ -83,6 +83,22 @@ def make_xml_includes(lines=[], p_dialog=None):
     return txt
 
 
+def merge_dicts(org, upd, skipempty=False):
+    source = org.copy()
+    for k, v in upd.items():
+        if not k:
+            continue
+        if skipempty and not v:
+            continue
+        if isinstance(v, dict):
+            if not isinstance(source.get(k), dict):
+                source[k] = {}
+            source[k] = merge_dicts(source.get(k), v, skipempty=skipempty)
+            continue
+        source[k] = v
+    return source
+
+
 def get_skinfolders():
     """
     Get the various xml folders for skin as defined in addon.xml
