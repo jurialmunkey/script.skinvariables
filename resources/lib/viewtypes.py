@@ -26,7 +26,7 @@ class ViewTypes(object):
         self.prefix = self.meta.get('prefix', 'Exp_View') + '_'
         self.skinfolders = utils.get_skinfolders()
 
-    def make_defaultjson(self, overwrite=True):
+    def make_defaultjson(self, overwrite=False):
         addon_meta = {'library': {}, 'plugins': {}}
         for k, v in self.meta.get('rules', {}).items():
             # TODO: Add checks that file is properly configured and warn user otherwise
@@ -210,11 +210,11 @@ class ViewTypes(object):
                 'Do you wish to reset all {} views to default'.format(usr_pluginname))
 
             if choice and usr_pluginname == 'plugins':
-                self.addon_meta[usr_pluginname] = self.make_defaultjson(overwrite=False).get(usr_pluginname, {})
+                self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
                 for i in self.addon_meta:  # Also clean all custom plugin setups
                     self.addon_meta.pop(i) if i != 'library' else None
             elif choice and usr_pluginname == 'library':
-                self.addon_meta[usr_pluginname] = self.make_defaultjson(overwrite=False).get(usr_pluginname, {})
+                self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
             elif choice and usr_pluginname:  # Specific plugin so just remove the whole entry
                 self.addon_meta.pop(usr_pluginname)
 
@@ -240,6 +240,8 @@ class ViewTypes(object):
         if not self.meta:
             return
 
+        makexml = force
+
         # Make these strings for simplicity
         contentid = contentid or ''
         pluginname = pluginname or ''
@@ -248,20 +250,22 @@ class ViewTypes(object):
         hashvalue = 'hash-{}'.format(len(self.content))
 
         with utils.busy_dialog():
-            if not force:
+            if not makexml:
                 last_version = xbmc.getInfoLabel('Skin.String(script-skinviewtypes-hash)')
                 if not last_version or hashvalue != last_version:
-                    force = True
-            if force or not self.addon_meta:
-                self.addon_meta = self.make_defaultjson()
+                    makexml = True
+            if not self.addon_meta:
+                self.addon_meta = self.make_defaultjson(overwrite=True)
+            elif makexml:
+                self.addon_meta = utils.merge_dicts(self.make_defaultjson(), self.addon_meta)
 
         if configure:  # Configure kwparam so open gui
-            force = self.dialog_configure(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
+            makexml = self.dialog_configure(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
         elif contentid:  # If contentid defined but no configure kwparam then just select a view
             pluginname = pluginname or 'library'
-            force = self.add_pluginview(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
+            makexml = self.add_pluginview(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
 
-        if not force and self.xmlfile_exists():
+        if not makexml and self.xmlfile_exists():
             return
 
         with utils.busy_dialog():
