@@ -27,13 +27,20 @@ class ViewTypes(object):
         self.skinfolders = utils.get_skinfolders()
 
     def make_defaultjson(self, overwrite=False):
+        p_dialog = xbmcgui.DialogProgressBG()
+        p_dialog.create(ADDON.getLocalizedString(32002), ADDON.getLocalizedString(32003))
+        p_total = len(self.meta.get('rules', {}))
+
         addon_meta = {'library': {}, 'plugins': {}}
-        for k, v in self.meta.get('rules', {}).items():
+        for p_count, (k, v) in enumerate(self.meta.get('rules', {}).items()):
+            p_dialog.update((p_count * 100) // p_total, message=u'Building default rules for {}'.format(k))
             # TODO: Add checks that file is properly configured and warn user otherwise
             addon_meta['library'][k] = v.get('library')
             addon_meta['plugins'][k] = v.get('plugins') or v.get('library')
         if overwrite:
             utils.write_file(filepath=self.addon_datafile, content=dumps(addon_meta))
+
+        p_dialog.close()
         return addon_meta
 
     def make_xmltree(self):
@@ -44,11 +51,15 @@ class ViewTypes(object):
         expressions = {}
         viewtypes = {}
 
+        p_dialog = xbmcgui.DialogProgressBG()
+        p_dialog.create(ADDON.getLocalizedString(32002), ADDON.getLocalizedString(32003))
+
         for v in self.meta.get('viewtypes', {}):
             expressions[v] = ''  # Construct our expressions dictionary
             viewtypes[v] = {}  # Construct our viewtypes dictionary
 
         # Build the definitions for each viewid
+        p_dialog.update(25, message=u'Building definitions for view IDs...')
         for base_k, base_v in self.addon_meta.items():
             for contentid, viewid in base_v.items():
                 if base_k == 'library':
@@ -62,7 +73,8 @@ class ViewTypes(object):
                     viewtypes[i].setdefault(contentid, {}).setdefault(listtype, [])
                     viewtypes[i][contentid][listtype].append(base_k)
 
-        # Construct the visibility expression
+        # Build the visibility expression
+        p_dialog.update(50, message=u'Building visibility expressions...')
         for viewid, base_v in viewtypes.items():
             for contentid, child_v in base_v.items():
                 rule = self.meta.get('rules', {}).get(contentid, {}).get('rule')  # Container.Content()
@@ -85,13 +97,15 @@ class ViewTypes(object):
                     expression = '[{} + [{}]]'.format(rule, affix)
                     expressions[viewid] = utils.join_conditions(expressions.get(viewid), expression)
 
-        # Construct XMLTree
+        # Build XMLTree
+        p_dialog.update(75, message=u'Building XML...')
         for exp_name, exp_content in expressions.items():
             xmltree.append({
                 'tag': 'expression',
                 'attrib': {'name': self.prefix + exp_name},
                 'content': '[{}]'.format(exp_content)})
 
+        p_dialog.close()
         return xmltree
 
     def add_pluginview(self, contentid=None, pluginname=None, viewid=None):
@@ -249,15 +263,14 @@ class ViewTypes(object):
         # Simple hash value based on character size of file
         hashvalue = 'hash-{}'.format(len(self.content))
 
-        with utils.busy_dialog():
-            if not makexml:
-                last_version = xbmc.getInfoLabel('Skin.String(script-skinviewtypes-hash)')
-                if not last_version or hashvalue != last_version:
-                    makexml = True
-            if not self.addon_meta:
-                self.addon_meta = self.make_defaultjson(overwrite=True)
-            elif makexml:
-                self.addon_meta = utils.merge_dicts(self.make_defaultjson(), self.addon_meta)
+        if not makexml:
+            last_version = xbmc.getInfoLabel('Skin.String(script-skinviewtypes-hash)')
+            if not last_version or hashvalue != last_version:
+                makexml = True
+        if not self.addon_meta:
+            self.addon_meta = self.make_defaultjson(overwrite=True)
+        elif makexml:
+            self.addon_meta = utils.merge_dicts(self.make_defaultjson(), self.addon_meta)
 
         if configure:  # Configure kwparam so open gui
             makexml = self.dialog_configure(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
@@ -265,8 +278,5 @@ class ViewTypes(object):
             pluginname = pluginname or 'library'
             makexml = self.add_pluginview(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
 
-        if not makexml and self.xmlfile_exists():
-            return
-
-        with utils.busy_dialog():
+        if makexml or not self.xmlfile_exists():
             self.make_xmlfile(skinfolder=skinfolder, hashvalue=hashvalue)
