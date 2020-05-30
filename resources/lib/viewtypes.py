@@ -16,7 +16,6 @@ ADDON_DATA = 'special://profile/addon_data/script.skinvariables/'
 
 class ViewTypes(object):
     def __init__(self):
-        self.home = xbmcgui.Window(10000)
         self.content = utils.load_filecontent('special://skin/shortcuts/skinviewtypes.json')
         self.meta = loads(self.content) or {}
         if not xbmcvfs.exists(ADDON_DATA):
@@ -126,6 +125,7 @@ class ViewTypes(object):
                 ids.append(i)
                 items.append(self.get_viewitem(i) if self.icons else self.meta.get('viewtypes', {}).get(i))
             header = '{} {} ({})'.format(ADDON.getLocalizedString(32004), pluginname, contentid)
+        with utils.isactive_winprop('SkinViewtypes.DialogIsActive'):
             choice = xbmcgui.Dialog().select(header, items, useDetails=True if self.icons else False)
             viewid = ids[choice] if choice != -1 else None
         if not viewid:
@@ -263,8 +263,6 @@ class ViewTypes(object):
         if not self.meta:
             return
 
-        self.home.setProperty('SkinViewtypes.IsActive', 'True')
-
         makexml = force
 
         # Make these strings for simplicity
@@ -291,5 +289,3 @@ class ViewTypes(object):
 
         if makexml or not self.xmlfile_exists():
             self.make_xmlfile(skinfolder=skinfolder, hashvalue=hashvalue)
-
-        self.home.clearProperty('SkinViewtypes.IsActive')

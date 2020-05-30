@@ -1,12 +1,22 @@
 import sys
 import xbmc
 import xbmcvfs
+import xbmcgui
 import json
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 
 
 XML_HEADER = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>'
+
+
+@contextmanager
+def isactive_winprop(name, value='True', windowid=10000):
+    xbmcgui.Window(windowid).setProperty(name, value)
+    try:
+        yield
+    finally:
+        xbmcgui.Window(windowid).clearProperty(name)
 
 
 @contextmanager
