@@ -125,6 +125,7 @@ class ViewTypes(object):
                 ids.append(i)
                 items.append(self.get_viewitem(i) if self.icons else self.meta.get('viewtypes', {}).get(i))
             header = '{} {} ({})'.format(ADDON.getLocalizedString(32004), pluginname, contentid)
+        with utils.isactive_winprop('SkinViewtypes.DialogIsActive'):
             choice = xbmcgui.Dialog().select(header, items, useDetails=True if self.icons else False)
             viewid = ids[choice] if choice != -1 else None
         if not viewid:
