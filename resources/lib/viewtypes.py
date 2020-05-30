@@ -17,7 +17,7 @@ ADDON_DATA = 'special://profile/addon_data/script.skinvariables/'
 class ViewTypes(object):
     def __init__(self):
         self.content = utils.load_filecontent('special://skin/shortcuts/skinviewtypes.json')
-        self.meta = loads(self.content) or []
+        self.meta = loads(self.content) or {}
         if not xbmcvfs.exists(ADDON_DATA):
             xbmcvfs.mkdir(ADDON_DATA)
         self.addon_datafile = ADDON_DATA + xbmc.getSkinDir() + '-viewtypes.json'
@@ -25,6 +25,7 @@ class ViewTypes(object):
         self.addon_meta = loads(self.addon_content) or {} if self.addon_content else {}
         self.prefix = self.meta.get('prefix', 'Exp_View') + '_'
         self.skinfolders = utils.get_skinfolders()
+        self.icons = self.meta.get('icons') or {}
 
     def make_defaultjson(self, overwrite=False):
         p_dialog = xbmcgui.DialogProgressBG()
@@ -108,6 +109,13 @@ class ViewTypes(object):
         p_dialog.close()
         return xmltree
 
+    def get_viewitem(self, viewid):
+        name = self.meta.get('viewtypes', {}).get(viewid)
+        icon = self.meta.get('icons', {}).get(viewid)
+        item = xbmcgui.ListItem(label=name)
+        item.setArt({'thumb': icon, 'icon': icon})
+        return item
+
     def add_pluginview(self, contentid=None, pluginname=None, viewid=None):
         if not contentid or not pluginname or not self.meta.get('rules', {}).get(contentid):
             return
@@ -115,9 +123,9 @@ class ViewTypes(object):
             items, ids = [], []
             for i in self.meta.get('rules', {}).get(contentid, {}).get('viewtypes', []):
                 ids.append(i)
-                items.append(self.meta.get('viewtypes', {}).get(i))
+                items.append(self.get_viewitem(i) if self.icons else self.meta.get('viewtypes', {}).get(i))
             header = '{} {} ({})'.format(ADDON.getLocalizedString(32004), pluginname, contentid)
-            choice = xbmcgui.Dialog().select(header, items)
+            choice = xbmcgui.Dialog().select(header, items, useDetails=True if self.icons else False)
             viewid = ids[choice] if choice != -1 else None
         if not viewid:
             return  # No viewtype chosen
