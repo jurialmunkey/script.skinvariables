@@ -33,7 +33,7 @@ class ViewTypes(object):
 
         addon_meta = {'library': {}, 'plugins': {}}
         for p_count, (k, v) in enumerate(self.meta.get('rules', {}).items()):
-            p_dialog.update((p_count * 100) // p_total, message=u'Building default rules for {}'.format(k))
+            p_dialog.update((p_count * 100) // p_total, message=u'{} {}'.format(ADDON.getLocalizedString(32005), k))
             # TODO: Add checks that file is properly configured and warn user otherwise
             addon_meta['library'][k] = v.get('library')
             addon_meta['plugins'][k] = v.get('plugins') or v.get('library')
@@ -59,7 +59,7 @@ class ViewTypes(object):
             viewtypes[v] = {}  # Construct our viewtypes dictionary
 
         # Build the definitions for each viewid
-        p_dialog.update(25, message=u'Building definitions for view IDs...')
+        p_dialog.update(25, message=ADDON.getLocalizedString(32006))
         for base_k, base_v in self.addon_meta.items():
             for contentid, viewid in base_v.items():
                 if base_k == 'library':
@@ -74,7 +74,7 @@ class ViewTypes(object):
                     viewtypes[i][contentid][listtype].append(base_k)
 
         # Build the visibility expression
-        p_dialog.update(50, message=u'Building visibility expressions...')
+        p_dialog.update(50, message=ADDON.getLocalizedString(32007))
         for viewid, base_v in viewtypes.items():
             for contentid, child_v in base_v.items():
                 rule = self.meta.get('rules', {}).get(contentid, {}).get('rule')  # Container.Content()
@@ -98,7 +98,7 @@ class ViewTypes(object):
                     expressions[viewid] = utils.join_conditions(expressions.get(viewid), expression)
 
         # Build XMLTree
-        p_dialog.update(75, message=u'Building XML...')
+        p_dialog.update(75, message=ADDON.getLocalizedString(32008))
         for exp_name, exp_content in expressions.items():
             xmltree.append({
                 'tag': 'expression',
@@ -157,12 +157,12 @@ class ViewTypes(object):
             dialog_item.setArt({'icon': i.get('thumbnail'), 'thumb': i.get('thumbnail')})
             dialog_list.append(dialog_item)
             dialog_ids.append(i.get('addonid'))
-        idx = xbmcgui.Dialog().select('Choose plugin to customise', dialog_list, useDetails=True)
+        idx = xbmcgui.Dialog().select(ADDON.getLocalizedString(32009), dialog_list, useDetails=True)
         if idx == -1:
             return
         pluginname = dialog_ids[idx]
         contentids = [i for i in sorted(self.meta.get('rules', {}))]
-        idx = xbmcgui.Dialog().select('Choose content to customise', contentids)
+        idx = xbmcgui.Dialog().select(ADDON.getLocalizedString(32010), contentids)
         if idx == -1:
             return self.add_newplugin()  # Go back to previous dialog
         contentid = contentids[idx]
@@ -207,21 +207,21 @@ class ViewTypes(object):
 
         if not contentid:
             if not pluginname or pluginname == 'plugins':
-                dialog_list.append(('Reset all {} views...'.format('plugin'), ('plugins', 'default')))
+                dialog_list.append((ADDON.getLocalizedString(32011).format('plugin'), ('plugins', 'default')))
             if not pluginname or pluginname == 'library':
-                dialog_list.append(('Reset all {} views...'.format('library'), ('library', 'default')))
+                dialog_list.append((ADDON.getLocalizedString(32011).format('library'), ('library', 'default')))
             if not pluginname or pluginname != 'library':
-                dialog_list.append(('Add plugin view...', (None, 'add_pluginview')))
+                dialog_list.append((ADDON.getLocalizedString(32012), (None, 'add_pluginview')))
 
-        idx = xbmcgui.Dialog().select('Customise viewtypes', [i[0] for i in dialog_list])
+        idx = xbmcgui.Dialog().select(ADDON.getLocalizedString(32013), [i[0] for i in dialog_list])
         if idx == -1:
             return force  # User cancelled
 
         usr_pluginname, usr_contentid = dialog_list[idx][1]
         if usr_contentid == 'default':
             choice = xbmcgui.Dialog().yesno(
-                'Reset {} Views'.format(usr_pluginname),
-                'Do you wish to reset all {} views to default'.format(usr_pluginname))
+                ADDON.getLocalizedString(32014).format(usr_pluginname),
+                ADDON.getLocalizedString(32015).format(usr_pluginname))
 
             if choice and usr_pluginname == 'plugins':
                 self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
