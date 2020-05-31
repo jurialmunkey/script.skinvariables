@@ -68,7 +68,7 @@ class SkinVariables(object):
                 build_var['attrib']['name'] = tag_name
 
                 li_name = 'Container({}).ListItem'.format(container) if container else 'ListItem'
-                li_name += '({})'.format(listitem) if listitem else ''
+                li_name += '({})'.format(listitem) if listitem or listitem == 0 else ''
 
                 f_dict = {
                     'id': container or '',
