@@ -109,6 +109,14 @@ def merge_dicts(org, upd, skipempty=False):
     return source
 
 
+def del_empty_keys(d, values=[]):
+    my_dict = d.copy()
+    for k, v in d.items():
+        if not v or v in values:
+            del my_dict[k]
+    return my_dict
+
+
 def get_skinfolders():
     """
     Get the various xml folders for skin as defined in addon.xml
