@@ -5,7 +5,8 @@
 import xbmc
 import xbmcgui
 import xbmcaddon
-from json import loads
+from json import loads, dumps
+import xml.etree.ElementTree as ET
 import resources.lib.utils as utils
 
 
@@ -14,8 +15,42 @@ ADDON = xbmcaddon.Addon()
 
 class SkinVariables(object):
     def __init__(self):
-        self.content = utils.load_filecontent('special://skin/shortcuts/skinvariables.json')
+        self.content = self.build_json('special://skin/shortcuts/skinvariables.xml')
+        self.content = self.content or utils.load_filecontent('special://skin/shortcuts/skinvariables.json')
         self.meta = loads(self.content) or []
+
+    def build_json(self, file):
+        xmlstring = utils.load_filecontent(file)
+        if not xmlstring:
+            return
+
+        json = []
+        for variable in ET.fromstring(xmlstring):
+            if not variable.attrib.get('name'):
+                continue  # No name specified so skip
+            if variable.tag not in ['expression', 'variable']:
+                continue  # Not an expression or variable so skip
+
+            item = {}
+
+            if variable.tag == 'expression' and variable.text:
+                item['expression'] = variable.text
+            elif variable.tag == 'variable':
+                item['values'] = [{i.attrib.get('condition') or 'True': i.text} for i in variable if i.text]
+
+            if not item.get('expression') and not item.get('values'):
+                continue  # No values or expression so skip
+
+            item['name'] = variable.attrib.get('name')
+            item['containers'] = [utils.try_parse_int(i) for i in variable.attrib.get('containers', '').split(',') if i]
+            item['listitems'] = {}
+            item['listitems']['start'] = utils.try_parse_int(variable.attrib.get('start'))
+            item['listitems']['end'] = utils.try_parse_int(variable.attrib.get('end'))
+            item['parent'] = variable.attrib.get('parent')
+
+            json.append(utils.del_empty_keys(item))
+
+        return dumps(json)
 
     def build_containers(self, variable={}):
         containers = variable.get('containers', [])
