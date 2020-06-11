@@ -101,6 +101,7 @@ class ViewTypes(object):
         # Build XMLTree
         p_dialog.update(75, message=ADDON.getLocalizedString(32008))
         for exp_name, exp_content in expressions.items():
+            exp_content = exp_content.replace('[]', '[False]') if exp_content else 'False'  # Replace None conditions with explicit False because Kodi complains about empty visibility conditions
             xmltree.append({
                 'tag': 'expression',
                 'attrib': {'name': self.prefix + exp_name},
