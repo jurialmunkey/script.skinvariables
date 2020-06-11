@@ -98,14 +98,24 @@ class ViewTypes(object):
                     expression = '[{} + [{}]]'.format(rule, affix)
                     expressions[viewid] = utils.join_conditions(expressions.get(viewid), expression)
 
+        # Build conditional rules for disabling view lock
+        if self.meta.get('condition'):
+            sep = ' | '
+            for viewid in self.meta.get('viewtypes', {}):
+                rule = ['[{}]'.format(v.get('rule')) for k, v in self.meta.get('rules', {}).items() if viewid in v.get('viewtypes', [])]
+                rule_cond = '![{}] + [{}]'.format(self.meta.get('condition'), sep.join(rule))
+                rule_expr = '[{}] + [{}]'.format(self.meta.get('condition'), expressions.get(viewid))
+                expressions[viewid] = '[{}] | [{}]'.format(rule_expr, rule_cond)
+
         # Build XMLTree
         p_dialog.update(75, message=ADDON.getLocalizedString(32008))
         for exp_name, exp_content in expressions.items():
             exp_content = exp_content.replace('[]', '[False]') if exp_content else 'False'  # Replace None conditions with explicit False because Kodi complains about empty visibility conditions
+            exp_content = '[{}]'.format(exp_content)
             xmltree.append({
                 'tag': 'expression',
                 'attrib': {'name': self.prefix + exp_name},
-                'content': '[{}]'.format(exp_content)})
+                'content': exp_content})
 
         p_dialog.close()
         return xmltree
