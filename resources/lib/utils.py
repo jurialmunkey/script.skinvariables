@@ -28,6 +28,14 @@ def busy_dialog():
         xbmc.executebuiltin('Dialog.Close(busydialognocancel)')
 
 
+def get_localized(text):
+    if text.startswith('$LOCALIZE'):
+        text = text.strip('$LOCALIZE[]')
+    if try_parse_int(text):
+        text = xbmc.getLocalizedString(try_parse_int(text))
+    return text
+
+
 def get_jsonrpc(method=None, params=None):
     if not method or not params:
         return {}

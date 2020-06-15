@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="script.skinvariables"
-version="0.1.9"
+version="0.2.0"
 name="Skin Variables"
 provider-name="jurialmunkey">
 <requires>
@@ -16,6 +16,6 @@ provider-name="jurialmunkey">
     <icon>icon.png</icon>
     <fanart>fanart.jpg</fanart>
   </assets>
-  <news>0.1.9 - Allow adding a condition to disable the view lock[CR]0.1.8 - Replace implicit None with explicit False because Kodi complains about empty visibility conditions</news>
+  <news>0.2.0 - Allow localization of viewtype names</news>
 </extension>
 </addon>
