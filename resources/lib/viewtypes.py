@@ -121,7 +121,7 @@ class ViewTypes(object):
         return xmltree
 
     def get_viewitem(self, viewid):
-        name = self.meta.get('viewtypes', {}).get(viewid)
+        name = utils.get_localized(self.meta.get('viewtypes', {}).get(viewid))
         icon = self.meta.get('icons', {}).get(viewid)
         item = xbmcgui.ListItem(label=name)
         item.setArt({'thumb': icon, 'icon': icon})
@@ -134,7 +134,7 @@ class ViewTypes(object):
             items, ids = [], []
             for i in self.meta.get('rules', {}).get(contentid, {}).get('viewtypes', []):
                 ids.append(i)
-                items.append(self.get_viewitem(i) if self.icons else self.meta.get('viewtypes', {}).get(i))
+                items.append(self.get_viewitem(i) if self.icons else utils.get_localized(self.meta.get('viewtypes', {}).get(i)))
             header = '{} {} ({})'.format(ADDON.getLocalizedString(32004), pluginname, contentid)
         with utils.isactive_winprop('SkinViewtypes.DialogIsActive'):
             choice = xbmcgui.Dialog().select(header, items, useDetails=True if self.icons else False)
@@ -200,7 +200,7 @@ class ViewTypes(object):
 
     def dc_listcomp(self, listitems, listprefix='', idprefix='', contentid=''):
         return [
-            ('{}{} ({})'.format(listprefix, k.capitalize(), self.meta.get('viewtypes', {}).get(v)), (idprefix, k))
+            ('{}{} ({})'.format(listprefix, k.capitalize(), utils.get_localized(self.meta.get('viewtypes', {}).get(v))), (idprefix, k))
             for k, v in listitems if not contentid or contentid == k]
 
     def dialog_configure(self, contentid=None, pluginname=None, viewid=None, force=False):
