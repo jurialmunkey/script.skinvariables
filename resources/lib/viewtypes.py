@@ -110,12 +110,17 @@ class ViewTypes(object):
         # Build XMLTree
         p_dialog.update(75, message=ADDON.getLocalizedString(32008))
         for exp_name, exp_content in expressions.items():
+            exp_include = 'True' if exp_content else 'False'
             exp_content = exp_content.replace('[]', '[False]') if exp_content else 'False'  # Replace None conditions with explicit False because Kodi complains about empty visibility conditions
             exp_content = '[{}]'.format(exp_content)
             xmltree.append({
                 'tag': 'expression',
                 'attrib': {'name': self.prefix + exp_name},
                 'content': exp_content})
+            xmltree.append({
+                'tag': 'expression',
+                'attrib': {'name': self.prefix + exp_name + '_Include'},
+                'content': exp_include})
 
         p_dialog.close()
         return xmltree
@@ -245,7 +250,7 @@ class ViewTypes(object):
 
             if choice and usr_pluginname == 'plugins':
                 self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
-                for i in self.addon_meta:  # Also clean all custom plugin setups
+                for i in self.addon_meta.copy():  # Also clean all custom plugin setups
                     self.addon_meta.pop(i) if i != 'library' else None
             elif choice and usr_pluginname == 'library':
                 self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
