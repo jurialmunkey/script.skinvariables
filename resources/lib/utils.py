@@ -145,6 +145,18 @@ def get_skinfolders():
     return folders
 
 
+def make_hash(content):
+    return 'hash-{}'.format(len(content))  # TODO: proper MD5 checksum
+
+
+def check_hash(hashname, hashvalue=None):
+    last_version = xbmc.getInfoLabel('Skin.String({})'.format(hashname))
+    if not last_version:
+        return hashvalue
+    if hashvalue != last_version:
+        return hashvalue
+
+
 def write_file(filepath=None, content=None):
     if not filepath:
         return
@@ -153,7 +165,7 @@ def write_file(filepath=None, content=None):
     f.close()
 
 
-def write_skinfile(filename=None, folders=None, content=None, hashvalue=None, hashname=None, reloadskin=True):
+def write_skinfile(filename=None, folders=None, content=None, hashvalue=None, hashname=None, reloadskin=True, checksum=None):
     if not filename or not folders or not content:
         return
 
@@ -162,6 +174,9 @@ def write_skinfile(filename=None, folders=None, content=None, hashvalue=None, ha
 
     if hashvalue and hashname:
         xbmc.executebuiltin('Skin.SetString({},{})'.format(hashname, hashvalue))
+
+    if checksum:
+        xbmc.executebuiltin('Skin.SetString({},{})'.format(checksum, make_hash(content)))
 
     if reloadskin:
         xbmc.executebuiltin('ReloadSkin()')
