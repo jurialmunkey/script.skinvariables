@@ -159,6 +159,7 @@ class ViewTypes(object):
             utils.write_skinfile(
                 folders=folders, filename='script-skinviewtypes-includes.xml',
                 content=utils.make_xml_includes(xmltree),
+                checksum='script-skinviewtypes-checksum',
                 hashname='script-skinviewtypes-hash', hashvalue=hashvalue)
 
         utils.write_file(filepath=self.addon_datafile, content=dumps(self.addon_meta))
@@ -267,11 +268,14 @@ class ViewTypes(object):
 
         return self.dialog_configure(contentid=contentid, pluginname=pluginname, viewid=viewid, force=force)
 
-    def xmlfile_exists(self, skinfolder=None):
+    def xmlfile_exists(self, skinfolder=None, hashname='script-skinviewtypes-checksum'):
         folders = [skinfolder] if skinfolder else self.skinfolders
 
         for folder in folders:
             if not xbmcvfs.exists('special://skin/{}/script-skinviewtypes-includes.xml'.format(folder)):
+                return False
+            content = utils.load_filecontent('special://skin/{}/script-skinviewtypes-includes.xml'.format(folder))
+            if content and utils.check_hash(hashname, utils.make_hash(content)):
                 return False
         return True
 
@@ -286,12 +290,11 @@ class ViewTypes(object):
         pluginname = pluginname or ''
 
         # Simple hash value based on character size of file
-        hashvalue = 'hash-{}'.format(len(self.content))
+        hashvalue = utils.make_hash(self.content)
 
         if not makexml:
-            last_version = xbmc.getInfoLabel('Skin.String(script-skinviewtypes-hash)')
-            if not last_version or hashvalue != last_version:
-                makexml = True
+            makexml = utils.check_hash('script-skinviewtypes-hash', hashvalue)
+
         if not self.addon_meta:
             self.addon_meta = self.make_defaultjson(overwrite=True)
         elif makexml:
@@ -303,5 +306,5 @@ class ViewTypes(object):
             pluginname = pluginname or 'library'
             makexml = self.add_pluginview(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
 
-        if makexml or not self.xmlfile_exists():
+        if makexml or not self.xmlfile_exists(skinfolder):
             self.make_xmlfile(skinfolder=skinfolder, hashvalue=hashvalue)

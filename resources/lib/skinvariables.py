@@ -137,7 +137,7 @@ class SkinVariables(object):
         if not self.meta:
             return
 
-        hashvalue = 'hash-{}'.format(len(self.content))
+        hashvalue = utils.make_hash(self.content)
 
         if not force:  # Allow overriding over built check
             last_version = xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)')
