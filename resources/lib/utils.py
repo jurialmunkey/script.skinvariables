@@ -3,6 +3,7 @@ import xbmc
 import xbmcvfs
 import xbmcgui
 import json
+import hashlib
 import xml.etree.ElementTree as ET
 from contextlib import contextmanager
 
@@ -146,7 +147,7 @@ def get_skinfolders():
 
 
 def make_hash(content):
-    return 'hash-{}'.format(len(content))  # TODO: proper MD5 checksum
+    return hashlib.md5(content.encode('utf-8')).hexdigest()
 
 
 def check_hash(hashname, hashvalue=None):
