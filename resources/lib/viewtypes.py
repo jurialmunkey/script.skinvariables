@@ -228,7 +228,7 @@ class ViewTypes(object):
                     continue  # Only add the named plugin if not just doing generic plugins
                 name = self.get_addondetails(addonid=k, prop='name')
                 dialog_list += self.dc_listcomp(
-                    sorted(v.items()), listprefix=name + ' - ', idprefix=k, contentid=contentid)
+                    sorted(v.items()), listprefix=u' - '.format(name), idprefix=k, contentid=contentid)
                 dialog_list.append(('Reset all {} views...'.format(name), (k, 'default')))
 
         if not contentid:
