@@ -212,26 +212,26 @@ class ViewTypes(object):
     def dialog_configure(self, contentid=None, pluginname=None, viewid=None, force=False):
         dialog_list = []
 
-        if not pluginname or pluginname == 'library':
+        if not pluginname or pluginname == 'library':  # Build list of views for content types in library
             dialog_list += self.dc_listcomp(
                 sorted(self.addon_meta.get('library', {}).items()), listprefix='Library - ', idprefix='library', contentid=contentid)
 
-        if not pluginname or pluginname == 'plugins':
+        if not pluginname or pluginname == 'plugins':  # Build list of views for content types in generic plugins
             dialog_list += self.dc_listcomp(
                 sorted(self.addon_meta.get('plugins', {}).items()), listprefix='Plugins - ', idprefix='plugins', contentid=contentid)
 
-        if not pluginname or pluginname != 'library':
+        if not pluginname or pluginname != 'library':  # Build list of views for content types in specific plugins
             for k, v in self.addon_meta.items():
-                if k in ['library', 'plugins']:
+                if k in ['library', 'plugins']:  # Skip the generic library/plugin views since we already built them
                     continue
                 if pluginname and pluginname != 'plugins' and pluginname != k:
                     continue  # Only add the named plugin if not just doing generic plugins
                 name = self.get_addondetails(addonid=k, prop='name')
                 dialog_list += self.dc_listcomp(
                     sorted(v.items()), listprefix=u'{} - '.format(name), idprefix=k, contentid=contentid)
-                dialog_list.append(('Reset all {} views...'.format(name), (k, 'default')))
+                dialog_list.append(('Reset all {} views...'.format(name), (k, 'default')))  # Add option to reset specific plugin views
 
-        if not contentid:
+        if not contentid:  # Add options to reset all views (if configuring all content types)
             if not pluginname or pluginname == 'plugins':
                 dialog_list.append((ADDON.getLocalizedString(32011).format('plugin'), ('plugins', 'default')))
             if not pluginname or pluginname == 'library':
@@ -239,34 +239,34 @@ class ViewTypes(object):
             if not pluginname or pluginname != 'library':
                 dialog_list.append((ADDON.getLocalizedString(32012), (None, 'add_pluginview')))
 
-        idx = xbmcgui.Dialog().select(ADDON.getLocalizedString(32013), [i[0] for i in dialog_list])
+        idx = xbmcgui.Dialog().select(ADDON.getLocalizedString(32013), [i[0] for i in dialog_list])  # Make the dialog
         if idx == -1:
             return force  # User cancelled
 
-        usr_pluginname, usr_contentid = dialog_list[idx][1]
-        if usr_contentid == 'default':
+        usr_pluginname, usr_contentid = dialog_list[idx][1]  # Get the selected option as a tuple
+        if usr_contentid == 'default':  # If "default" then reset that section to defaults (after asking to confirm)
             choice = xbmcgui.Dialog().yesno(
                 ADDON.getLocalizedString(32014).format(usr_pluginname),
                 ADDON.getLocalizedString(32015).format(usr_pluginname))
 
-            if choice and usr_pluginname == 'plugins':
+            if choice and usr_pluginname == 'plugins':  # Reset all plugins views to default (both generic and specific)
+                self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})  # Rebuild default views for generic plugins
+                for i in self.addon_meta.copy():  # Also remove any specific plugin entries
+                    self.addon_meta.pop(i) if i not in ['library', 'plugins'] else None  # Don't remove library views or the generic plugin views we just built
+            elif choice and usr_pluginname == 'library':  # Reset all library views to default
                 self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
-                for i in self.addon_meta.copy():  # Also clean all custom plugin setups
-                    self.addon_meta.pop(i) if i not in ['library', 'plugins'] else None
-            elif choice and usr_pluginname == 'library':
-                self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
-            elif choice and usr_pluginname:  # Specific plugin so just remove the whole entry
-                self.addon_meta.pop(usr_pluginname)
+            elif choice and usr_pluginname:  # Reset a specific plugin to defaults
+                self.addon_meta.pop(usr_pluginname)  # Pop the plugin entry to remove
 
             force = force or choice
-        elif usr_contentid == 'add_pluginview':
-            choice = self.add_newplugin()
+        elif usr_contentid == 'add_pluginview':  # User wants to add a view for a specific plugin and content type
+            choice = self.add_newplugin()  # Ask user to select a plugin and content type to add a view for
             force = force or choice
-        else:
+        else:   # Change an existing viewtype
             choice = self.add_pluginview(contentid=usr_contentid.lower(), pluginname=usr_pluginname.lower())
             force = force or choice
 
-        return self.dialog_configure(contentid=contentid, pluginname=pluginname, viewid=viewid, force=force)
+        return self.dialog_configure(contentid=contentid, pluginname=pluginname, viewid=viewid, force=force)  # Recursively open dialog so that user can set multiple choices
 
     def xmlfile_exists(self, skinfolder=None, hashname='script-skinviewtypes-checksum'):
         folders = [skinfolder] if skinfolder else self.skinfolders
