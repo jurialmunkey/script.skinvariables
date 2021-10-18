@@ -228,7 +228,7 @@ class ViewTypes(object):
                     continue  # Only add the named plugin if not just doing generic plugins
                 name = self.get_addondetails(addonid=k, prop='name')
                 dialog_list += self.dc_listcomp(
-                    sorted(v.items()), listprefix=u' - '.format(name), idprefix=k, contentid=contentid)
+                    sorted(v.items()), listprefix=u'{} - '.format(name), idprefix=k, contentid=contentid)
                 dialog_list.append(('Reset all {} views...'.format(name), (k, 'default')))
 
         if not contentid:
@@ -252,7 +252,7 @@ class ViewTypes(object):
             if choice and usr_pluginname == 'plugins':
                 self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
                 for i in self.addon_meta.copy():  # Also clean all custom plugin setups
-                    self.addon_meta.pop(i) if i != 'library' else None
+                    self.addon_meta.pop(i) if i not in ['library', 'plugins'] else None
             elif choice and usr_pluginname == 'library':
                 self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
             elif choice and usr_pluginname:  # Specific plugin so just remove the whole entry
