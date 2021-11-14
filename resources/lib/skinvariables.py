@@ -107,6 +107,7 @@ class SkinVariables(object):
 
                 f_dict = {
                     'id': container or '',
+                    'cid': '_C{}'.format(container) if container else '',
                     'pos': listitem or 0,
                     'listitem': li_name,
                     'listitemabsolute': li_name.replace('ListItem(', 'ListItemAbsolute('),
