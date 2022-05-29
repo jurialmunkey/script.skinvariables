@@ -7,8 +7,9 @@ import xbmcgui
 import xbmcaddon
 from json import loads, dumps
 import xml.etree.ElementTree as ET
-import resources.lib.utils as utils
-
+from resources.lib.kodiutils import try_int, del_empty_keys
+from resources.lib.xmlhelper import make_xml_includes, get_skinfolders
+from resources.lib.fileutils import load_filecontent, write_skinfile, make_hash
 
 ADDON = xbmcaddon.Addon()
 
@@ -16,11 +17,11 @@ ADDON = xbmcaddon.Addon()
 class SkinVariables(object):
     def __init__(self):
         self.content = self.build_json('special://skin/shortcuts/skinvariables.xml')
-        self.content = self.content or utils.load_filecontent('special://skin/shortcuts/skinvariables.json')
+        self.content = self.content or load_filecontent('special://skin/shortcuts/skinvariables.json')
         self.meta = loads(self.content) or []
 
     def build_json(self, file):
-        xmlstring = utils.load_filecontent(file)
+        xmlstring = load_filecontent(file)
         if not xmlstring:
             return
 
@@ -42,13 +43,13 @@ class SkinVariables(object):
                 continue  # No values or expression so skip
 
             item['name'] = variable.attrib.get('name')
-            item['containers'] = [utils.try_parse_int(i) for i in variable.attrib.get('containers', '').split(',') if i]
+            item['containers'] = [try_int(i) for i in variable.attrib.get('containers', '').split(',') if i]
             item['listitems'] = {}
-            item['listitems']['start'] = utils.try_parse_int(variable.attrib.get('start'))
-            item['listitems']['end'] = utils.try_parse_int(variable.attrib.get('end'))
+            item['listitems']['start'] = try_int(variable.attrib.get('start'))
+            item['listitems']['end'] = try_int(variable.attrib.get('end'))
             item['parent'] = variable.attrib.get('parent')
 
-            json.append(utils.del_empty_keys(item))
+            json.append(del_empty_keys(item))
 
         return dumps(json)
 
@@ -134,11 +135,11 @@ class SkinVariables(object):
             skin_vars.append(build_var)
         return skin_vars
 
-    def update_xml(self, force=False, skinfolder=None):
+    def update_xml(self, force=False, skinfolder=None, **kwargs):
         if not self.meta:
             return
 
-        hashvalue = utils.make_hash(self.content)
+        hashvalue = make_hash(self.content)
 
         if not force:  # Allow overriding over built check
             last_version = xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)')
@@ -158,11 +159,11 @@ class SkinVariables(object):
             xmltree = xmltree + item if item else xmltree
 
         # Get folder to save to
-        folders = [skinfolder] if skinfolder else utils.get_skinfolders()
+        folders = [skinfolder] if skinfolder else get_skinfolders()
         if folders:
-            utils.write_skinfile(
+            write_skinfile(
                 folders=folders, filename='script-skinvariables-includes.xml',
-                content=utils.make_xml_includes(xmltree, p_dialog=p_dialog),
+                content=make_xml_includes(xmltree, p_dialog=p_dialog),
                 hashvalue=hashvalue, hashname='script-skinvariables-hash')
 
         p_dialog.close()

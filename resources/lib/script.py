@@ -3,36 +3,54 @@
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import sys
-from resources.lib.skinvariables import SkinVariables
-from resources.lib.viewtypes import ViewTypes
+from importlib import import_module
+
+
+def importmodule(module_name, import_attr=None):
+    module = import_module(module_name)
+    if not import_attr:
+        return module
+    return getattr(module, import_attr)
 
 
 class Script(object):
     def __init__(self):
-        self.params = {}
+        def map_args(arg):
+            if '=' in arg:
+                key, value = arg.split('=', 1)
+                value = value.strip('\'').strip('"') if value else None
+                return (key, value)
+            return (arg, True)
 
-    def get_params(self):
-        for arg in sys.argv:
-            if arg == 'script.py':
-                pass
-            elif '=' in arg:
-                arg_split = arg.split('=', 1)
-                if arg_split[0] and arg_split[1]:
-                    key, value = arg_split
-                    self.params.setdefault(key, value)
-            else:
-                self.params.setdefault(arg, True)
+        self.params = {}
+        for arg in sys.argv[1:]:
+            k, v = map_args(arg)
+            self.params[k] = v
+
+    # lambda **kwargs: importmodule('resources.lib.script.method', 'split_value')(**kwargs),
+    routing_table = {
+        'set_player_subtitle':
+            lambda **kwargs: importmodule('resources.lib.method', 'set_player_subtitle')(**kwargs),
+        'set_player_audiostream':
+            lambda **kwargs: importmodule('resources.lib.method', 'set_player_audiostream')(**kwargs),
+        'set_editcontrol':
+            lambda **kwargs: importmodule('resources.lib.method', 'set_editcontrol')(**kwargs),
+    }
+
+    def run(self):
+        if not self.params:
+            return
+        routes_available, params_given = set(self.routing_table.keys()), set(self.params.keys())
+        try:
+            route_taken = set.intersection(routes_available, params_given).pop()
+        except KeyError:
+            return self.router()
+        return self.routing_table[route_taken](**self.params)
 
     def router(self):
         if self.params.get('action') == 'buildviews':
-            ViewTypes().update_xml(
-                skinfolder=self.params.get('folder'),
-                force=self.params.get('force'),
-                configure=self.params.get('configure'),
-                contentid=self.params.get('contentid'),
-                viewid=self.params.get('viewid'),
-                pluginname=self.params.get('pluginname'))
+            from resources.lib.viewtypes import ViewTypes
+            return ViewTypes().update_xml(skinfolder=self.params.get('folder'), **self.params)
         else:
-            SkinVariables().update_xml(
-                skinfolder=self.params.get('folder'),
-                force=self.params.get('force'))
+            from resources.lib.skinvariables import SkinVariables
+            return SkinVariables().update_xml(skinfolder=self.params.get('folder'), **self.params)

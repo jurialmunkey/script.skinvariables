@@ -7,24 +7,39 @@ import xbmcgui
 import xbmcvfs
 import xbmcaddon
 from json import loads, dumps
-import resources.lib.utils as utils
+from resources.lib.jsonrpc import get_jsonrpc
+from resources.lib.kodiutils import merge_dicts, try_int, isactive_winprop
+from resources.lib.xmlhelper import make_xml_includes, get_skinfolders
+from resources.lib.fileutils import check_hash, make_hash, write_skinfile, write_file, load_filecontent
 
 
 ADDON = xbmcaddon.Addon()
 ADDON_DATA = 'special://profile/addon_data/script.skinvariables/'
 
 
+def join_conditions(org='', new='', operator=' | '):
+    return '{}{}{}'.format(org, operator, new) if org else new
+
+
+def _get_localized(text):
+    if text.startswith('$LOCALIZE'):
+        text = text.strip('$LOCALIZE[]')
+    if try_int(text):
+        text = xbmc.getLocalizedString(try_int(text))
+    return text
+
+
 class ViewTypes(object):
     def __init__(self):
-        self.content = utils.load_filecontent('special://skin/shortcuts/skinviewtypes.json')
+        self.content = load_filecontent('special://skin/shortcuts/skinviewtypes.json')
         self.meta = loads(self.content) or {}
         if not xbmcvfs.exists(ADDON_DATA):
             xbmcvfs.mkdir(ADDON_DATA)
         self.addon_datafile = ADDON_DATA + xbmc.getSkinDir() + '-viewtypes.json'
-        self.addon_content = utils.load_filecontent(self.addon_datafile)
+        self.addon_content = load_filecontent(self.addon_datafile)
         self.addon_meta = loads(self.addon_content) or {} if self.addon_content else {}
         self.prefix = self.meta.get('prefix', 'Exp_View') + '_'
-        self.skinfolders = utils.get_skinfolders()
+        self.skinfolders = get_skinfolders()
         self.icons = self.meta.get('icons') or {}
 
     def make_defaultjson(self, overwrite=False):
@@ -39,7 +54,7 @@ class ViewTypes(object):
             addon_meta['library'][k] = v.get('library')
             addon_meta['plugins'][k] = v.get('plugins') or v.get('library')
         if overwrite:
-            utils.write_file(filepath=self.addon_datafile, content=dumps(addon_meta))
+            write_file(filepath=self.addon_datafile, content=dumps(addon_meta))
 
         p_dialog.close()
         return addon_meta
@@ -84,19 +99,19 @@ class ViewTypes(object):
                 if child_v.get('library'):
                     whitelist = 'String.IsEmpty(Container.PluginName)'
                 for i in child_v.get('whitelist', []):
-                    whitelist = utils.join_conditions(whitelist, 'String.IsEqual(Container.PluginName,{})'.format(i))
+                    whitelist = join_conditions(whitelist, 'String.IsEqual(Container.PluginName,{})'.format(i))
 
                 blacklist = ''
                 if child_v.get('plugins'):
                     blacklist = '!String.IsEmpty(Container.PluginName)'
                     for i in child_v.get('blacklist', []):
-                        blacklist = utils.join_conditions(blacklist, '!String.IsEqual(Container.PluginName,{})'.format(i), operator=' + ')
+                        blacklist = join_conditions(blacklist, '!String.IsEqual(Container.PluginName,{})'.format(i), operator=' + ')
 
                 affix = '[{}] | [{}]'.format(whitelist, blacklist) if whitelist and blacklist else whitelist or blacklist
 
                 if affix:
                     expression = '[{} + [{}]]'.format(rule, affix)
-                    expressions[viewid] = utils.join_conditions(expressions.get(viewid), expression)
+                    expressions[viewid] = join_conditions(expressions.get(viewid), expression)
 
         # Build conditional rules for disabling view lock
         if self.meta.get('condition'):
@@ -126,7 +141,7 @@ class ViewTypes(object):
         return xmltree
 
     def get_viewitem(self, viewid):
-        name = utils.get_localized(self.meta.get('viewtypes', {}).get(viewid))
+        name = _get_localized(self.meta.get('viewtypes', {}).get(viewid))
         icon = self.meta.get('icons', {}).get(viewid)
         item = xbmcgui.ListItem(label=name)
         item.setArt({'thumb': icon, 'icon': icon})
@@ -139,9 +154,9 @@ class ViewTypes(object):
             items, ids = [], []
             for i in self.meta.get('rules', {}).get(contentid, {}).get('viewtypes', []):
                 ids.append(i)
-                items.append(self.get_viewitem(i) if self.icons else utils.get_localized(self.meta.get('viewtypes', {}).get(i)))
+                items.append(self.get_viewitem(i) if self.icons else _get_localized(self.meta.get('viewtypes', {}).get(i)))
             header = '{} {} ({})'.format(ADDON.getLocalizedString(32004), pluginname, contentid)
-        with utils.isactive_winprop('SkinViewtypes.DialogIsActive'):
+        with isactive_winprop('SkinViewtypes.DialogIsActive'):
             choice = xbmcgui.Dialog().select(header, items, useDetails=True if self.icons else False)
             viewid = ids[choice] if choice != -1 else None
         if not viewid:
@@ -156,13 +171,13 @@ class ViewTypes(object):
         # # Get folder to save to
         folders = [skinfolder] if skinfolder else self.skinfolders
         if folders:
-            utils.write_skinfile(
+            write_skinfile(
                 folders=folders, filename='script-skinviewtypes-includes.xml',
-                content=utils.make_xml_includes(xmltree),
+                content=make_xml_includes(xmltree),
                 checksum='script-skinviewtypes-checksum',
                 hashname='script-skinviewtypes-hash', hashvalue=hashvalue)
 
-        utils.write_file(filepath=self.addon_datafile, content=dumps(self.addon_meta))
+        write_file(filepath=self.addon_datafile, content=dumps(self.addon_meta))
 
     def add_newplugin(self):
         """
@@ -173,9 +188,9 @@ class ViewTypes(object):
         params_a = {"type": "xbmc.addon.video", "properties": properties}
         params_b = {"type": "xbmc.addon.audio", "properties": properties}
         params_c = {"type": "xbmc.addon.image", "properties": properties}
-        response_a = utils.get_jsonrpc(method, params_a).get('result', {}).get('addons') or []
-        response_b = utils.get_jsonrpc(method, params_b).get('result', {}).get('addons') or []
-        response_c = utils.get_jsonrpc(method, params_c).get('result', {}).get('addons') or []
+        response_a = get_jsonrpc(method, params_a).get('result', {}).get('addons') or []
+        response_b = get_jsonrpc(method, params_b).get('result', {}).get('addons') or []
+        response_c = get_jsonrpc(method, params_c).get('result', {}).get('addons') or []
         response = response_a + response_b + response_c
         dialog_list, dialog_ids = [], []
         for i in response:
@@ -202,11 +217,11 @@ class ViewTypes(object):
             return
         method = "Addons.GetAddonDetails"
         params = {"addonid": addonid, "properties": [prop]}
-        return utils.get_jsonrpc(method, params).get('result', {}).get('addon', {}).get(prop)
+        return get_jsonrpc(method, params).get('result', {}).get('addon', {}).get(prop)
 
     def dc_listcomp(self, listitems, listprefix='', idprefix='', contentid=''):
         return [
-            ('{}{} ({})'.format(listprefix, k.capitalize(), utils.get_localized(self.meta.get('viewtypes', {}).get(v))), (idprefix, k))
+            ('{}{} ({})'.format(listprefix, k.capitalize(), _get_localized(self.meta.get('viewtypes', {}).get(v))), (idprefix, k))
             for k, v in listitems if not contentid or contentid == k]
 
     def dialog_configure(self, contentid=None, pluginname=None, viewid=None, force=False):
@@ -274,12 +289,12 @@ class ViewTypes(object):
         for folder in folders:
             if not xbmcvfs.exists('special://skin/{}/script-skinviewtypes-includes.xml'.format(folder)):
                 return False
-            content = utils.load_filecontent('special://skin/{}/script-skinviewtypes-includes.xml'.format(folder))
-            if content and utils.check_hash(hashname, utils.make_hash(content)):
+            content = load_filecontent('special://skin/{}/script-skinviewtypes-includes.xml'.format(folder))
+            if content and check_hash(hashname, make_hash(content)):
                 return False
         return True
 
-    def update_xml(self, force=False, skinfolder=None, contentid=None, viewid=None, pluginname=None, configure=False):
+    def update_xml(self, force=False, skinfolder=None, contentid=None, viewid=None, pluginname=None, configure=False, **kwargs):
         if not self.meta:
             return
 
@@ -290,15 +305,15 @@ class ViewTypes(object):
         pluginname = pluginname or ''
 
         # Simple hash value based on character size of file
-        hashvalue = utils.make_hash(self.content)
+        hashvalue = make_hash(self.content)
 
         if not makexml:
-            makexml = utils.check_hash('script-skinviewtypes-hash', hashvalue)
+            makexml = check_hash('script-skinviewtypes-hash', hashvalue)
 
         if not self.addon_meta:
             self.addon_meta = self.make_defaultjson(overwrite=True)
         elif makexml:
-            self.addon_meta = utils.merge_dicts(self.make_defaultjson(), self.addon_meta)
+            self.addon_meta = merge_dicts(self.make_defaultjson(), self.addon_meta)
 
         if configure:  # Configure kwparam so open gui
             makexml = self.dialog_configure(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
