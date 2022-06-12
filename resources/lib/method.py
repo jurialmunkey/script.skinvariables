@@ -4,7 +4,6 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import xbmc
 import time
-import xbmcgui
 from resources.lib.jsonrpc import get_jsonrpc
 from resources.lib.kodiutils import try_int
 
@@ -24,8 +23,6 @@ def set_player_audiostream(set_player_audiostream, reload_property='UID', **kwar
 
 
 def set_editcontrol(set_editcontrol, text, window_id=None, setfocus=None, setfocus_wait='00:00', **kwargs):
-    window_id = int(window_id or xbmcgui.getCurrentWindowId())
-    window_id += 10000 if window_id < 10000 else 0
-    my_window = xbmcgui.Window(window_id)
-    my_window.getControl(int(set_editcontrol)).setText(text)
+    xbmc.executebuiltin(f'SetFocus({set_editcontrol})')
+    get_jsonrpc("Input.SendText", {"text": text, "done": True})
     xbmc.executebuiltin(f'AlarmClock(Refocus,SetFocus({setfocus}),{setfocus_wait},silent)') if setfocus else None
