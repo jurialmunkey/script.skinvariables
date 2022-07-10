@@ -43,7 +43,9 @@ class SkinVariables(object):
                 continue  # No values or expression so skip
 
             item['name'] = variable.attrib.get('name')
-            item['containers'] = [try_int(i) for i in variable.attrib.get('containers', '').split(',') if i]
+            item['containers'] = [
+                j for i in variable.attrib.get('containers', '').split(',') for j
+                in (range(*(int(y) + x for x, y, in enumerate(i.split('...')))) if '...' in i else (int(i),))]
             item['listitems'] = {}
             item['listitems']['start'] = try_int(variable.attrib.get('start'))
             item['listitems']['end'] = try_int(variable.attrib.get('end'))
