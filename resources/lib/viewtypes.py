@@ -294,7 +294,7 @@ class ViewTypes(object):
                 return False
         return True
 
-    def update_xml(self, force=False, skinfolder=None, contentid=None, viewid=None, pluginname=None, configure=False, **kwargs):
+    def update_xml(self, force=False, skinfolder=None, contentid=None, viewid=None, pluginname=None, configure=False, no_reload=False, **kwargs):
         if not self.meta:
             return
 
@@ -323,3 +323,4 @@ class ViewTypes(object):
 
         if makexml or not self.xmlfile_exists(skinfolder):
             self.make_xmlfile(skinfolder=skinfolder, hashvalue=hashvalue)
+            xbmc.executebuiltin('ReloadSkin()') if not no_reload else None

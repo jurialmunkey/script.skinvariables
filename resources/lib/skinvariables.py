@@ -138,7 +138,7 @@ class SkinVariables(object):
             skin_vars.append(build_var)
         return skin_vars
 
-    def update_xml(self, force=False, skinfolder=None, **kwargs):
+    def update_xml(self, force=False, skinfolder=None, no_reload=False, **kwargs):
         if not self.meta:
             return
 
@@ -170,3 +170,4 @@ class SkinVariables(object):
                 hashvalue=hashvalue, hashname='script-skinvariables-hash')
 
         p_dialog.close()
+        xbmc.executebuiltin('ReloadSkin()') if not no_reload else None

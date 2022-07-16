@@ -36,7 +36,7 @@ def write_file(filepath=None, content=None):
     f.close()
 
 
-def write_skinfile(filename=None, folders=None, content=None, hashvalue=None, hashname=None, reloadskin=True, checksum=None):
+def write_skinfile(filename=None, folders=None, content=None, hashvalue=None, hashname=None, checksum=None):
     if not filename or not folders or not content:
         return
 
@@ -48,6 +48,3 @@ def write_skinfile(filename=None, folders=None, content=None, hashvalue=None, ha
 
     if checksum:
         xbmc.executebuiltin('Skin.SetString({},{})'.format(checksum, make_hash(content)))
-
-    if reloadskin:
-        xbmc.executebuiltin('ReloadSkin()')
