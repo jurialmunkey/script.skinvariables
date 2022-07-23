@@ -15,9 +15,11 @@ ADDON = xbmcaddon.Addon()
 
 
 class SkinVariables(object):
-    def __init__(self):
-        self.content = self.build_json('special://skin/shortcuts/skinvariables.xml')
-        self.content = self.content or load_filecontent('special://skin/shortcuts/skinvariables.json')
+    def __init__(self, params):
+        self.params = params
+        self.template = f"skinvariables-{self.params.get('template')}" if self.params.get('template') else 'skinvariables'
+        self.content = self.build_json(f'special://skin/shortcuts/{self.template}.xml')
+        self.content = self.content or load_filecontent(f'special://skin/shortcuts/{self.template}.json')
         self.meta = loads(self.content) or []
 
     def build_json(self, file):
@@ -165,7 +167,7 @@ class SkinVariables(object):
         folders = [skinfolder] if skinfolder else get_skinfolders()
         if folders:
             write_skinfile(
-                folders=folders, filename='script-skinvariables-includes.xml',
+                folders=folders, filename=f'script-{self.template}-includes.xml',
                 content=make_xml_includes(xmltree, p_dialog=p_dialog),
                 hashvalue=hashvalue, hashname='script-skinvariables-hash')
 
