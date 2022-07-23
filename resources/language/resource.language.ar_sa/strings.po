@@ -1,0 +1,96 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: XBMC-Addons\n"
+"Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
+"POT-Creation-Date: 2014-10-26 17:05+0000\n"
+"PO-Revision-Date: 2022-07-22 19:06+0000\n"
+"Last-Translator: psp2111-ADSLGATE <>\n"
+"Language-Team: Arabic (Saudi Arabia)\n"
+"Language: ar-SA\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Loco-Source-Locale: ar_SA\n"
+"X-Generator: Loco https://localise.biz/\n"
+"X-Loco-Parser: loco_parse_po"
+
+#: resources/lib/script.py
+msgctxt "#32000"
+msgid "Constructing Variables..."
+msgstr ""
+
+#: resources/lib/script.py
+msgctxt "#32001"
+msgid "Skin Variables"
+msgstr "متغييرات المظهر"
+
+#: resources/lib/viewtypes.py
+msgctxt "#32002"
+msgid "Skin Viewtypes"
+msgstr "طرق عرض المظهر"
+
+#: resources/lib/viewtypes.py
+msgctxt "#32003"
+msgid "Constructing Viewtypes..."
+msgstr "جار بناء طرق العرض..."
+
+#: resources/lib/viewtypes.py
+msgctxt "#32004"
+msgid "Choose viewtype"
+msgstr "اختر طريقة العرض لـ"
+
+#: resources/lib/viewtypes.py
+msgctxt "#32005"
+msgid "Building default rules for"
+msgstr "بناء الشروط الافتراضية لـ"
+
+#: resources/lib/viewtypes.py
+msgctxt "#32006"
+msgid "Building definitions for view IDs..."
+msgstr ""
+
+#: resources/lib/viewtypes.py
+msgctxt "#32007"
+msgid "Building visibility expressions..."
+msgstr ""
+
+#: resources/lib/viewtypes.py
+msgctxt "#32008"
+msgid "Building XML..."
+msgstr ""
+
+#: resources/lib/viewtypes.py
+msgctxt "#32009"
+msgid "Choose plugin to customise"
+msgstr "اختر الإضافة المراد تخصيصها"
+
+#: resources/lib/viewtypes.py
+msgctxt "#32010"
+msgid "Choose content to customise"
+msgstr "اختر المحتوى المراد تخصيصه"
+
+#: resources/lib/viewtypes.py
+msgctxt "#32011"
+msgid "Reset all {} views..."
+msgstr "إعادة تعيين كافة طرق العرض لـ{} ..."
+
+#: resources/lib/viewtypes.py
+msgctxt "#32012"
+msgid "Add plugin view..."
+msgstr "إدراج إضافة أخرى..."
+
+#: resources/lib/viewtypes.py
+msgctxt "#32013"
+msgid "Customise viewtypes"
+msgstr "تخصيص طرق العرض"
+
+#: resources/lib/viewtypes.py
+msgctxt "#32014"
+msgid "Reset {} Views"
+msgstr "إعادة تعيين طرق العرض لـ{} ..."
+
+#: resources/lib/viewtypes.py
+msgctxt "#32015"
+msgid "Do you wish to reset all {} views to default"
+msgstr "هل ترغب في إعادة تعيين كافة طرق العرض لـ{} إلى الوضع الافتراضي"
