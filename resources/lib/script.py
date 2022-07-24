@@ -53,4 +53,4 @@ class Script(object):
             return ViewTypes().update_xml(skinfolder=self.params.get('folder'), **self.params)
         else:
             from resources.lib.skinvariables import SkinVariables
-            return SkinVariables(self.params).update_xml(skinfolder=self.params.get('folder'), **self.params)
+            return SkinVariables(template=self.params.get('template'), skinfolder=self.params.get('folder')).update_xml(**self.params)
