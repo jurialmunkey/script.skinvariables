@@ -15,9 +15,13 @@ ADDON = xbmcaddon.Addon()
 
 
 class SkinVariables(object):
-    def __init__(self):
-        self.content = self.build_json('special://skin/shortcuts/skinvariables.xml')
-        self.content = self.content or load_filecontent('special://skin/shortcuts/skinvariables.json')
+    def __init__(self, template: str = None, skinfolder: str = None):
+        self.template = f"skinvariables-{template}" if template else 'skinvariables'
+        self.filename = f'script-{self.template}-includes.xml'
+        self.hashname = f'script-{self.template}-hash'
+        self.folders = [skinfolder] if skinfolder else get_skinfolders()
+        self.content = self.build_json(f'special://skin/shortcuts/{self.template}.xml')
+        self.content = self.content or load_filecontent(f'special://skin/shortcuts/{self.template}.json')
         self.meta = loads(self.content) or []
 
     def build_json(self, file):
@@ -138,14 +142,14 @@ class SkinVariables(object):
             skin_vars.append(build_var)
         return skin_vars
 
-    def update_xml(self, force=False, skinfolder=None, no_reload=False, **kwargs):
+    def update_xml(self, force=False, no_reload=False, **kwargs):
         if not self.meta:
             return
 
         hashvalue = make_hash(self.content)
 
         if not force:  # Allow overriding over built check
-            last_version = xbmc.getInfoLabel('Skin.String(script-skinvariables-hash)')
+            last_version = xbmc.getInfoLabel(f'Skin.String({self.hashname})')
             if hashvalue and last_version and hashvalue == last_version:
                 return  # Already updated
 
@@ -161,13 +165,12 @@ class SkinVariables(object):
                 item = self.get_skinvariable(i, expression=True)
             xmltree = xmltree + item if item else xmltree
 
-        # Get folder to save to
-        folders = [skinfolder] if skinfolder else get_skinfolders()
-        if folders:
+        # Save to folder
+        if self.folders:
             write_skinfile(
-                folders=folders, filename='script-skinvariables-includes.xml',
+                folders=self.folders, filename=self.filename,
                 content=make_xml_includes(xmltree, p_dialog=p_dialog),
-                hashvalue=hashvalue, hashname='script-skinvariables-hash')
+                hashvalue=hashvalue, hashname=self.hashname)
 
         p_dialog.close()
         xbmc.executebuiltin('ReloadSkin()') if not no_reload else None
