@@ -4,7 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import sys
 import xbmcplugin
-from resources.lib.kodiutils import parse_paramstring
+from tmdbhelper.parser import parse_paramstring
 from resources.lib.jsonrpc import get_player_streams
 from resources.lib.method import set_player_subtitle, set_player_audiostream
 

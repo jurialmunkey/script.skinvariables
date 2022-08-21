@@ -7,9 +7,9 @@ import xbmcgui
 import xbmcaddon
 from json import loads, dumps
 import xml.etree.ElementTree as ET
-from resources.lib.kodiutils import try_int, del_empty_keys
+from tmdbhelper.parser import try_int, del_empty_keys
 from resources.lib.xmlhelper import make_xml_includes, get_skinfolders
-from resources.lib.fileutils import load_filecontent, write_skinfile, make_hash
+from tmdbhelper.futils import load_filecontent, write_skinfile, make_hash
 
 ADDON = xbmcaddon.Addon()
 

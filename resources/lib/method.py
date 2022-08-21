@@ -5,7 +5,7 @@
 import xbmc
 import time
 from resources.lib.jsonrpc import get_jsonrpc
-from resources.lib.kodiutils import try_int
+from tmdbhelper.parser import try_int
 
 
 def set_player_subtitle(set_player_subtitle, reload_property='UID', **kwargs):
