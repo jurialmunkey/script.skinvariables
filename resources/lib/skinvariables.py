@@ -41,7 +41,7 @@ class SkinVariables(object):
             if variable.tag == 'expression' and variable.text:
                 item['expression'] = variable.text
             elif variable.tag == 'variable':
-                item['values'] = [{i.attrib.get('condition') or 'True': i.text} for i in variable if i.text]
+                item['values'] = [{i.attrib.get('condition') or 'True': i.text} for i in variable]
 
             if not item.get('expression') and not item.get('values'):
                 continue  # No values or expression so skip
@@ -78,10 +78,10 @@ class SkinVariables(object):
             build_var['tag'] = 'value'
             build_var['attrib'] = {}
             for k, v in value.items():
-                if not k or not v:
+                if not k:
                     continue
                 build_var['attrib']['condition'] = k.format(**f_dict)
-                build_var['content'] = v.format(**f_dict)
+                build_var['content'] = v.format(**f_dict) if v else ''
             content.append(build_var)
         return content
 
