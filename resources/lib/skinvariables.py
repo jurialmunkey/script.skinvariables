@@ -54,6 +54,7 @@ class SkinVariables(object):
             item['listitems']['start'] = try_int(variable.attrib.get('start'))
             item['listitems']['end'] = try_int(variable.attrib.get('end'))
             item['parent'] = variable.attrib.get('parent')
+            item['null_id'] = variable.attrib.get('null_id')
 
             json.append(del_empty_keys(item))
 
@@ -99,47 +100,88 @@ class SkinVariables(object):
         values = variable.get('values', [])
         skin_vars = []
 
+        def _build_var(container=None, listitem=None):
+            build_var = {
+                'tag': 'expression' if expression else 'variable',
+                'attrib': {},
+                'content': []
+            }
+
+            li_name = 'ListItem'
+            tag_name = var_name
+            _lid = ''
+            _cid = ''
+
+            if container == -1:  # Special value for building container without ID
+                tag_name += '_Container'
+                li_name = 'Container.ListItem'
+                container = ''  # Blank out container ID
+
+            if container:
+                tag_name += '_C{}'.format(container)
+                li_name = 'Container({}).ListItem'.format(container)
+                _cid = '_C{}'.format(container)
+
+            if listitem or listitem == 0:
+                tag_name += '_{}'.format(listitem)
+                li_name += '({})'.format(listitem)
+                _lid = '_{}'.format(listitem)
+
+            build_var['attrib']['name'] = tag_name
+
+            f_dict = {
+                'id': container or '',
+                'cid': _cid,
+                'lid': _lid,
+                'pos': listitem or 0,
+                'listitem': li_name,
+                'listitemabsolute': li_name.replace('ListItem(', 'ListItemAbsolute('),
+                'listitemnowrap': li_name.replace('ListItem(', 'ListItemNoWrap('),
+                'listitemposition': li_name.replace('ListItem(', 'ListItemPosition(')
+            }
+
+            if expression:
+                build_var['content'] = variable.get('expression', '').format(**f_dict)
+                return build_var
+
+            build_var['content'] = self.get_contentvalues(values, f_dict)
+            return build_var
+
         for container in containers:
             # Build Variables for each ListItem Position in Container
             for listitem in listitems:
-                build_var = {'tag': 'expression' if expression else 'variable', 'attrib': {}, 'content': []}
+                skin_vars.append(_build_var(container, listitem))
 
-                tag_name = var_name
-                tag_name += '_C{}'.format(container) if container else ''
-                tag_name += '_{}'.format(listitem) if listitem or listitem == 0 else ''
-                build_var['attrib']['name'] = tag_name
+        if variable.get('null_id', '').lower() == 'true':
+            # Build a Container.ListItem variable without an id
+            for listitem in listitems:
+                skin_vars.append(_build_var(-1, listitem))
 
-                li_name = 'Container({}).ListItem'.format(container) if container else 'ListItem'
-                li_name += '({})'.format(listitem) if listitem or listitem == 0 else ''
+        def _build_parent_var():
+            build_var = {
+                'tag': 'variable',
+                'attrib': {'name': var_name + '_Parent'},
+                'content': []
+            }
 
-                f_dict = {
-                    'id': container or '',
-                    'cid': '_C{}'.format(container) if container else '',
-                    'lid': '_{}'.format(listitem) if listitem or listitem == 0 else '',
-                    'pos': listitem or 0,
-                    'listitem': li_name,
-                    'listitemabsolute': li_name.replace('ListItem(', 'ListItemAbsolute('),
-                    'listitemnowrap': li_name.replace('ListItem(', 'ListItemNoWrap('),
-                    'listitemposition': li_name.replace('ListItem(', 'ListItemPosition(')}
+            content = []
 
-                build_var['content'] = variable.get('expression', '').format(**f_dict) if expression else self.get_contentvalues(values, f_dict)
-                skin_vars.append(build_var)
+            for container in containers:
+                cond = 'True'
+                valu = var_name
+                if container:
+                    valu += '_C{}'.format(container)
+                    cond = variable['parent'].format(**{'id': container or ''})
+                valu = '$VAR[{}]'.format(valu)
+                content.append({'tag': 'value', 'attrib': {'condition': cond}, 'content': valu})
+
+            build_var['content'] = content
+            return build_var
 
         # Build variable for parent containers
         if variable.get('parent'):
-            p_var = variable.get('parent')
-            build_var = {'tag': 'variable', 'attrib': {'name': var_name + '_Parent'}, 'content': []}
+            skin_vars.append(_build_parent_var())
 
-            content = []
-            for container in containers:
-                valu = var_name
-                valu += '_C{}'.format(container) if container else ''
-                valu = '$VAR[{}]'.format(valu)
-                f_dict = {'id': container or ''}
-                cond = p_var.format(**f_dict) if container else 'True'
-                content.append({'tag': 'value', 'attrib': {'condition': cond}, 'content': valu})
-            build_var['content'] = content
-            skin_vars.append(build_var)
         return skin_vars
 
     def update_xml(self, force=False, no_reload=False, **kwargs):
