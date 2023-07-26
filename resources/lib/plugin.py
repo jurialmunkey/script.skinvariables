@@ -2,6 +2,8 @@
 # Module: default
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+from xbmcgui import ListItem
+
 
 PLAYERSTREAMS = {
     'audio': {'key': 'audiostreams', 'cur': 'currentaudiostream'},
@@ -24,9 +26,108 @@ class Container():
         xbmcplugin.endOfDirectory(self.handle, updateListing=update_listing)
 
 
+class ListGetItemDetails(Container):
+    jrpc_method = ""
+    jrpc_properties = []
+    jrpc_id = ""
+    jrpc_key = ""
+
+    @staticmethod
+    def make_item(i):
+        label = i.get('label') or ''
+        label2 = ''
+        path = f'plugin://script.skinvariables/'
+
+        artwork = i.pop('art', {})
+        artwork.setdefault('fanart', i.pop('fanart', ''))
+        artwork.setdefault('thumb', i.pop('thumbnail', ''))
+
+        def _iter_dict(d, prefix=''):
+            ip = {}
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    ip.update(_iter_dict(v, prefix=f'{prefix}{k}.'))
+                    continue
+                if isinstance(v, list):
+                    for x, j in enumerate(v):
+                        if isinstance(j, dict):
+                            ip.update(_iter_dict(j, prefix=f'{prefix}{k}.{x}.'))
+                            continue
+                        ip[f'{prefix}{k}.{x}'] = f'{j}'
+                    continue
+                ip[f'{prefix}{k}'] = f'{v}'
+            return ip
+
+        infoproperties = {}
+        infoproperties.update(_iter_dict(i))
+        infoproperties['isfolder'] = 'false'
+        # from resources.lib.kodiutils import kodi_log
+        # kodi_log(f'ip {infoproperties}', 1)
+
+        listitem = ListItem(label=label, label2=label2, path=path, offscreen=True)
+        listitem.setProperties(infoproperties)
+        listitem.setArt(artwork)
+
+        return listitem
+
+    def get_directory(self, dbid, **kwargs):
+        from jurialmunkey.jsnrpc import get_jsonrpc
+
+        def _get_items():
+            method = self.jrpc_method
+            params = {
+                self.jrpc_id: int(dbid),
+                "properties": self.jrpc_properties
+            }
+            response = get_jsonrpc(method, params) or {}
+            item = response.get('result', {}).get(self.jrpc_key)
+
+            return [self.make_item(item)]
+
+        items = [
+            {'url': li.getPath(), 'listitem': li, 'isFolder': li.getProperty('isfolder').lower() == 'true'}
+            for li in _get_items() if li]
+
+        self.add_items(items)
+
+
+class ListGetMovieSetDetails(ListGetItemDetails):
+    jrpc_method = "VideoLibrary.GetMovieSetDetails"
+    jrpc_properties = ["title", "plot", "playcount", "fanart", "thumbnail", "art"]
+    jrpc_id = "setid"
+    jrpc_key = "setdetails"
+
+
+class ListGetMovieDetails(ListGetItemDetails):
+    jrpc_method = "VideoLibrary.GetMovieDetails"
+    jrpc_properties = ["title", "plot", "genre", "director", "writer", "studio", "cast", "country", "fanart", "thumbnail", "tag", "art", "ratings"]
+    jrpc_id = "movieid"
+    jrpc_key = "moviedetails"
+
+
+class ListGetTVShowDetails(ListGetItemDetails):
+    jrpc_method = "VideoLibrary.GetTVShowDetails"
+    jrpc_properties = ["title", "plot", "genre", "studio", "cast", "fanart", "thumbnail", "tag", "art", "ratings", "runtime"]
+    jrpc_id = "tvshowid"
+    jrpc_key = "tvshowdetails"
+
+
+class ListGetSeasonDetails(ListGetItemDetails):
+    jrpc_method = "VideoLibrary.GetSeasonDetails"
+    jrpc_properties = ["title", "plot", "fanart", "thumbnail", "tvshowid", "art"]
+    jrpc_id = "seasonid"
+    jrpc_key = "seasondetails"
+
+
+class ListGetEpisodeDetails(ListGetItemDetails):
+    jrpc_method = "VideoLibrary.GetEpisodeDetails"
+    jrpc_properties = ["title", "plot", "writer", "director", "cast", "fanart", "thumbnail", "tvshowid", "art", "seasonid", "ratings"]
+    jrpc_id = "episodeid"
+    jrpc_key = "episodedetails"
+
+
 class ListGetPlayerStreams(Container):
     def get_directory(self, stream_type=None, **kwargs):
-        from xbmcgui import ListItem
         from jurialmunkey.jsnrpc import get_jsonrpc
 
         def _get_items(stream_type):
@@ -90,7 +191,12 @@ class Plugin():
         self.params = parse_paramstring(self.paramstring)  # paramstring dictionary
         self.routes = {
             'get_player_streams': ListGetPlayerStreams,
-            'set_player_streams': ListSetPlayerStreams
+            'set_player_streams': ListSetPlayerStreams,
+            'get_dbitem_movieset_details': ListGetMovieSetDetails,
+            'get_dbitem_movie_details': ListGetMovieDetails,
+            'get_dbitem_tvshow_details': ListGetTVShowDetails,
+            'get_dbitem_season_details': ListGetSeasonDetails,
+            'get_dbitem_episode_details': ListGetEpisodeDetails,
         }
 
     def get_container(self, info):
