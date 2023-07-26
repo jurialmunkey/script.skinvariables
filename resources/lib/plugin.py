@@ -6,7 +6,7 @@ import sys
 import xbmcplugin
 from xbmcgui import ListItem
 from jurialmunkey.parser import parse_paramstring
-from resources.lib.jsonrpc import get_jsonrpc
+from jurialmunkey.jsnrpc import get_jsonrpc
 from resources.lib.method import set_player_subtitle, set_player_audiostream
 
 

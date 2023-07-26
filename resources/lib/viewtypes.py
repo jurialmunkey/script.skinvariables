@@ -9,7 +9,7 @@ import xbmcaddon
 from json import loads, dumps
 from jurialmunkey.parser import try_int, merge_dicts
 from jurialmunkey.futils import check_hash, make_hash, write_skinfile, write_file, load_filecontent
-from resources.lib.jsonrpc import get_jsonrpc
+from jurialmunkey.jsnrpc import get_jsonrpc
 from resources.lib.kodiutils import isactive_winprop
 from resources.lib.xmlhelper import make_xml_includes, get_skinfolders
 

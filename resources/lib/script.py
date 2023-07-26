@@ -3,14 +3,7 @@
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import sys
-from importlib import import_module
-
-
-def importmodule(module_name, import_attr=None):
-    module = import_module(module_name)
-    if not import_attr:
-        return module
-    return getattr(module, import_attr)
+from jurialmunkey.modimp import importmodule
 
 
 class Script(object):
@@ -27,7 +20,6 @@ class Script(object):
             k, v = map_args(arg)
             self.params[k] = v
 
-    # lambda **kwargs: importmodule('resources.lib.script.method', 'split_value')(**kwargs),
     routing_table = {
         'set_player_subtitle':
             lambda **kwargs: importmodule('resources.lib.method', 'set_player_subtitle')(**kwargs),
@@ -35,6 +27,8 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.method', 'set_player_audiostream')(**kwargs),
         'set_editcontrol':
             lambda **kwargs: importmodule('resources.lib.method', 'set_editcontrol')(**kwargs),
+        'set_dbid_tag':
+            lambda **kwargs: importmodule('resources.lib.method', 'set_dbid_tag')(**kwargs),
     }
 
     def run(self):
