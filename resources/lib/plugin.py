@@ -3,6 +3,8 @@
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem
+from jurialmunkey.jsnrpc import get_jsonrpc
+from resources.lib.kodiutils import kodi_log
 
 
 PLAYERSTREAMS = {
@@ -26,42 +28,88 @@ class Container():
         xbmcplugin.endOfDirectory(self.handle, updateListing=update_listing)
 
 
+JSON_RPC_LOOKUPS = {
+    'setid': {
+        'method': "VideoLibrary.GetMovieSetDetails",
+        'properties': ["title", "plot", "playcount", "fanart", "thumbnail", "art"],
+        'key': "setdetails",
+    },
+    'movieid': {
+        'method': "VideoLibrary.GetMovieDetails",
+        'properties': ["title", "plot", "genre", "director", "writer", "studio", "cast", "country", "fanart", "thumbnail", "tag", "art", "ratings"],
+        'key': "moviedetails",
+    },
+    'tvshowid': {
+        'method': "VideoLibrary.GetTVShowDetails",
+        'properties': ["title", "plot", "genre", "studio", "cast", "fanart", "thumbnail", "tag", "art", "ratings", "runtime"],
+        'key': "tvshowdetails",
+    },
+    'seasonid': {
+        'method': "VideoLibrary.GetSeasonDetails",
+        'properties': ["title", "plot", "fanart", "thumbnail", "tvshowid", "art"],
+        'key': "seasondetails",
+    },
+    'episodeid': {
+        'method': "VideoLibrary.GetEpisodeDetails",
+        'properties': ["title", "plot", "writer", "director", "cast", "fanart", "thumbnail", "tvshowid", "art", "seasonid", "ratings"],
+        'key': "episodedetails",
+    },
+}
+
+
 class ListGetItemDetails(Container):
     jrpc_method = ""
     jrpc_properties = []
     jrpc_id = ""
     jrpc_key = ""
+    jrpc_sublookups = []
 
     @staticmethod
-    def make_item(i):
+    def make_item(i, sub_lookups=None):
         label = i.get('label') or ''
         label2 = ''
         path = f'plugin://script.skinvariables/'
+        sub_lookups = sub_lookups or []
 
         artwork = i.pop('art', {})
         artwork.setdefault('fanart', i.pop('fanart', ''))
         artwork.setdefault('thumb', i.pop('thumbnail', ''))
 
-        def _iter_dict(d, prefix=''):
+        def _iter_dict(d, prefix='', sub_lookups=False):
             ip = {}
             for k, v in d.items():
                 if isinstance(v, dict):
-                    ip.update(_iter_dict(v, prefix=f'{prefix}{k}.'))
+                    ip.update(_iter_dict(v, prefix=f'{prefix}{k}.', sub_lookups=sub_lookups))
                     continue
                 if isinstance(v, list):
+                    ip[f'{prefix}{k}.count'] = f'{len(v)}'
                     for x, j in enumerate(v):
                         if isinstance(j, dict):
-                            ip.update(_iter_dict(j, prefix=f'{prefix}{k}.{x}.'))
+                            ip.update(_iter_dict(j, prefix=f'{prefix}{k}.{x}.', sub_lookups=sub_lookups))
                             continue
                         ip[f'{prefix}{k}.{x}'] = f'{j}'
                     continue
                 ip[f'{prefix}{k}'] = f'{v}'
+
+                if not sub_lookups or k not in sub_lookups or k not in JSON_RPC_LOOKUPS:
+                    continue
+
+                try:
+                    lookup = JSON_RPC_LOOKUPS[k]
+                    method = lookup['method']
+                    params = {k: int(v), "properties": lookup['properties']}
+                    response = get_jsonrpc(method, params)
+                    item = response['result'][lookup['key']] or {}
+                    ip.update(_iter_dict(item, prefix=f'{prefix}item.', sub_lookups=False))
+                except (KeyError, AttributeError):
+                    pass
+
             return ip
 
         infoproperties = {}
-        infoproperties.update(_iter_dict(i))
+        infoproperties.update(_iter_dict(i, sub_lookups=sub_lookups))
         infoproperties['isfolder'] = 'false'
-        # from resources.lib.kodiutils import kodi_log
+
         # kodi_log(f'ip {infoproperties}', 1)
 
         listitem = ListItem(label=label, label2=label2, path=path, offscreen=True)
@@ -71,8 +119,6 @@ class ListGetItemDetails(Container):
         return listitem
 
     def get_directory(self, dbid, **kwargs):
-        from jurialmunkey.jsnrpc import get_jsonrpc
-
         def _get_items():
             method = self.jrpc_method
             params = {
@@ -82,7 +128,7 @@ class ListGetItemDetails(Container):
             response = get_jsonrpc(method, params) or {}
             item = response.get('result', {}).get(self.jrpc_key)
 
-            return [self.make_item(item)]
+            return [self.make_item(item, self.jrpc_sublookups)]
 
         items = [
             {'url': li.getPath(), 'listitem': li, 'isFolder': li.getProperty('isfolder').lower() == 'true'}
@@ -92,43 +138,43 @@ class ListGetItemDetails(Container):
 
 
 class ListGetMovieSetDetails(ListGetItemDetails):
-    jrpc_method = "VideoLibrary.GetMovieSetDetails"
-    jrpc_properties = ["title", "plot", "playcount", "fanart", "thumbnail", "art"]
+    jrpc_method = JSON_RPC_LOOKUPS['setid']['method']
+    jrpc_properties = JSON_RPC_LOOKUPS['setid']['properties']
+    jrpc_key = JSON_RPC_LOOKUPS['setid']['key']
     jrpc_id = "setid"
-    jrpc_key = "setdetails"
+    jrpc_sublookups = ["movieid"]
 
 
 class ListGetMovieDetails(ListGetItemDetails):
-    jrpc_method = "VideoLibrary.GetMovieDetails"
-    jrpc_properties = ["title", "plot", "genre", "director", "writer", "studio", "cast", "country", "fanart", "thumbnail", "tag", "art", "ratings"]
+    jrpc_method = JSON_RPC_LOOKUPS['movieid']['method']
+    jrpc_properties = JSON_RPC_LOOKUPS['movieid']['properties']
+    jrpc_key = JSON_RPC_LOOKUPS['movieid']['key']
     jrpc_id = "movieid"
-    jrpc_key = "moviedetails"
 
 
 class ListGetTVShowDetails(ListGetItemDetails):
-    jrpc_method = "VideoLibrary.GetTVShowDetails"
-    jrpc_properties = ["title", "plot", "genre", "studio", "cast", "fanart", "thumbnail", "tag", "art", "ratings", "runtime"]
+    jrpc_method = JSON_RPC_LOOKUPS['tvshowid']['method']
+    jrpc_properties = JSON_RPC_LOOKUPS['tvshowid']['properties']
+    jrpc_key = JSON_RPC_LOOKUPS['tvshowid']['key']
     jrpc_id = "tvshowid"
-    jrpc_key = "tvshowdetails"
 
 
 class ListGetSeasonDetails(ListGetItemDetails):
-    jrpc_method = "VideoLibrary.GetSeasonDetails"
-    jrpc_properties = ["title", "plot", "fanart", "thumbnail", "tvshowid", "art"]
+    jrpc_method = JSON_RPC_LOOKUPS['seasonid']['method']
+    jrpc_properties = JSON_RPC_LOOKUPS['seasonid']['properties']
+    jrpc_key = JSON_RPC_LOOKUPS['seasonid']['key']
     jrpc_id = "seasonid"
-    jrpc_key = "seasondetails"
 
 
 class ListGetEpisodeDetails(ListGetItemDetails):
-    jrpc_method = "VideoLibrary.GetEpisodeDetails"
-    jrpc_properties = ["title", "plot", "writer", "director", "cast", "fanart", "thumbnail", "tvshowid", "art", "seasonid", "ratings"]
+    jrpc_method = JSON_RPC_LOOKUPS['episodeid']['method']
+    jrpc_properties = JSON_RPC_LOOKUPS['episodeid']['properties']
+    jrpc_key = JSON_RPC_LOOKUPS['episodeid']['key']
     jrpc_id = "episodeid"
-    jrpc_key = "episodedetails"
 
 
 class ListGetPlayerStreams(Container):
     def get_directory(self, stream_type=None, **kwargs):
-        from jurialmunkey.jsnrpc import get_jsonrpc
 
         def _get_items(stream_type):
             def make_item(i):
