@@ -74,7 +74,11 @@ class ListGetItemDetails(Container):
 
     @staticmethod
     def make_item(i, sub_lookups=None):
-        label = i.get('label') or ''
+        try:
+            label = i.get('label') or ''
+        except AttributeError:
+            return  # NoneType
+
         label2 = ''
         path = f'plugin://script.skinvariables/'
         sub_lookups = sub_lookups or []
@@ -118,7 +122,7 @@ class ListGetItemDetails(Container):
         infoproperties.update(_iter_dict(i, sub_lookups=sub_lookups))
         infoproperties['isfolder'] = 'false'
 
-        kodi_log(f'ip {infoproperties}', 1)
+        # kodi_log(f'ip {infoproperties}', 1)
 
         listitem = ListItem(label=label, label2=label2, path=path, offscreen=True)
         listitem.setProperties(infoproperties)
@@ -140,7 +144,7 @@ class ListGetItemDetails(Container):
 
         items = [
             {'url': li.getPath(), 'listitem': li, 'isFolder': li.getProperty('isfolder').lower() == 'true'}
-            for li in _get_items() if li]
+            for li in _get_items() if li] if dbid else []
 
         self.add_items(items)
 
