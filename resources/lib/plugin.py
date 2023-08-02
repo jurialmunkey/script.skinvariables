@@ -29,6 +29,13 @@ class Container():
 
 
 JSON_RPC_LOOKUPS = {
+    'addonid': {
+        'method': "Addons.GetAddonDetails",
+        'properties': [
+            "name", "version", "summary", "description", "path", "author", "thumbnail", "disclaimer", "fanart",
+            "dependencies", "broken", "extrainfo", "rating", "enabled", "installed", "deprecated"],
+        'key': "addon",
+    },
     'setid': {
         'method': "VideoLibrary.GetMovieSetDetails",
         'properties': ["title", "plot", "playcount", "fanart", "thumbnail", "art"],
@@ -61,6 +68,7 @@ class ListGetItemDetails(Container):
     jrpc_method = ""
     jrpc_properties = []
     jrpc_id = ""
+    jrpc_idtype = int
     jrpc_key = ""
     jrpc_sublookups = []
 
@@ -110,7 +118,7 @@ class ListGetItemDetails(Container):
         infoproperties.update(_iter_dict(i, sub_lookups=sub_lookups))
         infoproperties['isfolder'] = 'false'
 
-        # kodi_log(f'ip {infoproperties}', 1)
+        kodi_log(f'ip {infoproperties}', 1)
 
         listitem = ListItem(label=label, label2=label2, path=path, offscreen=True)
         listitem.setProperties(infoproperties)
@@ -122,7 +130,7 @@ class ListGetItemDetails(Container):
         def _get_items():
             method = self.jrpc_method
             params = {
-                self.jrpc_id: int(dbid),
+                self.jrpc_id: self.jrpc_idtype(dbid),
                 "properties": self.jrpc_properties
             }
             response = get_jsonrpc(method, params) or {}
@@ -135,6 +143,14 @@ class ListGetItemDetails(Container):
             for li in _get_items() if li]
 
         self.add_items(items)
+
+
+class ListGetAddonDetails(ListGetItemDetails):
+    jrpc_method = JSON_RPC_LOOKUPS['addonid']['method']
+    jrpc_properties = JSON_RPC_LOOKUPS['addonid']['properties']
+    jrpc_key = JSON_RPC_LOOKUPS['addonid']['key']
+    jrpc_id = "addonid"
+    jrpc_idtype = str
 
 
 class ListGetMovieSetDetails(ListGetItemDetails):
@@ -243,6 +259,7 @@ class Plugin():
             'get_dbitem_tvshow_details': ListGetTVShowDetails,
             'get_dbitem_season_details': ListGetSeasonDetails,
             'get_dbitem_episode_details': ListGetEpisodeDetails,
+            'get_dbitem_addon_details': ListGetAddonDetails,
         }
 
     def get_container(self, info):
