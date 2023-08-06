@@ -21,17 +21,18 @@ class SkinShortcutsTemplate(object):
         self.filename = self.meta['output']
 
     @staticmethod
-    def create_xml(meta, header=None, footer=None):
+    def create_xml(meta, header=None, footer=None, pregen=None):
 
-        def _make_template(i):
+        def _make_template(i, d):
             template = i.pop("template")
             template = load_filecontent(f'special://skin/shortcuts/{template}')
-            template = template.format(**{k: _make_template(v) if isinstance(v, dict) else v for k, v in i.items()})
+            template = template.format(**dict(d, **{k: _make_template(v, d) if isinstance(v, dict) else v for k, v in i.items()}))
             return template
 
-        cheader = [header] if header else []
-        cfooter = [footer] if footer else []
-        content = cheader + [_make_template(i) for i in meta] + cfooter
+        _pregen = {k: _make_template(v, {}) for k, v in pregen.items()} if pregen else {}
+        _header = [header] if header else []
+        _footer = [footer] if footer else []
+        content = _header + [_make_template(i, _pregen) for i in meta] + _footer
 
         return '\n'.join(content)
 
@@ -49,7 +50,7 @@ class SkinShortcutsTemplate(object):
         p_dialog = xbmcgui.DialogProgressBG()
         p_dialog.create(ADDON.getLocalizedString(32001), ADDON.getLocalizedString(32000))
 
-        content = self.create_xml(self.meta['genxml'], header=self.meta.get('header'), footer=self.meta.get('footer'))
+        content = self.create_xml(self.meta['genxml'], header=self.meta.get('header'), footer=self.meta.get('footer'), pregen=self.meta.get('global'))
 
         # Save to folder
         write_skinfile(folders=self.folders, filename=self.filename, content=content, hashvalue=hashvalue, hashname=self.hashname)
