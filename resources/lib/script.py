@@ -45,6 +45,10 @@ class Script(object):
         if self.params.get('action') == 'buildviews':
             from resources.lib.viewtypes import ViewTypes
             return ViewTypes().update_xml(skinfolder=self.params.get('folder'), **self.params)
-        else:
-            from resources.lib.skinvariables import SkinVariables
-            return SkinVariables(template=self.params.get('template'), skinfolder=self.params.get('folder')).update_xml(**self.params)
+
+        if self.params.get('action') == 'buildtemplate':
+            from resources.lib.skinshortcuts import SkinShortcutsTemplate
+            return SkinShortcutsTemplate(template=self.params.get('template')).update_xml(**self.params)
+
+        from resources.lib.skinvariables import SkinVariables
+        return SkinVariables(template=self.params.get('template'), skinfolder=self.params.get('folder')).update_xml(**self.params)
