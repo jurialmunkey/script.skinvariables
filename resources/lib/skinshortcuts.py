@@ -24,8 +24,9 @@ class SkinShortcutsTemplate(object):
     def create_xml(meta, header=None, footer=None):
 
         def _make_template(i):
-            template = load_filecontent(f'special://skin/shortcuts/{i.pop("template")}')
-            template = template.format(**i)
+            template = i.pop("template")
+            template = load_filecontent(f'special://skin/shortcuts/{template}')
+            template = template.format(**{k: _make_template(v) if isinstance(v, dict) else v for k, v in i.items()})
             return template
 
         cheader = [header] if header else []
