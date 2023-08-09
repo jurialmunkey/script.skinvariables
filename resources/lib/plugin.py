@@ -148,12 +148,7 @@ class ListGetItemDetails(Container):
 
         return items
 
-    def get_directory(self, dbid, convert_path=False, **kwargs):
-        if convert_path:
-            if not dbid.startswith('plugin://'):
-                return
-            dbid = dbid[9:-1]
-
+    def get_directory(self, dbid, **kwargs):
         items = self.get_items(dbid, **kwargs)
         self.add_items(items)
 
@@ -164,6 +159,15 @@ class ListGetAddonDetails(ListGetItemDetails):
     jrpc_key = JSON_RPC_LOOKUPS['addonid']['key']
     jrpc_id = "addonid"
     jrpc_idtype = str
+
+    def get_directory(self, dbid, convert_path=False, **kwargs):
+        if convert_path:
+            if not dbid.startswith('plugin://'):
+                return
+            dbid = dbid[9:-1]
+
+        items = self.get_items(dbid, **kwargs)
+        self.add_items(items)
 
 
 class ListGetMovieSetDetails(ListGetItemDetails):
