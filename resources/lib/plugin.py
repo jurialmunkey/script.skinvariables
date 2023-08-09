@@ -130,7 +130,7 @@ class ListGetItemDetails(Container):
 
         return listitem
 
-    def get_directory(self, dbid, **kwargs):
+    def get_items(self, dbid, **kwargs):
         def _get_items():
             method = self.jrpc_method
             params = {
@@ -146,6 +146,15 @@ class ListGetItemDetails(Container):
             {'url': li.getPath(), 'listitem': li, 'isFolder': li.getProperty('isfolder').lower() == 'true'}
             for li in _get_items() if li] if dbid else []
 
+        return items
+
+    def get_directory(self, dbid, convert_path=False, **kwargs):
+        if convert_path:
+            if not dbid.startswith('plugin://'):
+                return
+            dbid = dbid[9:-1]
+
+        items = self.get_items(dbid, **kwargs)
         self.add_items(items)
 
 
