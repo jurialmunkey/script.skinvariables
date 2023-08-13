@@ -29,6 +29,8 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.method', 'set_editcontrol')(**kwargs),
         'set_dbid_tag':
             lambda **kwargs: importmodule('resources.lib.method', 'set_dbid_tag')(**kwargs),
+        'get_jsonrpc':
+            lambda **kwargs: importmodule('resources.lib.method', 'get_jsonrpc')(**kwargs),
     }
 
     def run(self):
