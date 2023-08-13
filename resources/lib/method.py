@@ -45,12 +45,15 @@ def set_dbid_tag(set_dbid_tag, dbtype, dbid, **kwargs):
     set_tags(int(dbid), dbtype, [set_dbid_tag])
 
 
-def get_jsonrpc(get_jsonrpc, **kwargs):
-    from xbmcgui import Dialog
+def get_jsonrpc(get_jsonrpc, textviewer=False, filewrite=True, **kwargs):
     from jurialmunkey.jsnrpc import get_jsonrpc as _get_jsonrpc
     result = _get_jsonrpc(get_jsonrpc, kwargs)
-    Dialog().textviewer(f'GET {get_jsonrpc}', f'PARAMS\n{kwargs}\n\nRESULT\n{result}')
-    # Save results to file
-    filename = '_'.join([f'{k}-{v}' for k, v in kwargs.items()])
-    filename = jurialmunkey.futils.validify_filename(f'{get_jsonrpc}_{filename}.json')
-    FileUtils().dumps_to_file({'method': get_jsonrpc, 'params': kwargs, 'result': result}, 'log_request', filename)
+
+    if textviewer:
+        from xbmcgui import Dialog
+        Dialog().textviewer(f'GET {get_jsonrpc}', f'PARAMS\n{kwargs}\n\nRESULT\n{result}')
+
+    if filewrite:
+        filename = '_'.join([f'{k}-{v}' for k, v in kwargs.items()])
+        filename = jurialmunkey.futils.validify_filename(f'{get_jsonrpc}_{filename}.json')
+        FileUtils().dumps_to_file({'method': get_jsonrpc, 'params': kwargs, 'result': result}, 'log_request', filename)
