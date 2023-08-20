@@ -164,7 +164,9 @@ class ListGetAddonDetails(ListGetItemDetails):
         if convert_path:
             if not dbid.startswith('plugin://'):
                 return
-            dbid = dbid[9:-1]
+            import re
+            result = re.search('plugin://(.*)/', dbid)
+            return result.group(1) if result else None
 
         items = self.get_items(dbid, **kwargs)
         self.add_items(items)
