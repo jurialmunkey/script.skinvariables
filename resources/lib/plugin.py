@@ -263,6 +263,20 @@ class ListSetPlayerStreams(Container):
             return
 
 
+class ListGetNumberSum(Container):
+    def get_directory(self, expression, **kwargs):
+
+        values = [0]
+        values += [int(i) for i in expression.split() if i]
+
+        items = [{
+            'url': '',
+            'listitem': ListItem(label=f'{sum(values)}', label2='', path='', offscreen=True),
+            'isFolder': True}]
+
+        self.add_items(items)
+
+
 class Plugin():
     def __init__(self, handle, paramstring):
         # plugin:// params configuration
@@ -279,6 +293,7 @@ class Plugin():
             'get_dbitem_season_details': ListGetSeasonDetails,
             'get_dbitem_episode_details': ListGetEpisodeDetails,
             'get_dbitem_addon_details': ListGetAddonDetails,
+            'get_number_sum': ListGetNumberSum,
         }
 
     def get_container(self, info):
