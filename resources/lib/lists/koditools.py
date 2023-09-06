@@ -18,3 +18,19 @@ class ListGetNumberSum(Container):
             'isFolder': True}]
 
         self.add_items(items)
+
+
+class ListGetSplitString(Container):
+    def get_directory(self, values=None, infolabel=None, separator='|', **kwargs):
+        from xbmc import getInfoLabel as get_infolabel
+        values = get_infolabel(infolabel) if infolabel else values
+
+        if not values:
+            return
+
+        items = [{
+            'url': '',
+            'listitem': ListItem(label=f'{i}', label2='', path='', offscreen=True),
+            'isFolder': True} for i in values.split(separator) if i]
+
+        self.add_items(items)

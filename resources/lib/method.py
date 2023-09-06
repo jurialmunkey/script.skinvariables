@@ -40,6 +40,22 @@ def set_editcontrol(set_editcontrol, text=None, window_id=None, setfocus=None, s
     xbmc.executebuiltin(f'AlarmClock(Refocus,SetFocus({setfocus}),{setfocus_wait},silent)') if setfocus else None
 
 
+def add_skinstring_history(add_skinstring_history, value, separator='|', **kwargs):
+    import xbmc
+    values = xbmc.getInfoLabel(f'Skin.String({add_skinstring_history})') or ''
+    values = values.split(separator)
+    if not values:
+        return
+    try:
+        values.remove(value)
+    except ValueError:
+        pass
+    values.insert(0, value)
+    from resources.lib.kodiutils import kodi_log
+    kodi_log(f'Skin.SetString({add_skinstring_history},{separator.join(values)})', 1)
+    xbmc.executebuiltin(f'Skin.SetString({add_skinstring_history},{separator.join(values)})')
+
+
 def set_dbid_tag(set_dbid_tag, dbtype, dbid, **kwargs):
     from jurialmunkey.jsnrpc import set_tags
     set_tags(int(dbid), dbtype, [set_dbid_tag])

@@ -32,6 +32,9 @@ class Plugin():
         'get_number_sum': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListGetNumberSum'},
+        'get_split_string': {
+            'module_name': 'resources.lib.lists.koditools',
+            'import_attr': 'ListGetSplitString'},
     }
 
     def __init__(self, handle, paramstring):
