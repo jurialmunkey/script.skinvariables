@@ -133,7 +133,7 @@ class ListGetFilterDir(Container):
             label2 = ''
             path = i.get('file') or ''
             mediatype = i.get('type') or ''
-            mediatype = '' if mediatype in ['unknown'] else mediatype
+            mediatype = 'video' if mediatype in ['unknown', ''] else mediatype
 
             infolabels = {INFOLABEL_MAP[k]: v for k, v in i.items() if v and k in INFOLABEL_MAP and v != -1}
             infolabels['title'] = label
