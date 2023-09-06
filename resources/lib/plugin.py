@@ -35,6 +35,9 @@ class Plugin():
         'get_split_string': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListGetSplitString'},
+        'get_filter_dir': {
+            'module_name': 'resources.lib.lists.filterdir',
+            'import_attr': 'ListGetFilterDir'},
     }
 
     def __init__(self, handle, paramstring):
