@@ -8,18 +8,16 @@ from resources.lib.container import Container
 from infotagger.listitem import ListItemInfoTag
 from jurialmunkey.parser import split_items
 
+DIRECTORY_PROPERTIES_BASIC = ["title", "art", "file"]
 
-DIRECTORY_PROPERTIES = [
-    "title", "artist", "albumartist", "genre", "year", "rating", "album", "track", "duration", "comment", "lyrics",
-    "musicbrainztrackid", "musicbrainzartistid", "musicbrainzalbumid", "musicbrainzalbumartistid", "playcount", "fanart",
-    "director", "trailer", "tagline", "plot", "plotoutline", "originaltitle", "lastplayed", "writer", "studio", "mpaa",
-    "cast", "country", "imdbnumber", "premiered", "productioncode", "runtime", "set", "showlink", "streamdetails", "top250",
-    "votes", "firstaired", "season", "episode", "showtitle", "thumbnail", "file", "resume", "artistid", "albumid", "tvshowid",
-    "setid", "watchedepisodes", "disc", "tag", "art", "genreid", "displayartist", "albumartistid", "description", "theme",
-    "mood", "style", "albumlabel", "sorttitle", "episodeguide", "uniqueid", "dateadded", "size", "lastmodified", "mimetype",
-    "specialsortseason", "specialsortepisode", "sortartist", "musicbrainzreleasegroupid", "isboxset", "totaldiscs", "disctitle",
-    "releasedate", "originaldate", "bpm", "bitrate", "samplerate", "channels", "datemodified", "datenew", "customproperties",
-    "albumduration"]
+DIRECTORY_PROPERTIES_VIDEO = [
+    "genre", "year", "rating", "playcount", "director", "trailer", "tagline", "plot", "plotoutline", "originaltitle", "lastplayed", "writer",
+    "studio", "mpaa", "country", "premiered", "runtime", "set", "streamdetails", "top250", "votes", "firstaired", "season", "episode", "showtitle",
+    "sorttitle", "thumbnail", "uniqueid", "dateadded", "customproperties"]
+
+DIRECTORY_PROPERTIES_MUSIC = [
+    "artist", "albumartist", "genre", "year", "rating", "album", "track", "duration", "lastplayed", "studio", "mpaa",
+    "disc", "description", "theme", "mood", "style", "albumlabel", "sorttitle", "uniqueid", "dateadded", "customproperties"]
 
 INFOLABEL_MAP = {
     "title": "title",
@@ -102,17 +100,18 @@ def is_excluded(item, filter_key=None, filter_value=None, filter_operator=None, 
 
 
 class ListGetFilterDir(Container):
-    def get_directory(self, path=None, **kwargs):
+    def get_directory(self, path=None, library=None, **kwargs):
         from jurialmunkey.jsnrpc import get_directory
 
         if not path:
             return
 
-        directory = get_directory(path, DIRECTORY_PROPERTIES)
+        directory_properties = DIRECTORY_PROPERTIES_BASIC
+        directory_properties += {
+            'video': DIRECTORY_PROPERTIES_VIDEO,
+            'music': DIRECTORY_PROPERTIES_VIDEO}.get(library) or []
+        directory = get_directory(path, directory_properties)
         mediatypes = {}
-
-        # from resources.lib.kodiutils import kodi_log
-        # kodi_log(f'MYDIR: {path}\n{directory}', 1)
 
         filters = {
             'filter_key': kwargs.get('filter_key', None),
