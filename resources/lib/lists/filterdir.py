@@ -100,26 +100,34 @@ def is_excluded(item, filter_key=None, filter_value=None, filter_operator=None, 
 
 
 class ListGetFilterDir(Container):
-    def get_directory(self, path=None, library=None, **kwargs):
+    def get_directory(self, path=None, library=None, no_label_dupes=False, **kwargs):
         from jurialmunkey.jsnrpc import get_directory
 
         if not path:
             return
 
+        def _get_filters(filters):
+            all_filters = {}
+            filter_name = ['filter_key', 'filter_value', 'filter_operator', 'exclude_key', 'exclude_value', 'exclude_operator']
+
+            for k, v in filters.items():
+                key, num = k, '0'
+                if '__' in k:
+                    key, num = k.split('__', 1)
+                if key not in filter_name:
+                    continue
+                dic = all_filters.setdefault(num, {})
+                dic[key] = v
+
+            return all_filters
+
+        mediatypes = {}
+        added_items = []
+        all_filters = _get_filters(kwargs)
         directory_properties = DIRECTORY_PROPERTIES_BASIC
         directory_properties += {
             'video': DIRECTORY_PROPERTIES_VIDEO,
             'music': DIRECTORY_PROPERTIES_VIDEO}.get(library) or []
-        directory = get_directory(path, directory_properties)
-        mediatypes = {}
-
-        filters = {
-            'filter_key': kwargs.get('filter_key', None),
-            'filter_value': kwargs.get('filter_value', None),
-            'filter_operator': kwargs.get('filter_operator', None),
-            'exclude_key': kwargs.get('exclude_key', None),
-            'exclude_value': kwargs.get('exclude_value', None),
-            'exclude_operator': kwargs.get('exclude_operator', None)}
 
         def _get_label(i):
             if i.get('title'):
@@ -143,8 +151,9 @@ class ListGetFilterDir(Container):
             streamdetails = i.get('streamdetails') or {}
             infoproperties = i.get('customproperties') or {}
 
-            if is_excluded({'infolabels': infolabels, 'infoproperties': infoproperties}, **filters):
-                return
+            for _, filters in all_filters.items():
+                if is_excluded({'infolabels': infolabels, 'infoproperties': infoproperties}, **filters):
+                    return
 
             if mediatype:
                 mediatypes[mediatype] = mediatypes.get(mediatype, 0) + 1
@@ -161,9 +170,20 @@ class ListGetFilterDir(Container):
             listitem.setProperties(infoproperties)
 
             item = {'url': path, 'listitem': listitem, 'isFolder': True}
+
+            if not no_label_dupes:
+                return item
+
+            if label in added_items:
+                return
+
+            added_items.append(label)
             return item
 
-        items = [j for j in (_make_item(i) for i in directory if i) if j]
+        items = []
+        for p in path.split('__'):
+            directory = get_directory(p, directory_properties)
+            items += [j for j in (_make_item(i) for i in directory if i) if j]
 
         plugin_category = ''
         container_content = f'{max(mediatypes, key=lambda key: mediatypes[key])}s' if mediatypes else ''
