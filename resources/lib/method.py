@@ -32,11 +32,11 @@ def set_player_audiostream(set_player_audiostream, reload_property='UID', **kwar
     xbmc.executebuiltin(f'SetProperty({reload_property},{time.time()})')
 
 
-def set_editcontrol(set_editcontrol, text, window_id=None, setfocus=None, setfocus_wait='00:00', **kwargs):
+def set_editcontrol(set_editcontrol, text=None, window_id=None, setfocus=None, setfocus_wait='00:00', **kwargs):
     import xbmc
     from jurialmunkey.jsnrpc import get_jsonrpc
     xbmc.executebuiltin(f'SetFocus({set_editcontrol})')
-    get_jsonrpc("Input.SendText", {"text": text, "done": True})
+    get_jsonrpc("Input.SendText", {"text": text or '', "done": True})
     xbmc.executebuiltin(f'AlarmClock(Refocus,SetFocus({setfocus}),{setfocus_wait},silent)') if setfocus else None
 
 
