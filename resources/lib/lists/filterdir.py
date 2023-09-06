@@ -108,11 +108,11 @@ class ListGetFilterDir(Container):
         if not path:
             return
 
-        # from resources.lib.kodiutils import kodi_log
-        # kodi_log(f'MYDIR: {path}', 1)
-
         directory = get_directory(path, DIRECTORY_PROPERTIES)
         mediatypes = {}
+
+        # from resources.lib.kodiutils import kodi_log
+        # kodi_log(f'MYDIR: {path}\n{directory}', 1)
 
         filters = {
             'filter_key': kwargs.get('filter_key', None),
@@ -123,8 +123,10 @@ class ListGetFilterDir(Container):
             'exclude_operator': kwargs.get('exclude_operator', None)}
 
         def _get_label(i):
-            if 'title' in i:
+            if i.get('title'):
                 return i['title']
+            if i.get('label'):
+                return i['label']
             return ''
 
         def _make_item(i):
@@ -132,8 +134,10 @@ class ListGetFilterDir(Container):
             label2 = ''
             path = i.get('file') or ''
             mediatype = i.get('type') or ''
+            mediatype = '' if mediatype in ['unknown'] else mediatype
 
             infolabels = {INFOLABEL_MAP[k]: v for k, v in i.items() if v and k in INFOLABEL_MAP and v != -1}
+            infolabels['title'] = label
             infolabels['mediatype'] = mediatype
 
             uniqueids = i.get('uniqueid') or {}
