@@ -100,10 +100,10 @@ def is_excluded(item, filter_key=None, filter_value=None, filter_operator=None, 
 
 
 class ListGetFilterDir(Container):
-    def get_directory(self, path=None, library=None, no_label_dupes=False, **kwargs):
+    def get_directory(self, paths=None, library=None, no_label_dupes=False, **kwargs):
         from jurialmunkey.jsnrpc import get_directory
 
-        if not path:
+        if not paths:
             return
 
         def _get_filters(filters):
@@ -181,8 +181,8 @@ class ListGetFilterDir(Container):
             return item
 
         items = []
-        for p in path.split('__'):
-            directory = get_directory(p, directory_properties)
+        for path in paths:
+            directory = get_directory(path, directory_properties)
             items += [j for j in (_make_item(i) for i in directory if i) if j]
 
         plugin_category = ''

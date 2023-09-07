@@ -44,8 +44,12 @@ class Plugin():
         # plugin:// params configuration
         from jurialmunkey.parser import parse_paramstring
         self.handle = handle  # plugin:// handle
-        self.paramstring = paramstring  # plugin://plugin.video.themoviedb.helper?paramstring
+        self.paramstring, *secondary_params = paramstring.split('&&')  # plugin://plugin.video.themoviedb.helper?paramstring
         self.params = parse_paramstring(self.paramstring)  # paramstring dictionary
+        if not secondary_params:
+            return
+        from urllib.parse import unquote_plus
+        self.params['paths'] = [unquote_plus(i) for i in secondary_params]
 
     def get_container(self, info):
         from jurialmunkey.modimp import importmodule
