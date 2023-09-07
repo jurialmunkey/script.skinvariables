@@ -51,8 +51,6 @@ def add_skinstring_history(add_skinstring_history, value, separator='|', **kwarg
     except ValueError:
         pass
     values.insert(0, value)
-    from resources.lib.kodiutils import kodi_log
-    kodi_log(f'Skin.SetString({add_skinstring_history},{separator.join(values)})', 1)
     xbmc.executebuiltin(f'Skin.SetString({add_skinstring_history},{separator.join(values)})')
 
 

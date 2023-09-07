@@ -188,3 +188,49 @@ class ListGetFilterDir(Container):
         plugin_category = ''
         container_content = f'{max(mediatypes, key=lambda key: mediatypes[key])}s' if mediatypes else ''
         self.add_items(items, container_content=container_content, plugin_category=plugin_category)
+
+
+class ListGetContainerLabels(Container):
+    def get_directory(self, containers, infolabel, numitems, separator=' / ', filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None, **kwargs):
+        from xbmc import getInfoLabel as get_infolabel
+
+        filters = {
+            'filter_key': 'title',
+            'filter_value': filter_value,
+            'filter_operator': filter_operator,
+            'exclude_key': 'title',
+            'exclude_value': exclude_value,
+            'exclude_operator': exclude_operator,
+        }
+
+        added_items = []
+
+        def _make_item(title):
+            if title in added_items:
+                return
+
+            if is_excluded({'infolabels': {'title': title}}, **filters):
+                return
+
+            listitem = ListItem(label=title, label2='', path='', offscreen=True)
+            item = {'url': '', 'listitem': listitem, 'isFolder': True}
+
+            added_items.append(title)
+            return item
+
+        items = []
+        for container in containers.split():
+            numitems = int(get_infolabel(f'Container({container}).NumItems') or 0)
+            if not numitems:
+                continue
+            for x in range(numitems):
+                titles = get_infolabel(f'Container({container}).ListItemAbsolute({x}).{infolabel}')
+                if not titles:
+                    continue
+                for title in titles.split(separator):
+                    item = _make_item(title)
+                    if not item:
+                        continue
+                    items.append(item)
+
+        self.add_items(items)

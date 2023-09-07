@@ -38,6 +38,9 @@ class Plugin():
         'get_filter_dir': {
             'module_name': 'resources.lib.lists.filterdir',
             'import_attr': 'ListGetFilterDir'},
+        'get_container_labels': {
+            'module_name': 'resources.lib.lists.filterdir',
+            'import_attr': 'ListGetContainerLabels'},
     }
 
     def __init__(self, handle, paramstring):
