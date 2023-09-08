@@ -73,14 +73,16 @@ def is_excluded(item, filter_key=None, filter_value=None, filter_operator=None, 
     il, ip = item.get('infolabels', {}), item.get('infoproperties', {})
 
     if filter_key and filter_value:
-        _exclude = False
+        _exclude = True
         for fv in split_items(filter_value):
-            _exclude = False
+            _exclude = True
             if filter_key in il:
+                _exclude = False
                 if is_filtered(il, filter_key, fv, operator_type=filter_operator):
                     _exclude = True
                     continue
             if filter_key in ip:
+                _exclude = False
                 if is_filtered(ip, filter_key, fv, operator_type=filter_operator):
                     _exclude = True
                     continue
