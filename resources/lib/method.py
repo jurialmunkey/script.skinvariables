@@ -40,7 +40,7 @@ def set_editcontrol(set_editcontrol, text=None, window_id=None, setfocus=None, s
     xbmc.executebuiltin(f'AlarmClock(Refocus,SetFocus({setfocus}),{setfocus_wait},silent)') if setfocus else None
 
 
-def add_skinstring_history(add_skinstring_history, value, separator='|', use_window_prop=False, window_id='', **kwargs):
+def add_skinstring_history(add_skinstring_history, value, separator='|', use_window_prop=False, window_id='', toggle=False, **kwargs):
     import xbmc
 
     def _get_info_str() -> str:
@@ -56,9 +56,11 @@ def add_skinstring_history(add_skinstring_history, value, separator='|', use_win
         return
     try:
         values.remove(value)
+        remove = True
     except ValueError:
-        pass
-    values.insert(0, value)
+        remove = False
+    if not toggle or not remove:
+        values.insert(0, value)
 
     def _get_exec_str() -> str:
         if not use_window_prop:
@@ -67,7 +69,7 @@ def add_skinstring_history(add_skinstring_history, value, separator='|', use_win
             return f'SetProperty({{}},{{}},{window_id})'
         return 'SetProperty({},{})'
 
-    xbmc.executebuiltin(_get_exec_str().format(add_skinstring_history, separator.join(values)))
+    xbmc.executebuiltin(_get_exec_str().format(add_skinstring_history, values[0]))
 
 
 def set_dbid_tag(set_dbid_tag, dbtype, dbid, **kwargs):
