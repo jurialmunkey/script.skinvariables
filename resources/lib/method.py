@@ -40,9 +40,17 @@ def set_editcontrol(set_editcontrol, text=None, window_id=None, setfocus=None, s
     xbmc.executebuiltin(f'AlarmClock(Refocus,SetFocus({setfocus}),{setfocus_wait},silent)') if setfocus else None
 
 
-def add_skinstring_history(add_skinstring_history, value, separator='|', **kwargs):
+def add_skinstring_history(add_skinstring_history, value, separator='|', use_window_prop=False, window_id='', **kwargs):
     import xbmc
-    values = xbmc.getInfoLabel(f'Skin.String({add_skinstring_history})') or ''
+
+    def _get_info_str() -> str:
+        if not use_window_prop:
+            return 'Skin.String({})'
+        if window_id:
+            return f'Window({window_id}).Property({{}})'
+        return 'Window.Property({})'
+
+    values = xbmc.getInfoLabel(_get_info_str().format(add_skinstring_history)) or ''
     values = values.split(separator)
     if not values:
         return
@@ -51,7 +59,15 @@ def add_skinstring_history(add_skinstring_history, value, separator='|', **kwarg
     except ValueError:
         pass
     values.insert(0, value)
-    xbmc.executebuiltin(f'Skin.SetString({add_skinstring_history},{separator.join(values)})')
+
+    def _get_exec_str() -> str:
+        if not use_window_prop:
+            return 'Skin.SetString({},{})'
+        if window_id:
+            return f'SetProperty({{}},{{}},{window_id})'
+        return 'SetProperty({},{})'
+
+    xbmc.executebuiltin(_get_exec_str().format(add_skinstring_history, separator.join(values)))
 
 
 def set_dbid_tag(set_dbid_tag, dbtype, dbid, **kwargs):
