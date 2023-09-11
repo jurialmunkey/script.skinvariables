@@ -69,7 +69,7 @@ def add_skinstring_history(add_skinstring_history, value, separator='|', use_win
             return f'SetProperty({{}},{{}},{window_id})'
         return 'SetProperty({},{})'
 
-    xbmc.executebuiltin(_get_exec_str().format(add_skinstring_history, values[0]))
+    xbmc.executebuiltin(_get_exec_str().format(add_skinstring_history, separator.join(filter(None, values))))
 
 
 def set_dbid_tag(set_dbid_tag, dbtype, dbid, **kwargs):
