@@ -33,6 +33,10 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.method', 'get_jsonrpc')(**kwargs),
         'add_skinstring_history':
             lambda **kwargs: importmodule('resources.lib.method', 'add_skinstring_history')(**kwargs),
+        'add_skinshortcut':
+            lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('add_skinshortcut'),
+        'del_skinshortcut':
+            lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('del_skinshortcut'),
     }
 
     def run(self):
@@ -51,7 +55,7 @@ class Script(object):
             return ViewTypes().update_xml(skinfolder=self.params.get('folder'), **self.params)
 
         if self.params.get('action') == 'buildtemplate':
-            from resources.lib.skinshortcuts import SkinShortcutsTemplate
+            from resources.lib.skinshortcuts_template import SkinShortcutsTemplate
             return SkinShortcutsTemplate(template=self.params.get('template')).update_xml(**self.params)
 
         from resources.lib.skinvariables import SkinVariables
