@@ -70,7 +70,7 @@ class SkinShortcutsMenu():
         affix = ''
 
         if label.endswith('-1'):
-            affix = ' (Home Widgets)'
+            affix = ' (Widgets)'
             label = label[:-2]
 
         while True:
@@ -99,25 +99,41 @@ class SkinShortcutsMenu():
 
         return label
 
-    def choose_menu(self, header):
-        files = [self.get_nice_name(i) for i in self.meta.keys()]
+    def choose_menu(self, header, names=None):
+        names = names if names else self.meta.keys()
+        files = [self.get_nice_name(i) for i in names]
         x = xbmcgui.Dialog().select(header, files)
         if x == -1:
             return
-        return [i for i in self.meta.keys()][x]
+        return [i for i in names][x]
+
+    def get_menu_name(self, name=None):
+        name = name or ''
+        name = name[4:] if name.startswith('num-') else name
+        menu = [i for i in self.meta.keys() if name in i]
+        if len(menu) == 1:
+            return menu[0]
+        if len(menu) > 1:
+            return self.choose_menu('Choose menu', menu)
+        if not menu and name not in self.meta.keys():
+            return self.choose_menu('Choose menu')
+
+    def mod_skinshortcut(self):
+        name = self.get_menu_name(self.params.get('name'))
+        if not name:
+            return
+        xbmc.executebuiltin(f'RunScript(script.skinshortcuts,type=manage&group={name})')
+        return name
 
     def del_skinshortcut(self):
-        name = self.params.get('name') or ''
-        name = name[4:] if name.startswith('num-') else name
-        if name not in self.meta.keys():
-            name = self.choose_menu('Delete from Menu')
+        name = self.get_menu_name(self.params.get('name'))
         if not name:
             return
         try:
             x = int(self.params.get('index')) - 1
         except (ValueError, TypeError):
             files = [self.get_nice_name(i.get('label')) for i in self.meta[name]]
-            x = xbmcgui.Dialog().select('Delete from Menu', files)
+            x = xbmcgui.Dialog().select('Delete', files)
         if x == -1:
             return
         self.meta[name].pop(x)
@@ -145,7 +161,7 @@ class SkinShortcutsMenu():
             'action': action
         }
 
-        name = self.choose_menu('Add to Menu')
+        name = self.choose_menu('Add to menu')
         if not name:
             return
         self.meta[name].append(item)
@@ -153,11 +169,16 @@ class SkinShortcutsMenu():
         return name
 
     def run(self, action):
-        success = False
-        if action == 'add_skinshortcut':
-            success = self.add_skinshortcut()
-        elif action == 'del_skinshortcut':
-            success = self.del_skinshortcut()
+        routes = {
+            'add_skinshortcut': self.add_skinshortcut,
+            'del_skinshortcut': self.del_skinshortcut,
+            'mod_skinshortcut': self.mod_skinshortcut,
+        }
+
+        try:
+            success = routes[action]()
+        except KeyError:
+            success = False
 
         if not success:
             return
