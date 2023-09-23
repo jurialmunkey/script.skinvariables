@@ -7,6 +7,7 @@ import xbmc
 import xbmcgui
 import jurialmunkey.futils
 import xml.etree.ElementTree as ET
+from json import loads
 from jurialmunkey.futils import get_files_in_folder, load_filecontent, write_file
 # from resources.lib.kodiutils import kodi_log
 ADDONDATA = 'special://profile/addon_data/script.skinvariables/'
@@ -31,6 +32,13 @@ class SkinShortcutsMenu():
         self.skin = skin
         self.params = kwargs
         self.meta = self.read_skinshortcuts()
+        self.config = self.read_config()
+
+    def read_config(self):
+        content = load_filecontent('special://skin/shortcuts/skinvariables-skinshortcuts.json')
+        if not content:
+            return {}
+        return loads(content) or {}
 
     def read_skinshortcuts(self):
 
@@ -65,12 +73,28 @@ class SkinShortcutsMenu():
         write_file(filepath=filepath, content=content)
         delete_file(folder=DATA_FOLDER, filename=f'{self.skin}.hash', join_addon_data=False)
 
-    @staticmethod
-    def get_nice_name(label):
-        affix = ''
+    def get_index(self, label):
+        if label not in self.config:
+            if 'undefined' not in self.config:
+                return
+            label = 'undefined'
+        if 'index' not in self.config[label]:
+            return
+        return str(self.config[label]['index'] or '')
+
+    def get_nice_name(self, label):
+        prefix, suffix = '', ''
+
+        if label not in self.config and 'undefined' in self.config:
+            prefix = self.config['undefined'].get('prefix') or ''
+            suffix = self.config['undefined'].get('suffix') or ''
+
+        if label in self.config and self.config[label].get('name'):
+            prefix = ''
+            label = self.config[label]['name']
 
         if label.endswith('-1'):
-            affix = ' (Widgets)'
+            suffix = f'{suffix} > Widgets'
             label = label[:-2]
 
         while True:
@@ -95,17 +119,17 @@ class SkinShortcutsMenu():
         except ValueError:
             pass
 
-        label = f'{label}{affix}'
+        label = f'{prefix}{label}{suffix}'
 
         return label
 
     def choose_menu(self, header, names=None):
         names = names if names else self.meta.keys()
-        files = [self.get_nice_name(i) for i in names]
-        x = xbmcgui.Dialog().select(header, files)
+        files = sorted([(self.get_nice_name(i), i, self.get_index(i), ) for i in names], key=lambda a: f'{a[2] or ""}{a[0]}')
+        x = xbmcgui.Dialog().select(header, [i[0] for i in files])
         if x == -1:
             return
-        return [i for i in names][x]
+        return [i for i in files][x][1]
 
     def get_menu_name(self, name=None):
         name = name or ''
@@ -120,10 +144,10 @@ class SkinShortcutsMenu():
 
     def mod_skinshortcut(self):
         name = self.get_menu_name(self.params.get('name'))
-        if name[-2:-1] == '-':
-            name = name[:-2] + '.' + name[-1:]
         if not name:
             return
+        if name[-2:-1] == '-':
+            name = name[:-2] + '.' + name[-1:]
         xbmc.executebuiltin(f'RunScript(script.skinshortcuts,type=manage&group={name})')
         return name
 
