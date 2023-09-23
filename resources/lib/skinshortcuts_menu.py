@@ -120,6 +120,8 @@ class SkinShortcutsMenu():
 
     def mod_skinshortcut(self):
         name = self.get_menu_name(self.params.get('name'))
+        if name[-2:-1] == '-':
+            name = name[:-2] + '.' + name[-1:]
         if not name:
             return
         xbmc.executebuiltin(f'RunScript(script.skinshortcuts,type=manage&group={name})')
