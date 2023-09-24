@@ -13,7 +13,7 @@ DIRECTORY_PROPERTIES_BASIC = ["title", "art", "file", "fanart"]
 DIRECTORY_PROPERTIES_VIDEO = [
     "genre", "year", "rating", "playcount", "director", "trailer", "tagline", "plot", "plotoutline", "originaltitle", "lastplayed", "writer",
     "studio", "mpaa", "country", "premiered", "runtime", "set", "streamdetails", "top250", "votes", "firstaired", "season", "episode", "showtitle",
-    "sorttitle", "thumbnail", "uniqueid", "dateadded", "customproperties"]
+    "tvshowid", "setid", "sorttitle", "thumbnail", "uniqueid", "dateadded", "customproperties"]
 
 DIRECTORY_PROPERTIES_MUSIC = [
     "artist", "albumartist", "genre", "year", "rating", "album", "track", "duration", "lastplayed", "studio", "mpaa",
@@ -46,7 +46,7 @@ INFOLABEL_MAP = {
     "set": "set",
     "top250": "top250",
     "votes": "votes",
-    "firstaired": "firstaired",
+    "firstaired": "aired",
     "season": "season",
     "episode": "episode",
     "showtitle": "tvshowtitle",
@@ -70,7 +70,9 @@ INFOPROPERTY_MAP = {
     "theme": "theme",
     "mood": "mood",
     "style": "style",
-    "albumlabel": "albumlabel"
+    "albumlabel": "albumlabel",
+    "tvshowid": "tvshow.dbid",
+    "setid": "set.dbid"
 }
 
 
@@ -120,7 +122,7 @@ def is_excluded(item, filter_key=None, filter_value=None, filter_operator=None, 
 
 
 class ListGetFilterDir(Container):
-    def get_directory(self, paths=None, library=None, no_label_dupes=False, **kwargs):
+    def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, **kwargs):
         from jurialmunkey.jsnrpc import get_directory
 
         if not paths:
@@ -161,7 +163,7 @@ class ListGetFilterDir(Container):
             label2 = ''
             path = i.get('file') or ''
             mediatype = i.get('type') or ''
-            mediatype = 'video' if mediatype in ['unknown', ''] else mediatype
+            mediatype = dbtype or 'video' if mediatype in ['unknown', ''] else mediatype
 
             infolabels = {INFOLABEL_MAP[k]: v for k, v in i.items() if v and k in INFOLABEL_MAP and v != -1}
             infolabels['title'] = label
@@ -201,6 +203,15 @@ class ListGetFilterDir(Container):
             artwork['fanart'] = _get_artwork_parent(artwork, 'fanart', ('album.fanart', 'albumartist.fanart', 'artist.fanart'))
             artwork['clearlogo'] = _get_artwork_parent(artwork, 'clearlogo', ('album.clearlogo', 'albumartist.clearlogo', 'artist.clearlogo'))
 
+            is_folder = True
+            if i.get('filetype') == 'file':
+                is_folder = False
+                infoproperties['isPlayable'] = 'true'
+            elif mediatype == 'tvshow' and infolabels.get('dbid') and not path.startswith('videodb://') and not path.startswith('plugin://'):
+                path = f'videodb://tvshows/titles/{infolabels["dbid"]}/'
+            elif mediatype == 'season' and infoproperties.get('tvshow.dbid') and infolabels.get('season') and not path.startswith('videodb://') and not path.startswith('plugin://'):
+                path = f'videodb://tvshows/titles/{infoproperties["tvshow.dbid"]}/{infolabels["season"]}/'
+
             listitem = ListItem(label=label, label2='', path=path, offscreen=True)
             listitem.setLabel2(label2)
             listitem.setArt(artwork)
@@ -214,7 +225,7 @@ class ListGetFilterDir(Container):
 
             listitem.setProperties(infoproperties)
 
-            item = {'url': path, 'listitem': listitem, 'isFolder': True}
+            item = {'url': path, 'listitem': listitem, 'isFolder': is_folder}
 
             if not no_label_dupes:
                 return item
