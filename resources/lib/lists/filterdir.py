@@ -8,7 +8,7 @@ from resources.lib.container import Container
 from infotagger.listitem import ListItemInfoTag
 from jurialmunkey.parser import split_items
 
-DIRECTORY_PROPERTIES_BASIC = ["title", "art", "file"]
+DIRECTORY_PROPERTIES_BASIC = ["title", "art", "file", "fanart"]
 
 DIRECTORY_PROPERTIES_VIDEO = [
     "genre", "year", "rating", "playcount", "director", "trailer", "tagline", "plot", "plotoutline", "originaltitle", "lastplayed", "writer",
@@ -17,7 +17,8 @@ DIRECTORY_PROPERTIES_VIDEO = [
 
 DIRECTORY_PROPERTIES_MUSIC = [
     "artist", "albumartist", "genre", "year", "rating", "album", "track", "duration", "lastplayed", "studio", "mpaa",
-    "disc", "description", "theme", "mood", "style", "albumlabel", "sorttitle", "uniqueid", "dateadded", "customproperties"]
+    "disc", "description", "theme", "mood", "style", "albumlabel", "sorttitle", "uniqueid", "dateadded", "customproperties",
+    "totaldiscs", "disctitle", "releasedate", "originaldate", "bpm", "bitrate", "samplerate", "channels"]
 
 INFOLABEL_MAP = {
     "title": "title",
@@ -27,7 +28,7 @@ INFOLABEL_MAP = {
     "year": "year",
     "rating": "rating",
     "album": "album",
-    "track": "track",
+    "track": "tracknumber",
     "duration": "duration",
     "playcount": "playcount",
     "director": "director",
@@ -53,6 +54,23 @@ INFOLABEL_MAP = {
     "episodeguide": "episodeguide",
     "dateadded": "dateadded",
     "id": "dbid",
+}
+
+INFOPROPERTY_MAP = {
+    "disctitle": "disctitle",
+    "releasedate": "releasedate",
+    "originaldate": "originaldate",
+    "bpm": "bpm",
+    "bitrate": "bitrate",
+    "samplerate": "samplerate",
+    "channels": "channels",
+    "totaldiscs": "totaldiscs",
+    "disc": "disc",
+    "description": "description",
+    "theme": "theme",
+    "mood": "mood",
+    "style": "style",
+    "albumlabel": "albumlabel"
 }
 
 
@@ -129,7 +147,7 @@ class ListGetFilterDir(Container):
         directory_properties = DIRECTORY_PROPERTIES_BASIC
         directory_properties += {
             'video': DIRECTORY_PROPERTIES_VIDEO,
-            'music': DIRECTORY_PROPERTIES_VIDEO}.get(library) or []
+            'music': DIRECTORY_PROPERTIES_MUSIC}.get(library) or []
 
         def _get_label(i):
             if i.get('title'):
@@ -149,9 +167,17 @@ class ListGetFilterDir(Container):
             infolabels['title'] = label
             infolabels['mediatype'] = mediatype
 
+            infoproperties = {INFOPROPERTY_MAP[k]: str(v) for k, v in i.items() if v and k in INFOPROPERTY_MAP and v != -1}
+            infoproperties.update({k: str(v) for k, v in (i.get('customproperties') or {}).items()})
+
+            # Fix some incompatible type returns from JSON RPC to info_tag in music library
+            if library == 'music':
+                for a in ('artist', 'albumartist', 'album'):
+                    if isinstance(infolabels.get(a), list):
+                        infolabels[a] = ' / '.join(infolabels[a])
+
             uniqueids = i.get('uniqueid') or {}
             streamdetails = i.get('streamdetails') or {}
-            infoproperties = i.get('customproperties') or {}
 
             for _, filters in all_filters.items():
                 if is_excluded({'infolabels': infolabels, 'infoproperties': infoproperties}, **filters):
@@ -160,14 +186,31 @@ class ListGetFilterDir(Container):
             if mediatype:
                 mediatypes[mediatype] = mediatypes.get(mediatype, 0) + 1
 
+            def _get_artwork_parent(artwork: dict, key: str, names: tuple):
+                if artwork.get(key):
+                    return artwork[key]
+                if i.get(key):
+                    return i[key]
+                for a in names:
+                    if artwork.get(a):
+                        return artwork[a]
+                return ''
+
+            artwork = i.get('art') or {}
+            artwork['thumb'] = _get_artwork_parent(artwork, 'thumb', ('album.thumb', 'albumartist.thumb', 'artist.thumb'))
+            artwork['fanart'] = _get_artwork_parent(artwork, 'fanart', ('album.fanart', 'albumartist.fanart', 'artist.fanart'))
+            artwork['clearlogo'] = _get_artwork_parent(artwork, 'clearlogo', ('album.clearlogo', 'albumartist.clearlogo', 'artist.clearlogo'))
+
             listitem = ListItem(label=label, label2='', path=path, offscreen=True)
             listitem.setLabel2(label2)
-            listitem.setArt(i.get('art', {}))
+            listitem.setArt(artwork)
 
-            info_tag = ListItemInfoTag(listitem)
+            info_library = library or 'video'
+            info_tag = ListItemInfoTag(listitem, info_library)
             info_tag.set_info(infolabels)
-            info_tag.set_unique_ids(uniqueids)
-            info_tag.set_stream_details(streamdetails)
+            if info_library == 'video':
+                info_tag.set_unique_ids(uniqueids)
+                info_tag.set_stream_details(streamdetails)
 
             listitem.setProperties(infoproperties)
 
