@@ -10,6 +10,135 @@ class FileUtils(jurialmunkey.futils.FileUtils):
     addondata = ADDONDATA   # Override module addon_data with plugin addon_data
 
 
+def boolean(string):
+    if not isinstance(string, str):
+        return bool(string)
+    if string.lower() in ('false', '0', ''):
+        return False
+    return True
+
+
+def run_dialog(run_dialog, heading='Heading', message='Message', **kwargs):
+    import xbmc
+    import xbmcgui
+    from jurialmunkey.parser import split_items
+
+    kwargs['heading'] = heading
+    kwargs['message'] = message
+
+    dialog_progress_routes = {
+        'extendedprogress': xbmcgui.DialogProgressBG,
+        'progress': xbmcgui.DialogProgress,
+    }
+
+    if run_dialog in dialog_progress_routes.keys():
+        monitor = xbmc.Monitor()
+        dialog = dialog_progress_routes[run_dialog]()
+        dialog.create(heading, message)
+        for x in range(100):
+            dialog.update(x)
+            monitor.waitForAbort(0.1)
+        dialog.close()
+        del dialog
+        del monitor
+        return
+
+    dialog = xbmcgui.Dialog()
+
+    dialog_standard_routes = {
+        'ok': {
+            'func': dialog.ok,
+            'params': (
+                ('heading', str, ''), ('message', str, ''), )
+        },
+        'yesno': {
+            'func': dialog.yesno,
+            'params': (
+                ('heading', str, ''), ('message', str, ''), ('nolabel', str, 'No'), ('yeslabel', str, 'Yes'),
+                ('defaultbutton', int, xbmcgui.DLG_YESNO_YES_BTN), ('autoclose', int, 0), )
+        },
+        'yesnocustom': {
+            'func': dialog.yesnocustom,
+            'params': (
+                ('heading', str, ''), ('message', str, ''), ('nolabel', str, 'No'), ('yeslabel', str, 'Yes'), ('customlabel', str, 'Custom'),
+                ('defaultbutton', int, xbmcgui.DLG_YESNO_YES_BTN), ('autoclose', int, 0), )
+        },
+        'textviewer': {
+            'func': dialog.textviewer,
+            'params': (
+                ('heading', str, ''), ('text', str, ''),
+                ('usemono', boolean, True), )
+        },
+        'notification': {
+            'func': dialog.notification,
+            'params': (
+                ('heading', str, ''), ('message', str, ''), ('icon', str, ''),
+                ('time', int, 5000), ('sound', boolean, True), )
+        },
+        'numeric': {
+            'func': dialog.numeric,
+            'params': (
+                ('heading', str, ''), ('defaultt', str, ''),
+                ('type', int, 0), ('bHiddenInput', boolean, False), )
+        },
+        'input': {
+            'func': dialog.input,
+            'params': (
+                ('heading', str, ''), ('defaultt', str, ''),
+                ('type', int, xbmcgui.INPUT_ALPHANUM), ('option', int, 0), ('autoclose', int, 0), )
+        },
+        'browse': {
+            'func': dialog.browse,
+            'params': (
+                ('heading', str, ''), ('shares', str, ''), ('mask', str, ''), ('defaultt', str, ''),
+                ('type', int, 0), ('useThumbs', boolean, True), ('treatAsFolder', boolean, True), ('enableMultiple', boolean, True), )
+        },
+        'colorpicker': {
+            'func': dialog.colorpicker,
+            'params': (
+                ('heading', str, ''), ('selectedcolor', str, ''), ('colorfile', str, ''), )
+        },
+        'contextmenu': {
+            'func': dialog.contextmenu,
+            'params': (
+                ('list', split_items, ''), )
+        },
+        'select': {
+            'func': dialog.select,
+            'params': (
+                ('heading', str, ''),
+                ('list', split_items, ''),
+                ('autoclose', int, 0), ('preselect', int, 0), ('useDetails', boolean, False), )
+        },
+        'multiselect': {
+            'func': dialog.select,
+            'params': (
+                ('heading', str, ''),
+                ('list', split_items, ''),
+                ('autoclose', int, 0), ('preselect', int, 0), ('useDetails', boolean, False), )
+        },
+    }
+
+    route = dialog_standard_routes[run_dialog]
+    params = {k: func(kwargs.get(k) or fallback) for k, func, fallback in route['params']}
+    x = route['func'](**params)
+
+    executebuiltin = kwargs.get('executebuiltin') or ''
+
+    if isinstance(x, int):
+        executebuiltin = kwargs.get(f'executebuiltin_{x}') or executebuiltin
+        if not executebuiltin:
+            return
+        if x >= 0 and 'list' in params:
+            xbmc.executebuiltin(executebuiltin.format(x=x, v=params['list'][x]))
+        return
+
+    if not x or not executebuiltin:
+        return
+
+    xbmc.executebuiltin(executebuiltin.format(x=x, v=x))
+
+
 def set_player_subtitle(set_player_subtitle, reload_property='UID', **kwargs):
     import time
     import xbmc

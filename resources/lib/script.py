@@ -21,6 +21,8 @@ class Script(object):
             self.params[k] = v
 
     routing_table = {
+        'run_dialog':
+            lambda **kwargs: importmodule('resources.lib.method', 'run_dialog')(**kwargs),
         'set_player_subtitle':
             lambda **kwargs: importmodule('resources.lib.method', 'set_player_subtitle')(**kwargs),
         'set_player_audiostream':
