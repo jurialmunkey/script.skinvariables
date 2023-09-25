@@ -121,6 +121,174 @@ def is_excluded(item, filter_key=None, filter_value=None, filter_operator=None, 
                     return True
 
 
+class MetaItemJSONRPC():
+    def __init__(self, meta, dbtype='video'):
+        self.meta = meta or {}
+        self.dbtype = dbtype
+
+    @property
+    def label(self):
+        if self.meta.get('title'):
+            return self.meta['title']
+        if self.meta.get('label'):
+            return self.meta['label']
+        return ''
+
+    @property
+    def path(self):
+        if self.meta.get('file'):
+            return self.meta['file']
+        return ''
+
+    @property
+    def mediatype(self):
+        mediatype = self.meta.get('type') or ''
+        if mediatype in ['unknown', '']:
+            return self.dbtype
+        return mediatype
+
+    @property
+    def infolabels(self):
+        return {INFOLABEL_MAP[k]: v for k, v in self.meta.items() if v and k in INFOLABEL_MAP and v != -1}
+
+    @property
+    def infoproperties(self):
+        infoproperties = {INFOPROPERTY_MAP[k]: str(v) for k, v in self.meta.items() if v and k in INFOPROPERTY_MAP and v != -1}
+        infoproperties.update({k: str(v) for k, v in (self.meta.get('customproperties') or {}).items()})
+        return infoproperties
+
+    @property
+    def uniqueids(self):
+        return self.meta.get('uniqueid') or {}
+
+    @property
+    def streamdetails(self):
+        return self.meta.get('streamdetails') or {}
+
+    @property
+    def artwork(self):
+        artwork = self.meta.get('art') or {}
+        remap = (
+            ('thumb', 'thumb'),
+            ('fanart', 'fanart'))
+        for a, k in remap:
+            if self.meta.get(k) and not artwork.get(a):
+                artwork[a] = self.meta[k]
+        return artwork
+
+    @property
+    def filetype(self):
+        return self.meta.get('filetype')
+
+
+class ListItemJSONRPC():
+    def __init__(self, meta, library='video', dbtype='video'):
+        self.meta = MetaItemJSONRPC(meta, dbtype)
+        self.is_folder = True
+        self.library = library or 'video'
+        self.infolabels = self.meta.infolabels
+        self.infoproperties = self.meta.infoproperties
+        self.uniqueids = self.meta.uniqueids
+        self.streamdetails = self.meta.streamdetails
+        self.artwork = self.meta.artwork
+        self.filetype = self.meta.filetype
+        self.mediatype = self.meta.mediatype
+        self.path = self.meta.path
+        self.label = self.meta.label
+        self.label2 = ''
+
+    @property
+    def mediatype(self):
+        return self._mediatype
+
+    @mediatype.setter
+    def mediatype(self, value: str):
+        self._mediatype = value
+        self.infolabels['mediatype'] = value
+
+    @property
+    def infolabels(self):
+        return self._infolabels
+
+    @infolabels.setter
+    def infolabels(self, value):
+        self._infolabels = value
+        self.fix_music_infolabels()
+
+    def fix_music_infolabels(self):
+        # Fix some incompatible type returns from JSON RPC to info_tag in music library
+        if self.library != 'music':
+            return
+        for a in ('artist', 'albumartist', 'album'):
+            if not isinstance(self.infolabels.get(a), list):
+                continue
+            self.infolabels[a] = ' / '.join(self.infolabels[a])
+
+    @property
+    def artwork(self):
+        return self._artwork
+
+    @artwork.setter
+    def artwork(self, value):
+        self._artwork = value
+
+        def _map_artwork(key: str, names: tuple):
+            if self._artwork.get(key):
+                return self._artwork[key]
+            for a in names:
+                if self._artwork.get(a):
+                    return self._artwork[a]
+            return ''
+
+        if self.library == 'music':
+            parents = ('album', 'albumartist', 'artist')
+            for k in ('thumb', 'fanart', 'clearlogo'):
+                self._artwork[k] = _map_artwork(k, (f'{parent}.{k}' for parent in parents))
+
+    @property
+    def path(self):
+        return self._path
+
+    @path.setter
+    def path(self, value):
+        self._path = value
+        self.is_folder = True
+
+        if self.filetype == 'file':
+            self.is_folder = False
+            self.infoproperties['isPlayable'] = 'true'
+            return
+
+        if self._path.startswith('videodb://'):
+            return
+
+        if self._path.startswith('plugin://'):
+            return
+
+        if self.mediatype == 'tvshow' and self.infolabels.get('dbid'):
+            self._path = f'videodb://tvshows/titles/{self.infolabels["dbid"]}/'
+            return
+
+        if self.mediatype == 'season' and self.infolabels.get('tvshow.dbid'):
+            self._path = f'videodb://tvshows/titles/{self.infoproperties["tvshow.dbid"]}/{self.infolabels["season"]}/'
+            return
+
+    @property
+    def listitem(self):
+        self._listitem = ListItem(label=self.label, label2=self.label2, path=self.path, offscreen=True)
+        self._listitem.setLabel2(self.label2)
+        self._listitem.setArt(self.artwork)
+
+        self._info_tag = ListItemInfoTag(self._listitem, self.library)
+        self._info_tag.set_info(self.infolabels)
+        if self.library == 'video':
+            self._info_tag.set_unique_ids(self.uniqueids)
+            self._info_tag.set_stream_details(self.streamdetails)
+
+        self._listitem.setProperties(self.infoproperties)
+        return self._listitem
+
+
 class ListGetFilterDir(Container):
     def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, **kwargs):
         from jurialmunkey.jsnrpc import get_directory
@@ -151,89 +319,26 @@ class ListGetFilterDir(Container):
             'video': DIRECTORY_PROPERTIES_VIDEO,
             'music': DIRECTORY_PROPERTIES_MUSIC}.get(library) or []
 
-        def _get_label(i):
-            if i.get('title'):
-                return i['title']
-            if i.get('label'):
-                return i['label']
-            return ''
-
         def _make_item(i):
-            label = _get_label(i)
-            label2 = ''
-            path = i.get('file') or ''
-            mediatype = i.get('type') or ''
-            mediatype = dbtype or 'video' if mediatype in ['unknown', ''] else mediatype
-
-            infolabels = {INFOLABEL_MAP[k]: v for k, v in i.items() if v and k in INFOLABEL_MAP and v != -1}
-            infolabels['title'] = label
-            infolabels['mediatype'] = mediatype
-
-            infoproperties = {INFOPROPERTY_MAP[k]: str(v) for k, v in i.items() if v and k in INFOPROPERTY_MAP and v != -1}
-            infoproperties.update({k: str(v) for k, v in (i.get('customproperties') or {}).items()})
-
-            # Fix some incompatible type returns from JSON RPC to info_tag in music library
-            if library == 'music':
-                for a in ('artist', 'albumartist', 'album'):
-                    if isinstance(infolabels.get(a), list):
-                        infolabels[a] = ' / '.join(infolabels[a])
-
-            uniqueids = i.get('uniqueid') or {}
-            streamdetails = i.get('streamdetails') or {}
+            listitem_jsonrpc = ListItemJSONRPC(i, library=library, dbtype=dbtype)
+            listitem_jsonrpc.infolabels['title'] = listitem_jsonrpc.label
 
             for _, filters in all_filters.items():
-                if is_excluded({'infolabels': infolabels, 'infoproperties': infoproperties}, **filters):
+                if is_excluded({'infolabels': listitem_jsonrpc.infolabels, 'infoproperties': listitem_jsonrpc.infoproperties}, **filters):
                     return
 
-            if mediatype:
-                mediatypes[mediatype] = mediatypes.get(mediatype, 0) + 1
+            if listitem_jsonrpc.mediatype:
+                mediatypes[listitem_jsonrpc.mediatype] = mediatypes.get(listitem_jsonrpc.mediatype, 0) + 1
 
-            def _get_artwork_parent(artwork: dict, key: str, names: tuple):
-                if artwork.get(key):
-                    return artwork[key]
-                if i.get(key):
-                    return i[key]
-                for a in names:
-                    if artwork.get(a):
-                        return artwork[a]
-                return ''
-
-            artwork = i.get('art') or {}
-            artwork['thumb'] = _get_artwork_parent(artwork, 'thumb', ('album.thumb', 'albumartist.thumb', 'artist.thumb'))
-            artwork['fanart'] = _get_artwork_parent(artwork, 'fanart', ('album.fanart', 'albumartist.fanart', 'artist.fanart'))
-            artwork['clearlogo'] = _get_artwork_parent(artwork, 'clearlogo', ('album.clearlogo', 'albumartist.clearlogo', 'artist.clearlogo'))
-
-            is_folder = True
-            if i.get('filetype') == 'file':
-                is_folder = False
-                infoproperties['isPlayable'] = 'true'
-            elif mediatype == 'tvshow' and infolabels.get('dbid') and not path.startswith('videodb://') and not path.startswith('plugin://'):
-                path = f'videodb://tvshows/titles/{infolabels["dbid"]}/'
-            elif mediatype == 'season' and infoproperties.get('tvshow.dbid') and infolabels.get('season') and not path.startswith('videodb://') and not path.startswith('plugin://'):
-                path = f'videodb://tvshows/titles/{infoproperties["tvshow.dbid"]}/{infolabels["season"]}/'
-
-            listitem = ListItem(label=label, label2='', path=path, offscreen=True)
-            listitem.setLabel2(label2)
-            listitem.setArt(artwork)
-
-            info_library = library or 'video'
-            info_tag = ListItemInfoTag(listitem, info_library)
-            info_tag.set_info(infolabels)
-            if info_library == 'video':
-                info_tag.set_unique_ids(uniqueids)
-                info_tag.set_stream_details(streamdetails)
-
-            listitem.setProperties(infoproperties)
-
-            item = {'url': path, 'listitem': listitem, 'isFolder': is_folder}
+            item = {'url': listitem_jsonrpc.path, 'listitem': listitem_jsonrpc.listitem, 'isFolder': listitem_jsonrpc.is_folder}
 
             if not no_label_dupes:
                 return item
 
-            if label in added_items:
+            if listitem_jsonrpc.label in added_items:
                 return
 
-            added_items.append(label)
+            added_items.append(listitem_jsonrpc.label)
             return item
 
         items = []
