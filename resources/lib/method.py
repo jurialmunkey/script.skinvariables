@@ -18,30 +18,40 @@ def boolean(string):
     return True
 
 
-def run_dialog(run_dialog, heading='Heading', message='Message', **kwargs):
+def run_progressdialog(run_progressdialog, background=False, heading='', message='', polling='0.1', message_info='', progress_info='', timeout='200', max_value='100', **kwargs):
+    import xbmc
+    import xbmcgui
+
+    func = xbmcgui.DialogProgressBG if boolean(background) else xbmcgui.DialogProgress
+    dialog = func()
+
+    polling = float(polling)
+    timeout = int(timeout)
+    max_value = int(max_value)
+
+    monitor = xbmc.Monitor()
+    dialog.create(heading, message)
+
+    x = 0
+    while x < max_value and timeout > 0 and not monitor.abortRequested():
+        x += 1
+        timeout -= 1
+        if progress_info:
+            x = int(xbmc.getInfoLabel(progress_info) or 0)
+        if message_info:
+            message = str(xbmc.getInfoLabel(message_info) or '')
+        progress = int((x / max_value) * 100)
+        dialog.update(progress, message=message)
+        monitor.waitForAbort(polling)
+    dialog.close()
+    del dialog
+    del monitor
+
+
+def run_dialog(run_dialog, **kwargs):
     import xbmc
     import xbmcgui
     from jurialmunkey.parser import split_items
-
-    kwargs['heading'] = heading
-    kwargs['message'] = message
-
-    dialog_progress_routes = {
-        'extendedprogress': xbmcgui.DialogProgressBG,
-        'progress': xbmcgui.DialogProgress,
-    }
-
-    if run_dialog in dialog_progress_routes.keys():
-        monitor = xbmc.Monitor()
-        dialog = dialog_progress_routes[run_dialog]()
-        dialog.create(heading, message)
-        for x in range(100):
-            dialog.update(x)
-            monitor.waitForAbort(0.1)
-        dialog.close()
-        del dialog
-        del monitor
-        return
 
     dialog = xbmcgui.Dialog()
 
