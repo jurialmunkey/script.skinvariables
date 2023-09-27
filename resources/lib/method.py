@@ -72,30 +72,36 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
     def _split_items(items):
         return items.split(separator)
 
+    def _get_path_or_str(string):
+        if not boolean(kwargs.get('load_file')):
+            return str(string)
+        from jurialmunkey.futils import load_filecontent
+        return str(load_filecontent(string))
+
     dialog = xbmcgui.Dialog()
 
     dialog_standard_routes = {
         'ok': {
             'func': dialog.ok,
             'params': (
-                ('heading', str, ''), ('message', str, ''), )
+                ('heading', str, ''), ('message', _get_path_or_str, ''), )
         },
         'yesno': {
             'func': dialog.yesno,
             'params': (
-                ('heading', str, ''), ('message', str, ''), ('nolabel', str, 'No'), ('yeslabel', str, 'Yes'),
+                ('heading', str, ''), ('message', _get_path_or_str, ''), ('nolabel', str, 'No'), ('yeslabel', str, 'Yes'),
                 ('defaultbutton', int, xbmcgui.DLG_YESNO_YES_BTN), ('autoclose', int, 0), )
         },
         'yesnocustom': {
             'func': dialog.yesnocustom,
             'params': (
-                ('heading', str, ''), ('message', str, ''), ('nolabel', str, 'No'), ('yeslabel', str, 'Yes'), ('customlabel', str, 'Custom'),
+                ('heading', str, ''), ('message', _get_path_or_str, ''), ('nolabel', str, 'No'), ('yeslabel', str, 'Yes'), ('customlabel', str, 'Custom'),
                 ('defaultbutton', int, xbmcgui.DLG_YESNO_YES_BTN), ('autoclose', int, 0), )
         },
         'textviewer': {
             'func': dialog.textviewer,
             'params': (
-                ('heading', str, ''), ('text', str, ''),
+                ('heading', str, ''), ('text', _get_path_or_str, ''),
                 ('usemono', boolean, True), )
         },
         'notification': {
