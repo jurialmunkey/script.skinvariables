@@ -18,6 +18,24 @@ def boolean(string):
     return True
 
 
+def executebuiltin(executebuiltin='', index=None, values=None, **kwargs):
+    if index == -1 or index is False:
+        return
+
+    if isinstance(index, int):
+        executebuiltin = kwargs.get(f'executebuiltin_{index}') or executebuiltin
+        value = values[index] if values else index
+    else:
+        value = index
+
+    if not executebuiltin:
+        return
+
+    import xbmc
+    for builtin in executebuiltin.split('||'):
+        xbmc.executebuiltin(builtin.format(x=index, v=value))
+
+
 def run_progressdialog(run_progressdialog, background=False, heading='', message='', polling='0.1', message_info='', progress_info='', timeout='200', max_value='100', **kwargs):
     import xbmc
     import xbmcgui
@@ -49,7 +67,6 @@ def run_progressdialog(run_progressdialog, background=False, heading='', message
 
 
 def run_dialog(run_dialog, **kwargs):
-    import xbmc
     import xbmcgui
     from jurialmunkey.parser import split_items
 
@@ -131,22 +148,7 @@ def run_dialog(run_dialog, **kwargs):
 
     route = dialog_standard_routes[run_dialog]
     params = {k: func(kwargs.get(k) or fallback) for k, func, fallback in route['params']}
-    x = route['func'](**params)
-
-    executebuiltin = kwargs.get('executebuiltin') or ''
-
-    if isinstance(x, int):
-        executebuiltin = kwargs.get(f'executebuiltin_{x}') or executebuiltin
-        if not executebuiltin:
-            return
-        if x >= 0 and 'list' in params:
-            xbmc.executebuiltin(executebuiltin.format(x=x, v=params['list'][x]))
-        return
-
-    if not x or not executebuiltin:
-        return
-
-    xbmc.executebuiltin(executebuiltin.format(x=x, v=x))
+    executebuiltin(index=route['func'](**params), values=params.get('list'), **kwargs)
 
 
 def set_player_subtitle(set_player_subtitle, reload_property='UID', **kwargs):
