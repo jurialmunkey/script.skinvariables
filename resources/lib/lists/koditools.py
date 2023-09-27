@@ -34,3 +34,28 @@ class ListGetSplitString(Container):
             'isFolder': True} for i in values.split(separator) if i]
 
         self.add_items(items)
+
+
+class ListGetEncodedString(Container):
+    def get_directory(self, paths=None, window_prop=None, window_id=None, **kwargs):
+        import xbmc
+        from urllib.parse import quote_plus
+
+        if not paths:
+            return
+
+        items = []
+        for x, i in enumerate(paths):
+            label = quote_plus(i)
+            item = {
+                'url': '',
+                'listitem': ListItem(label=label, label2='', path='', offscreen=True),
+                'isFolder': True}
+            items.append(item)
+            if not window_prop:
+                continue
+            if x == 0:
+                xbmc.executebuiltin(f'SetProperty({window_prop},{label}{f",{window_id}" if window_id else ""})')
+            xbmc.executebuiltin(f'SetProperty({window_prop}.{x},{label}{f",{window_id}" if window_id else ""})')
+
+        self.add_items(items)
