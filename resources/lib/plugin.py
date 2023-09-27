@@ -38,6 +38,9 @@ class Plugin():
         'get_encoded_string': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListGetEncodedString'},
+        'get_file_exists': {
+            'module_name': 'resources.lib.lists.koditools',
+            'import_attr': 'ListGetFileExists'},
         'get_filter_dir': {
             'module_name': 'resources.lib.lists.filterdir',
             'import_attr': 'ListGetFilterDir'},
