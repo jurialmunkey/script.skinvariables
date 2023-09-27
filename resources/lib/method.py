@@ -18,6 +18,15 @@ def boolean(string):
     return True
 
 
+def set_to_windowprop(text, x, window_prop, window_id=None):
+    import xbmc
+    if not window_prop:
+        return
+    if x == 0:
+        xbmc.executebuiltin(f'SetProperty({window_prop},{text}{f",{window_id}" if window_id else ""})')
+    xbmc.executebuiltin(f'SetProperty({window_prop}.{x},{text}{f",{window_id}" if window_id else ""})')
+
+
 def executebuiltin(executebuiltin='', index=None, values=None, **kwargs):
     if index == -1 or index is False:
         return
