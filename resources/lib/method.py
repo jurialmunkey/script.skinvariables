@@ -66,9 +66,11 @@ def run_progressdialog(run_progressdialog, background=False, heading='', message
     del monitor
 
 
-def run_dialog(run_dialog, **kwargs):
+def run_dialog(run_dialog, separator=' / ', **kwargs):
     import xbmcgui
-    from jurialmunkey.parser import split_items
+
+    def _split_items(items):
+        return items.split(separator)
 
     dialog = xbmcgui.Dialog()
 
@@ -128,20 +130,20 @@ def run_dialog(run_dialog, **kwargs):
         'contextmenu': {
             'func': dialog.contextmenu,
             'params': (
-                ('list', split_items, ''), )
+                ('list', _split_items, ''), )
         },
         'select': {
             'func': dialog.select,
             'params': (
                 ('heading', str, ''),
-                ('list', split_items, ''),
+                ('list', _split_items, ''),
                 ('autoclose', int, 0), ('preselect', int, 0), ('useDetails', boolean, False), )
         },
         'multiselect': {
             'func': dialog.select,
             'params': (
                 ('heading', str, ''),
-                ('list', split_items, ''),
+                ('list', _split_items, ''),
                 ('autoclose', int, 0), ('preselect', int, 0), ('useDetails', boolean, False), )
         },
     }
