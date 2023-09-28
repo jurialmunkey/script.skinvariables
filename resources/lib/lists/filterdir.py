@@ -5,6 +5,7 @@
 import operator
 from xbmcgui import ListItem
 from resources.lib.container import Container
+from resources.lib.method import set_to_windowprop
 from infotagger.listitem import ListItemInfoTag
 from jurialmunkey.parser import split_items
 
@@ -352,8 +353,12 @@ class ListGetFilterDir(Container):
 
 
 class ListGetContainerLabels(Container):
-    def get_directory(self, containers, infolabel, numitems=None, separator=' / ', filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None, **kwargs):
-        from xbmc import getInfoLabel as get_infolabel
+    def get_directory(
+            self, containers, infolabel, numitems=None, separator=' / ',
+            filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None,
+            window_prop=None, window_id=None,
+            **kwargs):
+        import xbmc
 
         filters = {
             'filter_key': 'title',
@@ -381,11 +386,11 @@ class ListGetContainerLabels(Container):
 
         items = []
         for container in containers.split():
-            numitems = int(get_infolabel(f'Container({container}).NumItems') or 0)
+            numitems = int(xbmc.getInfoLabel(f'Container({container}).NumItems') or 0)
             if not numitems:
                 continue
             for x in range(numitems):
-                titles = get_infolabel(f'Container({container}).ListItemAbsolute({x}).{infolabel}')
+                titles = xbmc.getInfoLabel(f'Container({container}).ListItemAbsolute({x}).{infolabel}')
                 if not titles:
                     continue
                 for title in titles.split(separator):
@@ -395,3 +400,11 @@ class ListGetContainerLabels(Container):
                     items.append(item)
 
         self.add_items(items)
+
+        if not window_prop or not added_items:
+            return
+
+        for x, i in enumerate(added_items):
+            set_to_windowprop(i, x, window_prop, window_id)
+
+        xbmc.executebuiltin(f'SetProperty({window_prop},{" / ".join(added_items)}{f",{window_id}" if window_id else ""})')
