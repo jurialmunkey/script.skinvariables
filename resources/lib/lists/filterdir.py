@@ -352,7 +352,7 @@ class ListGetFilterDir(Container):
 
 
 class ListGetContainerLabels(Container):
-    def get_directory(self, containers, infolabel, numitems, separator=' / ', filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None, **kwargs):
+    def get_directory(self, containers, infolabel, numitems=None, separator=' / ', filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None, **kwargs):
         from xbmc import getInfoLabel as get_infolabel
 
         filters = {
