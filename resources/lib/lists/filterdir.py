@@ -354,7 +354,7 @@ class ListGetFilterDir(Container):
 
 class ListGetContainerLabels(Container):
     def get_directory(
-            self, containers, infolabel, numitems=None, thumb=None, separator=' / ',
+            self, containers, infolabel, numitems=None, thumb=None, label2=None, separator=' / ',
             filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None,
             window_prop=None, window_id=None,
             **kwargs):
@@ -371,15 +371,15 @@ class ListGetContainerLabels(Container):
 
         added_items = []
 
-        def _make_item(title, image):
+        def _make_item(title, image, label):
             if title in added_items:
                 return
 
             if is_excluded({'infolabels': {'title': title}}, **filters):
                 return
 
-            listitem = ListItem(label=title, label2='', path='', offscreen=True)
-            listitem.setArt({'icon': image, 'thumb': image})
+            listitem = ListItem(label=title, label2=label or '', path='', offscreen=True)
+            listitem.setArt({'icon': image or '', 'thumb': image or ''})
             item = {'url': '', 'listitem': listitem, 'isFolder': True}
 
             added_items.append(title)
@@ -392,12 +392,13 @@ class ListGetContainerLabels(Container):
                 continue
             for x in range(numitems):
                 image = xbmc.getInfoLabel(f'Container({container}).ListItemAbsolute({x}).{thumb}') if thumb else ''
+                label = xbmc.getInfoLabel(f'Container({container}).ListItemAbsolute({x}).{label2}') if label2 else ''
                 for il in infolabel.split():
                     titles = xbmc.getInfoLabel(f'Container({container}).ListItemAbsolute({x}).{il}')
                     if not titles:
                         continue
                     for title in titles.split(separator):
-                        item = _make_item(title, image)
+                        item = _make_item(title, image, label)
                         if not item:
                             continue
                         items.append(item)
