@@ -390,14 +390,15 @@ class ListGetContainerLabels(Container):
             if not numitems:
                 continue
             for x in range(numitems):
-                titles = xbmc.getInfoLabel(f'Container({container}).ListItemAbsolute({x}).{infolabel}')
-                if not titles:
-                    continue
-                for title in titles.split(separator):
-                    item = _make_item(title)
-                    if not item:
+                for il in infolabel.split():
+                    titles = xbmc.getInfoLabel(f'Container({container}).ListItemAbsolute({x}).{il}')
+                    if not titles:
                         continue
-                    items.append(item)
+                    for title in titles.split(separator):
+                        item = _make_item(title)
+                        if not item:
+                            continue
+                        items.append(item)
 
         self.add_items(items)
 
