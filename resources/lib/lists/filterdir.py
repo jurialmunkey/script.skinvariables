@@ -354,7 +354,7 @@ class ListGetFilterDir(Container):
 
 class ListGetContainerLabels(Container):
     def get_directory(
-            self, containers, infolabel, numitems=None, separator=' / ',
+            self, containers, infolabel, numitems=None, thumb=None, separator=' / ',
             filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None,
             window_prop=None, window_id=None,
             **kwargs):
@@ -371,7 +371,7 @@ class ListGetContainerLabels(Container):
 
         added_items = []
 
-        def _make_item(title):
+        def _make_item(title, image):
             if title in added_items:
                 return
 
@@ -379,6 +379,7 @@ class ListGetContainerLabels(Container):
                 return
 
             listitem = ListItem(label=title, label2='', path='', offscreen=True)
+            listitem.setArt({'icon': image, 'thumb': image})
             item = {'url': '', 'listitem': listitem, 'isFolder': True}
 
             added_items.append(title)
@@ -390,12 +391,13 @@ class ListGetContainerLabels(Container):
             if not numitems:
                 continue
             for x in range(numitems):
+                image = xbmc.getInfoLabel(f'Container({container}).ListItemAbsolute({x}).{thumb}') if thumb else ''
                 for il in infolabel.split():
                     titles = xbmc.getInfoLabel(f'Container({container}).ListItemAbsolute({x}).{il}')
                     if not titles:
                         continue
                     for title in titles.split(separator):
-                        item = _make_item(title)
+                        item = _make_item(title, image)
                         if not item:
                             continue
                         items.append(item)
