@@ -372,7 +372,7 @@ class ListGetContainerLabels(Container):
         added_items = []
 
         def _make_item(title, image, label):
-            if title in added_items:
+            if (title, image, label, ) in added_items:
                 return
 
             if is_excluded({'infolabels': {'title': title}}, **filters):
@@ -382,7 +382,7 @@ class ListGetContainerLabels(Container):
             listitem.setArt({'icon': image or '', 'thumb': image or ''})
             item = {'url': '', 'listitem': listitem, 'isFolder': True}
 
-            added_items.append(title)
+            added_items.append((title, image, label, ))
             return item
 
         items = []
