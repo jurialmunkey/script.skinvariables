@@ -38,7 +38,20 @@ class SkinShortcutsMenu():
         content = load_filecontent('special://skin/shortcuts/skinvariables-skinshortcuts.json')
         if not content:
             return {}
-        return loads(content) or {}
+        config = loads(content) or {}
+        levels = config.get('mainmenu', {}).get('levels') or [{}]
+
+        mainmenu = self.meta.setdefault('mainmenu', [])
+        for i in mainmenu:
+            default_id = i.get('defaultID')
+            for level in levels:
+                affix = level.get('affix') or ''
+                level_default_id = f'{default_id}{affix}'
+                self.meta.setdefault(level_default_id, [])
+                config.setdefault(level_default_id, {k: v for k, v in level.items()})
+                if i.get('label') and not i['label'].startswith('$SKIN'):
+                    config[level_default_id]['name'] = i['label']
+        return config
 
     def read_skinshortcuts(self):
 
@@ -56,9 +69,19 @@ class SkinShortcutsMenu():
                 if not xmlstring:
                     continue
                 json = [{i.tag: i.text for i in shortcut} for shortcut in ET.fromstring(xmlstring)]
+                for item in json:
+                    item = self.config_id(item)
                 meta[name] = json
 
         return meta
+
+    @staticmethod
+    def config_id(item):
+        if item.get('defaultID'):
+            return item
+        label_id = item.get('labelID') or re.sub('[^0-9a-zA-Z]+', '', item.get('label') or '')
+        item['defaultID'] = item['labelID'] = label_id.lower()
+        return item
 
     def write_shortcut(self, name):
         shortcuts_content = []
@@ -75,27 +98,22 @@ class SkinShortcutsMenu():
 
     def get_index(self, label):
         if label not in self.config:
-            if 'undefined' not in self.config:
-                return
-            label = 'undefined'
+            return ''
         if 'index' not in self.config[label]:
             return
         return str(self.config[label]['index'] or '')
 
     def get_nice_name(self, label):
-        prefix, suffix = '', ''
+        prefix, suffix, affix = '', '', ''
 
-        if label not in self.config and 'undefined' in self.config:
-            prefix = self.config['undefined'].get('prefix') or ''
-            suffix = self.config['undefined'].get('suffix') or ''
+        if label in self.config:
+            affix = self.config[label].get('affix') or ''
+            suffix = self.config[label].get('suffix') or ''
+            prefix = self.config[label].get('prefix') or ''
+            label = self.config[label].get('name') or label
 
-        if label in self.config and self.config[label].get('name'):
-            prefix = ''
-            label = self.config[label]['name']
-
-        if label.endswith('-1'):
-            suffix = f'{suffix} > Widgets'
-            label = label[:-2]
+        if affix and label.endswith(affix):
+            label = label[:-len(affix)]
 
         while True:
             result = re.search(r'.*\$LOCALIZE\[(.*?)\].*', label)
@@ -128,8 +146,9 @@ class SkinShortcutsMenu():
         files = sorted([(self.get_nice_name(i), i, self.get_index(i), ) for i in names], key=lambda a: f'{a[2] or ""}{a[0]}')
         x = xbmcgui.Dialog().select(header, [i[0] for i in files])
         if x == -1:
-            return
-        return [i for i in files][x][1]
+            return (None, '')
+        choice = [i for i in files][x]
+        return (choice[1], choice[0])
 
     def get_menu_name(self, name=None):
         name = name or ''
@@ -138,9 +157,9 @@ class SkinShortcutsMenu():
         if len(menu) == 1:
             return menu[0]
         if len(menu) > 1:
-            return self.choose_menu('Choose menu', menu)
+            return self.choose_menu('Choose menu', menu)[0]
         if not menu and name not in self.meta.keys():
-            return self.choose_menu('Choose menu')
+            return self.choose_menu('Choose menu')[0]
 
     def mod_skinshortcut(self):
         name = self.get_menu_name(self.params.get('name'))
@@ -179,19 +198,21 @@ class SkinShortcutsMenu():
             folder = self.params.get('path') or _get_infolabel('Container.ListItem.FolderPath')
             action = f"ActivateWindow({window},{folder},return)"
 
-        item = {
+        item = self.config_id({
             'label': self.params.get('label') or _get_infolabel('Container.ListItem.Label'),
             'label2': self.params.get('label2') or _get_infolabel('Container.ListItem.Label2'),
             'icon': self.params.get('icon') or _get_infolabel('Container.ListItem.Icon'),
             'thumb': self.params.get('thumb') or '',
             'action': action
-        }
+        })
 
-        name = self.choose_menu('Add to menu')
+        name, nice_name = self.choose_menu('Add to menu')
         if not name:
             return
         self.meta[name].append(item)
         self.write_shortcut(name)
+
+        xbmcgui.Dialog().ok('Added to Menu', 'Successfully added\n[B]{}[/B]\nto\n[B]{}[/B]'.format(item.get('label') or '', nice_name))
         return name
 
     def run(self, action):
