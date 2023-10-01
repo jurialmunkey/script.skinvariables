@@ -231,12 +231,28 @@ class SkinShortcutsMenu():
         xbmcgui.Dialog().ok('Added as menu', 'Successfully added\n[B]{}[/B]\nas\n[B]{}[/B]'.format(files[x], nice_name))
         return name
 
+    def mov_skinshortcut(self):
+        regex = r'(.*)\.DATA\.xml'
+        folder = self.params['folder']
+
+        if not xbmcgui.Dialog().yesno('Overwrite menu', 'Importing will overwrite your current menus and setup. Are you sure?', yeslabel="OK", nolabel="Cancel"):
+            return
+
+        for file in get_files_in_folder(folder, regex):
+            name = re.search(regex, file).group(1)
+            self.meta[name] = self.load_skinshortcut(f'{folder}{file}')
+            self.write_shortcut(name)
+
+        xbmcgui.Dialog().ok('Import menu', 'Successfully imported\n[B]{}[/B]\nto\n[B]{}[/B]'.format(folder, self.skin))
+        return name
+
     def run(self, action):
         routes = {
             'add_skinshortcut': self.add_skinshortcut,
             'del_skinshortcut': self.del_skinshortcut,
             'mod_skinshortcut': self.mod_skinshortcut,
             'imp_skinshortcut': self.imp_skinshortcut,
+            'mov_skinshortcut': self.mov_skinshortcut,
         }
 
         try:
