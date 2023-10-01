@@ -150,19 +150,19 @@ class SkinShortcutsMenu():
         choice = [i for i in files][x]
         return (choice[1], choice[0])
 
-    def get_menu_name(self, name=None):
-        name = name or ''
-        name = name[4:] if name.startswith('num-') else name
-        menu = [i for i in self.meta.keys() if name in i]
+    def get_menu_name(self, name=None, heading='Choose item'):
+        if not name:
+            return
+        name = [i[4:] if i.startswith('num-') else i for i in name.split('||')]
+        menu = [k for k in self.meta.keys() if any(i in k for i in name)]
         if len(menu) == 1:
             return menu[0]
         if len(menu) > 1:
-            return self.choose_menu('Choose menu', menu)[0]
-        if not menu and name not in self.meta.keys():
-            return self.choose_menu('Choose menu')[0]
+            return self.choose_menu(heading, menu)[0]
+        return self.choose_menu(heading)[0]
 
     def mod_skinshortcut(self):
-        name = self.get_menu_name(self.params.get('name'))
+        name = self.get_menu_name(self.params.get('name'), heading='Choose item to modify')
         if not name:
             return
         if name[-2:-1] == '-':
@@ -171,7 +171,7 @@ class SkinShortcutsMenu():
         return name
 
     def del_skinshortcut(self):
-        name = self.get_menu_name(self.params.get('name'))
+        name = self.get_menu_name(self.params.get('name'), heading='Choose item to delete')
         if not name:
             return
         try:
