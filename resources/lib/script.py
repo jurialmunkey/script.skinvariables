@@ -43,6 +43,8 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('del_skinshortcut'),
         'mod_skinshortcut':
             lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('mod_skinshortcut'),
+        'imp_skinshortcut':
+            lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('imp_skinshortcut'),
     }
 
     def run(self):

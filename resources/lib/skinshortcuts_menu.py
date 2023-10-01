@@ -31,7 +31,10 @@ class SkinShortcutsMenu():
     def __init__(self, skin, **kwargs):
         self.skin = skin
         self.params = kwargs
-        self.meta = self.read_skinshortcuts()
+        self.folders = [
+            (SKIN_FOLDER, r'(.*)\.DATA\.xml'),
+            (DATA_FOLDER, fr'{self.skin}-(.*)\.DATA\.xml')]
+        self.meta = self.read_skinshortcuts(self.folders)
         self.config = self.read_config()
 
     def read_config(self):
@@ -53,26 +56,21 @@ class SkinShortcutsMenu():
                     config[level_default_id]['name'] = i['label']
         return config
 
-    def read_skinshortcuts(self):
+    def load_skinshortcut(self, filename):
+        xmlstring = load_filecontent(filename)
+        if not xmlstring:
+            return []
+        meta = [{i.tag: i.text for i in shortcut} for shortcut in ET.fromstring(xmlstring)]
+        for item in meta:
+            item = self.config_id(item)
+        return meta
 
-        folders = [
-            (SKIN_FOLDER, r'(.*)\.DATA\.xml'),
-            (DATA_FOLDER, fr'{self.skin}-(.*)\.DATA\.xml')
-        ]
-
+    def read_skinshortcuts(self, folders):
         meta = {}
         for folder, regex in folders:
             for file in get_files_in_folder(folder, regex):
                 name = re.search(regex, file).group(1)
-                filename = f'{folder}{file}'
-                xmlstring = load_filecontent(filename)
-                if not xmlstring:
-                    continue
-                json = [{i.tag: i.text for i in shortcut} for shortcut in ET.fromstring(xmlstring)]
-                for item in json:
-                    item = self.config_id(item)
-                meta[name] = json
-
+                meta[name] = self.load_skinshortcut(f'{folder}{file}')
         return meta
 
     @staticmethod
@@ -212,7 +210,25 @@ class SkinShortcutsMenu():
         self.meta[name].append(item)
         self.write_shortcut(name)
 
-        xbmcgui.Dialog().ok('Added to Menu', 'Successfully added\n[B]{}[/B]\nto\n[B]{}[/B]'.format(item.get('label') or '', nice_name))
+        xbmcgui.Dialog().ok('Added to menu', 'Successfully added\n[B]{}[/B]\nto\n[B]{}[/B]'.format(item.get('label') or '', nice_name))
+        return name
+
+    def imp_skinshortcut(self):
+        files = [i for i in get_files_in_folder(DATA_FOLDER, r'.*?-(.*)\.DATA\.xml') if not i.startswith(self.skin)]
+        if not files:
+            xbmcgui.Dialog().ok('Import menu', 'No skinshortcuts found to import.')
+            return
+        x = xbmcgui.Dialog().select('Import menu', files)
+        if x == -1:
+            return
+
+        name, nice_name = self.choose_menu('Add as menu')
+        if not name:
+            return
+        self.meta[name] = self.load_skinshortcut(f'{DATA_FOLDER}{files[x]}')
+        self.write_shortcut(name)
+
+        xbmcgui.Dialog().ok('Added as menu', 'Successfully added\n[B]{}[/B]\nas\n[B]{}[/B]'.format(files[x], nice_name))
         return name
 
     def run(self, action):
@@ -220,6 +236,7 @@ class SkinShortcutsMenu():
             'add_skinshortcut': self.add_skinshortcut,
             'del_skinshortcut': self.del_skinshortcut,
             'mod_skinshortcut': self.mod_skinshortcut,
+            'imp_skinshortcut': self.imp_skinshortcut,
         }
 
         try:
