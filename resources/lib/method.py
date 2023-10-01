@@ -18,6 +18,12 @@ def boolean(string):
     return True
 
 
+def get_paramstring_tuplepairs(paramstring):
+    if not paramstring:
+        return []
+    return [tuple(i.split(';')) for i in paramstring.split(';;')]
+
+
 def set_to_windowprop(text, x, window_prop, window_id=None):
     import xbmc
     if not window_prop:

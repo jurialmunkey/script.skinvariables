@@ -356,9 +356,10 @@ class ListGetContainerLabels(Container):
     def get_directory(
             self, containers, infolabel, numitems=None, thumb=None, label2=None, separator=' / ',
             filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None,
-            window_prop=None, window_id=None,
+            window_prop=None, window_id=None, contextmenu=None,
             **kwargs):
         import xbmc
+        from resources.lib.method import get_paramstring_tuplepairs
 
         filters = {
             'filter_key': 'title',
@@ -370,6 +371,7 @@ class ListGetContainerLabels(Container):
         }
 
         added_items = []
+        contextmenu = get_paramstring_tuplepairs(contextmenu)
 
         def _make_item(title, image, label):
             if (title, image, label, ) in added_items:
@@ -380,6 +382,10 @@ class ListGetContainerLabels(Container):
 
             listitem = ListItem(label=title, label2=label or '', path='', offscreen=True)
             listitem.setArt({'icon': image or '', 'thumb': image or ''})
+            listitem.addContextMenuItems([
+                (k.format(label=title, thumb=image, label2=label), v.format(label=title, thumb=image, label2=label))
+                for k, v in contextmenu])
+
             item = {'url': '', 'listitem': listitem, 'isFolder': True}
 
             added_items.append((title, image, label, ))
