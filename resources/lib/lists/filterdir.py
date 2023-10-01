@@ -411,4 +411,4 @@ class ListGetContainerLabels(Container):
         for x, i in enumerate(added_items):
             set_to_windowprop(i, x, window_prop, window_id)
 
-        xbmc.executebuiltin(f'SetProperty({window_prop},{" / ".join(added_items)}{f",{window_id}" if window_id else ""})')
+        xbmc.executebuiltin(f'SetProperty({window_prop},{" / ".join([i[0] for i in added_items])}{f",{window_id}" if window_id else ""})')
