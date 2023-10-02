@@ -152,7 +152,7 @@ class SkinShortcutsMenu():
         if not name:
             return
         name = [i[4:] if i.startswith('num-') else i for i in name.split('||')]
-        menu = [k for k in self.meta.keys() if any(i in k for i in name)]
+        menu = [k for k in self.meta.keys() if any(re.match(i, k) for i in name)]
         if len(menu) == 1:
             return menu[0]
         if len(menu) > 1:
