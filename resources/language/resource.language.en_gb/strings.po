@@ -108,7 +108,7 @@ msgstr ""
 
 #: /resources/lib/skinshortcuts_menu.py
 msgctxt "#32018"
-msgid "Successfully added\\n[B]{}[/B]\\nto\\n[B]{}[/B]"
+msgid "Successfully added\n[B]{}[/B]\nto\n[B]{}[/B]"
 msgstr ""
 
 #: /resources/lib/skinshortcuts_menu.py
@@ -143,7 +143,7 @@ msgstr ""
 
 #: /resources/lib/skinshortcuts_menu.py
 msgctxt "#32025"
-msgid "Successfully added\\n[B]{}[/B]\\nas\\n[B]{}[/B]"
+msgid "Successfully added\n[B]{}[/B]\nas\n[B]{}[/B]"
 msgstr ""
 
 #: /resources/lib/skinshortcuts_menu.py
@@ -158,7 +158,7 @@ msgstr ""
 
 #: /resources/lib/skinshortcuts_menu.py
 msgctxt "#32028"
-msgid "Successfully imported\\n[B]{}[/B]\\nto\\n[B]{}[/B]"
+msgid "Successfully imported\n[B]{}[/B]\nto\n[B]{}[/B]"
 msgstr ""
 
 #: /resources/lib/skinshortcuts_menu.py
