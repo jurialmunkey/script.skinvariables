@@ -95,3 +95,73 @@ msgstr ""
 msgctxt "#32015"
 msgid "Do you wish to reset all {} views to default"
 msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32016"
+msgid "Choose item to modify"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32017"
+msgid "Choose item to delete"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32018"
+msgid "Successfully added\\n[B]{}[/B]\\nto\\n[B]{}[/B]"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32019"
+msgid "Import menu"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32020"
+msgid "Added to menu"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32021"
+msgid "Add to menu"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32022"
+msgid "No skinshortcuts found to import."
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32023"
+msgid "Add as menu"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32024"
+msgid "Added as menu"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32025"
+msgid "Successfully added\\n[B]{}[/B]\\nas\\n[B]{}[/B]"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32026"
+msgid "Overwrite menu"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32027"
+msgid "Importing will overwrite your current menus and setup. Are you sure?"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32028"
+msgid "Successfully imported\\n[B]{}[/B]\\nto\\n[B]{}[/B]"
+msgstr ""
+
+#: /resources/lib/skinshortcuts_menu.py
+msgctxt "#32029"
+msgid "Choose item"
+msgstr ""

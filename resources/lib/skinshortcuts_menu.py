@@ -9,7 +9,7 @@ import jurialmunkey.futils
 import xml.etree.ElementTree as ET
 from json import loads
 from jurialmunkey.futils import get_files_in_folder, load_filecontent, write_file
-# from resources.lib.kodiutils import kodi_log
+from resources.lib.kodiutils import get_localized
 ADDONDATA = 'special://profile/addon_data/script.skinvariables/'
 TAB = '    '
 DATA_FOLDER = 'special://profile/addon_data/script.skinshortcuts/'
@@ -118,7 +118,7 @@ class SkinShortcutsMenu():
             if not result:
                 break
             try:
-                localized = xbmc.getLocalizedString(int(result.group(1))) or ''
+                localized = get_localized(int(result.group(1))) or ''
             except ValueError:
                 localized = ''
             label = label.replace(result.group(0), localized)
@@ -131,7 +131,7 @@ class SkinShortcutsMenu():
             label = label.replace(result.group(0), localized)
 
         try:
-            label = xbmc.getLocalizedString(int(label)) or label
+            label = get_localized(int(label)) or label
         except ValueError:
             pass
 
@@ -148,7 +148,7 @@ class SkinShortcutsMenu():
         choice = [i for i in files][x]
         return (choice[1], choice[0])
 
-    def get_menu_name(self, name=None, heading='Choose item'):
+    def get_menu_name(self, name=None, heading=get_localized(32029)):
         if not name:
             return
         name = [i[4:] if i.startswith('num-') else i for i in name.split('||')]
@@ -160,7 +160,7 @@ class SkinShortcutsMenu():
         return self.choose_menu(heading)[0]
 
     def mod_skinshortcut(self):
-        name = self.get_menu_name(self.params.get('name'), heading='Choose item to modify')
+        name = self.get_menu_name(self.params.get('name'), heading=get_localized(32016))
         if not name:
             return
         if name[-2:-1] == '-':
@@ -169,14 +169,14 @@ class SkinShortcutsMenu():
         return name
 
     def del_skinshortcut(self):
-        name = self.get_menu_name(self.params.get('name'), heading='Choose item to delete')
+        name = self.get_menu_name(self.params.get('name'), heading=get_localized(32017))
         if not name:
             return
         try:
             x = int(self.params.get('index')) - 1
         except (ValueError, TypeError):
             files = [self.get_nice_name(i.get('label')) for i in self.meta[name]]
-            x = xbmcgui.Dialog().select('Delete', files)
+            x = xbmcgui.Dialog().select(get_localized(117), files)
         if x == -1:
             return
         self.meta[name].pop(x)
@@ -204,38 +204,38 @@ class SkinShortcutsMenu():
             'action': action
         })
 
-        name, nice_name = self.choose_menu('Add to menu')
+        name, nice_name = self.choose_menu(get_localized(32021))
         if not name:
             return
         self.meta[name].append(item)
         self.write_shortcut(name)
 
-        xbmcgui.Dialog().ok('Added to menu', 'Successfully added\n[B]{}[/B]\nto\n[B]{}[/B]'.format(item.get('label') or '', nice_name))
+        xbmcgui.Dialog().ok(get_localized(32020), get_localized(32018).format(item.get('label') or '', nice_name))
         return name
 
     def imp_skinshortcut(self):
         files = [i for i in get_files_in_folder(DATA_FOLDER, r'.*?-(.*)\.DATA\.xml') if not i.startswith(self.skin)]
         if not files:
-            xbmcgui.Dialog().ok('Import menu', 'No skinshortcuts found to import.')
+            xbmcgui.Dialog().ok(get_localized(32019), get_localized(32022))
             return
-        x = xbmcgui.Dialog().select('Import menu', files)
+        x = xbmcgui.Dialog().select(get_localized(32019), files)
         if x == -1:
             return
 
-        name, nice_name = self.choose_menu('Add as menu')
+        name, nice_name = self.choose_menu(get_localized(32023))
         if not name:
             return
         self.meta[name] = self.load_skinshortcut(f'{DATA_FOLDER}{files[x]}')
         self.write_shortcut(name)
 
-        xbmcgui.Dialog().ok('Added as menu', 'Successfully added\n[B]{}[/B]\nas\n[B]{}[/B]'.format(files[x], nice_name))
+        xbmcgui.Dialog().ok(get_localized(32024), get_localized(32025).format(files[x], nice_name))
         return name
 
     def mov_skinshortcut(self):
         regex = r'(.*)\.DATA\.xml'
         folder = self.params['folder']
 
-        if not xbmcgui.Dialog().yesno('Overwrite menu', 'Importing will overwrite your current menus and setup. Are you sure?', yeslabel="OK", nolabel="Cancel"):
+        if not xbmcgui.Dialog().yesno(get_localized(32026), get_localized(32027), yeslabel=get_localized(186), nolabel=get_localized(222)):
             return
 
         for file in get_files_in_folder(folder, regex):
@@ -243,7 +243,7 @@ class SkinShortcutsMenu():
             self.meta[name] = self.load_skinshortcut(f'{folder}{file}')
             self.write_shortcut(name)
 
-        xbmcgui.Dialog().ok('Import menu', 'Successfully imported\n[B]{}[/B]\nto\n[B]{}[/B]'.format(folder, self.skin))
+        xbmcgui.Dialog().ok(get_localized(32019), get_localized(32028).format(folder, self.skin))
         return name
 
     def run(self, action):
