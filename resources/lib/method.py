@@ -3,6 +3,7 @@
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import jurialmunkey.futils
+import jurialmunkey.parser
 ADDONDATA = 'special://profile/addon_data/script.skinvariables/'
 
 
@@ -10,12 +11,7 @@ class FileUtils(jurialmunkey.futils.FileUtils):
     addondata = ADDONDATA   # Override module addon_data with plugin addon_data
 
 
-def boolean(string):
-    if not isinstance(string, str):
-        return bool(string)
-    if string.lower() in ('false', '0', ''):
-        return False
-    return True
+boolean = jurialmunkey.parser.boolean
 
 
 def get_paramstring_tuplepairs(paramstring):
