@@ -2,7 +2,7 @@
 # Module: default
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
-from resources.lib.method import set_to_windowprop
+from jurialmunkey.window import set_to_windowprop
 from jurialmunkey.litems import Container
 
 

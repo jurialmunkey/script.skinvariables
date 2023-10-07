@@ -4,10 +4,10 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import operator
 from xbmcgui import ListItem
-from resources.lib.method import set_to_windowprop
 from infotagger.listitem import ListItemInfoTag
 from jurialmunkey.parser import split_items
 from jurialmunkey.litems import Container
+from jurialmunkey.window import set_to_windowprop
 
 DIRECTORY_PROPERTIES_BASIC = ["title", "art", "file", "fanart"]
 
