@@ -4,7 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem
 from jurialmunkey.jsnrpc import get_jsonrpc
-from resources.lib.container import Container
+from jurialmunkey.litems import Container
 
 
 JSON_RPC_LOOKUPS = {

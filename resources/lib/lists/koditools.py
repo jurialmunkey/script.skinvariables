@@ -2,9 +2,8 @@
 # Module: default
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
-from xbmcgui import ListItem
-from resources.lib.container import Container
 from resources.lib.method import set_to_windowprop
+from jurialmunkey.litems import Container
 
 
 class ListGetNumberSum(Container):
@@ -14,11 +13,7 @@ class ListGetNumberSum(Container):
         values += [int(i) for i in expression.split() if i]
 
         label = f'{sum(values)}'
-        items = [{
-            'url': '',
-            'listitem': ListItem(label=label, label2='', path='', offscreen=True),
-            'isFolder': True}]
-
+        items = [self.get_list_item(label)]
         set_to_windowprop(label, 0, window_prop, window_id)
 
         self.add_items(items)
@@ -38,11 +33,7 @@ class ListGetSplitString(Container):
             if not i:
                 continue
             label = f'{i}'
-            item = {
-                'url': '',
-                'listitem': ListItem(label=label, label2='', path='', offscreen=True),
-                'isFolder': True}
-            items.append(item)
+            items.append(self.get_list_item(label))
             set_to_windowprop(label, x, window_prop, window_id)
             x += 1
 
@@ -59,11 +50,7 @@ class ListGetEncodedString(Container):
         items = []
         for x, i in enumerate(paths):
             label = quote_plus(i)
-            item = {
-                'url': '',
-                'listitem': ListItem(label=label, label2='', path='', offscreen=True),
-                'isFolder': True}
-            items.append(item)
+            items.append(self.get_list_item(label))
             set_to_windowprop(label, x, window_prop, window_id)
 
         self.add_items(items)
@@ -80,11 +67,7 @@ class ListGetFileExists(Container):
         for x, i in enumerate(paths):
             label = i
             path = i if xbmcvfs.exists(i) else ''
-            item = {
-                'url': path,
-                'listitem': ListItem(label=label, label2='', path=path, offscreen=True),
-                'isFolder': True}
-            items.append(item)
+            items.append(self.get_list_item(label))
             set_to_windowprop(path, x, window_prop, window_id)
 
         self.add_items(items)
