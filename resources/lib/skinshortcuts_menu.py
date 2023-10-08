@@ -144,7 +144,9 @@ class SkinShortcutsMenu():
 
     def choose_menu(self, header, names=None):
         names = names if names else self.meta.keys()
-        files = sorted([(self.get_nice_name(i), i, self.get_index(i), ) for i in names], key=lambda a: f'{a[2] or ""}{a[0]}')
+        regex = self.params.get('label_regex')
+        files = [(self.get_nice_name(i), i, self.get_index(i), ) for i in names if not regex or re.search(regex, self.get_nice_name(i))]
+        files = sorted(files, key=lambda a: f'{a[2] or ""}{a[0]}')
         x = xbmcgui.Dialog().select(header, [i[0] for i in files])
         if x == -1:
             return (None, '')
