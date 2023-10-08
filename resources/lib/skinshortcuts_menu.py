@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from json import loads
 from jurialmunkey.futils import get_files_in_folder, load_filecontent, write_file
 from resources.lib.kodiutils import get_localized
+
 ADDONDATA = 'special://profile/addon_data/script.skinvariables/'
 TAB = '    '
 DATA_FOLDER = 'special://profile/addon_data/script.skinshortcuts/'
@@ -113,17 +114,19 @@ class SkinShortcutsMenu():
         if affix and label.endswith(affix):
             label = label[:-len(affix)]
 
-        while True:
+        monitor = xbmc.Monitor()
+
+        while not monitor.abortRequested():
             result = re.search(r'.*\$LOCALIZE\[(.*?)\].*', label)
             if not result:
                 break
             try:
-                localized = get_localized(int(result.group(1))) or ''
+                localized = xbmc.getLocalizedString(int(result.group(1))) or ''
             except ValueError:
                 localized = ''
             label = label.replace(result.group(0), localized)
 
-        while True:
+        while not monitor.abortRequested():
             result = re.search(r'.*\$INFO\[(.*?)\].*', label)
             if not result:
                 break
@@ -131,7 +134,7 @@ class SkinShortcutsMenu():
             label = label.replace(result.group(0), localized)
 
         try:
-            label = get_localized(int(label)) or label
+            label = xbmc.getLocalizedString(int(label)) or label
         except ValueError:
             pass
 
