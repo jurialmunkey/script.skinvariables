@@ -53,6 +53,7 @@ class SkinVariables(object):
             item['listitems'] = {}
             item['listitems']['start'] = try_int(variable.attrib.get('start'))
             item['listitems']['end'] = try_int(variable.attrib.get('end'))
+            item['types'] = variable.attrib['types'].split(',') if variable.attrib.get('types') else ['listitem']
             item['parent'] = variable.attrib.get('parent')
             item['null_id'] = variable.attrib.get('null_id')
 
@@ -98,9 +99,17 @@ class SkinVariables(object):
         containers = self.build_containers(variable)
         listitems = self.build_listitems(variable)
         values = variable.get('values', [])
+        listitem_types = variable.get('types') or ['listitem']
         skin_vars = []
 
-        def _build_var(container=None, listitem=None):
+        listitem_type_tags = {
+            'listitem': '',
+            'listitemabsolute': '_LIA',
+            'listitemnowrap': '_LIN',
+            'listitemposition': '_LIP',
+        }
+
+        def _build_var(container=None, listitem=None, listitem_type='listitem'):
             build_var = {
                 'tag': 'expression' if expression else 'variable',
                 'attrib': {},
@@ -111,6 +120,8 @@ class SkinVariables(object):
             tag_name = var_name
             _lid = ''
             _cid = ''
+
+            tag_name += listitem_type_tags[listitem_type]
 
             if container == -1:  # Special value for building container without ID
                 tag_name += '_Container'
@@ -140,6 +151,8 @@ class SkinVariables(object):
                 'listitemposition': li_name.replace('ListItem(', 'ListItemPosition(')
             }
 
+            f_dict['listitem'] = f_dict[listitem_type]
+
             if expression:
                 build_var['content'] = variable.get('expression', '').format(**f_dict)
                 return build_var
@@ -147,20 +160,24 @@ class SkinVariables(object):
             build_var['content'] = self.get_contentvalues(values, f_dict)
             return build_var
 
-        for container in containers:
-            # Build Variables for each ListItem Position in Container
-            for listitem in listitems:
-                skin_vars.append(_build_var(container, listitem))
+        for lit in listitem_types:
+            for container in containers:
+                # Build Variables for each ListItem Position in Container
+                for listitem in listitems:
+                    skin_vars.append(_build_var(container, listitem, lit))
 
-        if variable.get('null_id', '').lower() == 'true':
-            # Build a Container.ListItem variable without an id
-            for listitem in listitems:
-                skin_vars.append(_build_var(-1, listitem))
+            if variable.get('null_id', '').lower() == 'true':
+                # Build a Container.ListItem variable without an id
+                for listitem in listitems:
+                    skin_vars.append(_build_var(-1, listitem, lit))
 
-        def _build_parent_var():
+        def _build_parent_var(listitem_type='listitem'):
+
+            parent_var_name = var_name + listitem_type_tags[listitem_type]
+
             build_var = {
                 'tag': 'variable',
-                'attrib': {'name': var_name + '_Parent'},
+                'attrib': {'name': parent_var_name + '_Parent'},
                 'content': []
             }
 
@@ -168,7 +185,7 @@ class SkinVariables(object):
 
             for container in containers:
                 cond = 'True'
-                valu = var_name
+                valu = parent_var_name
                 if container:
                     valu += '_C{}'.format(container)
                     cond = variable['parent'].format(**{'id': container or ''})
@@ -179,8 +196,9 @@ class SkinVariables(object):
             return build_var
 
         # Build variable for parent containers
-        if variable.get('parent'):
-            skin_vars.append(_build_parent_var())
+        for lit in listitem_types:
+            if variable.get('parent'):
+                skin_vars.append(_build_parent_var(lit))
 
         return skin_vars
 
