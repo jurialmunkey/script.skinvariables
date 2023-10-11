@@ -40,9 +40,6 @@ def run_animation(
 
     mod_offset = int(mod_offset)
 
-    current_item = int(xbmc.getInfoLabel(f'Container({list_id}).CurrentItem')) + mod_offset
-    is_even = current_item % 2 != 0  # Use NOT because item count starts from 1 not 0
-
     item_spacer = int(item_w)
     item_height = int(item_h)
     delay_multiplier = int(delay_multiplier)
@@ -50,7 +47,7 @@ def run_animation(
     movement = int(movement)
 
     item_range = (movement * 2)
-    item_range += 2 if is_even else 1
+    item_range += 2  # if is_even else 1
     item_range += 3  # For overhang
 
     def _get_mod_spacer():
@@ -75,6 +72,13 @@ def run_animation(
         control = window.getControl(int(control_id))
         control.setAnimations(event_effect_tuples)
 
+    if mod_offset % 2 == 0:
+        top_row = -item_height
+        low_row = 0
+    else:
+        top_row = 0
+        low_row = -item_height
+
     for x in range(item_range):
         start_y = 0
 
@@ -83,13 +87,10 @@ def run_animation(
         start_x = item_spacer * x
         start_x -= mod_spacer
 
-        end_y = 0
+        end_y = low_row
         end_x = item_spacer * (x // 2)
-        if is_even and x % 2 == 0:
-            end_y = -item_height
-        elif not is_even and x % 2 != 0:
-            end_y = -item_height
-            end_x += item_spacer
+        if x % 2 == 0:
+            end_y = top_row
 
         _set_animation(item_pos_id + x, [
             ('visible', effect_fstr.format(time=time, delay=delay, start=f'{start_x},{start_y}', end=f'{end_x},{end_y}'), ),
@@ -105,13 +106,11 @@ def run_animation(
         start_x = -(item_spacer * x)
         start_x -= mod_spacer
 
-        end_y = -item_height
+        end_y = top_row
         end_x = -(item_spacer * (x // 2))
-        if is_even and x % 2 != 0:
-            end_y = 0
+        if x % 2 != 0:
+            end_y = low_row
             end_x -= item_spacer
-        elif not is_even and x % 2 == 0:
-            end_y = 0
 
         _set_animation(item_neg_id + x, [
             ('visible', effect_fstr.format(time=time, delay=delay, start=f'{start_x},{start_y}', end=f'{end_x},{end_y}'),),
@@ -122,7 +121,6 @@ def run_animation(
         if mod_offset:
             xbmc.executebuiltin(f'Control.Move({list_id},{mod_offset})')
         if not boolean(clear_prop):
-            xbmc.executebuiltin(f'SetProperty({window_prop}.IsEven,1)') if is_even else xbmc.executebuiltin(f'ClearProperty({window_prop}.IsEven)')
             xbmc.executebuiltin(f'SetProperty({window_prop}.{list_id}.Max,{item_range - 1})')
             xbmc.executebuiltin(f'SetProperty({window_prop},1)')
         else:
