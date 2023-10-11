@@ -14,6 +14,130 @@ class FileUtils(jurialmunkey.futils.FileUtils):
 boolean = jurialmunkey.parser.boolean
 
 
+def set_animation(set_animation, **kwargs):
+    import xbmcgui
+    win_id = xbmcgui.getCurrentWindowId()
+    window = xbmcgui.Window(win_id)
+
+    for i in set_animation.split('||'):
+        control_id, event, effect = i.split('|')
+        control = window.getControl(int(control_id))
+        control.setAnimations([(event, effect,)])
+
+
+def run_animation(
+        list_id, movement, item_w, item_h, delay_multiplier=0, time=400, easing='out', tween='cubic', mod_offset=0,
+        window_prop=None, clear_prop=False, executebuiltin=None, **kwargs):
+    import xbmc
+    import xbmcgui
+
+    win_id = xbmcgui.getCurrentWindowId()
+    window = xbmcgui.Window(win_id)
+
+    list_id = int(list_id)
+    item_pos_id = list_id * 1000
+    item_neg_id = item_pos_id + 100
+
+    mod_offset = int(mod_offset)
+
+    current_item = int(xbmc.getInfoLabel(f'Container({list_id}).CurrentItem')) + mod_offset
+    is_even = current_item % 2 != 0  # Use NOT because item count starts from 1 not 0
+
+    item_spacer = int(item_w)
+    item_height = int(item_h)
+    delay_multiplier = int(delay_multiplier)
+    time = int(time)
+    movement = int(movement)
+
+    item_range = (movement * 2)
+    item_range += 2 if is_even else 1
+    item_range += 3  # For overhang
+
+    def _get_mod_spacer():
+        mod_item_range = (movement * 2)
+        mod_position = int(xbmc.getInfoLabel(f'Container({list_id}).Position'))
+
+        if mod_position != 0:
+            mod_position += mod_offset
+
+        for x in range(movement + 1):
+            if xbmc.getInfoLabel(f'Container({list_id}).ListItemNoWrap({mod_item_range - (x * 2)}).CurrentItem'):
+                return (item_spacer * x) - (item_spacer * mod_position)
+
+        return 0
+
+    mod_spacer = _get_mod_spacer()
+
+    effect_fstr = f'effect=slide easing={easing} tween={tween} reversible=false'
+    effect_fstr += ' time={time} delay={delay} start={start} end={end}'
+
+    def _set_animation(control_id, event_effect_tuples):
+        control = window.getControl(int(control_id))
+        control.setAnimations(event_effect_tuples)
+
+    for x in range(item_range):
+        start_y = 0
+
+        # Positive Positions
+        delay = delay_multiplier * x
+        start_x = item_spacer * x
+        start_x -= mod_spacer
+
+        end_y = 0
+        end_x = item_spacer * (x // 2)
+        if is_even and x % 2 == 0:
+            end_y = -item_height
+        elif not is_even and x % 2 != 0:
+            end_y = -item_height
+            end_x += item_spacer
+
+        _set_animation(item_pos_id + x, [
+            ('visible', effect_fstr.format(time=time, delay=delay, start=f'{start_x},{start_y}', end=f'{end_x},{end_y}'), ),
+            ('hidden', effect_fstr.format(time=time, delay=0, end=f'{start_x},{start_y}', start=f'{end_x},{end_y}'), ),
+        ])
+
+        # Main Item has no negative equivalent
+        if x == 0:
+            continue
+
+        # Negative Positions
+        delay = delay_multiplier * (x - 1)
+        start_x = -(item_spacer * x)
+        start_x -= mod_spacer
+
+        end_y = -item_height
+        end_x = -(item_spacer * (x // 2))
+        if is_even and x % 2 != 0:
+            end_y = 0
+            end_x -= item_spacer
+        elif not is_even and x % 2 == 0:
+            end_y = 0
+
+        _set_animation(item_neg_id + x, [
+            ('visible', effect_fstr.format(time=time, delay=delay, start=f'{start_x},{start_y}', end=f'{end_x},{end_y}'),),
+            ('hidden', effect_fstr.format(time=time, delay=0, end=f'{start_x},{start_y}', start=f'{end_x},{end_y}'),),
+        ])
+
+    if window_prop:
+        if mod_offset:
+            xbmc.executebuiltin(f'Control.Move({list_id},{mod_offset})')
+        if not boolean(clear_prop):
+            xbmc.executebuiltin(f'SetProperty({window_prop}.IsEven,1)') if is_even else xbmc.executebuiltin(f'ClearProperty({window_prop}.IsEven)')
+            xbmc.executebuiltin(f'SetProperty({window_prop}.{list_id}.Max,{item_range - 1})')
+            xbmc.executebuiltin(f'SetProperty({window_prop},1)')
+        else:
+            xbmc.executebuiltin(f'ClearProperty({window_prop})')
+
+    if not executebuiltin:
+        return
+
+    for builtin in executebuiltin.split('||'):
+        if builtin.startswith('sleep='):
+            xbmc.Monitor().waitForAbort(float(builtin[6:]))
+            continue
+        xbmc.executebuiltin(builtin)
+
+
 def get_paramstring_tuplepairs(paramstring):
     if not paramstring:
         return []

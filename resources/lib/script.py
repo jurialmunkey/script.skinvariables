@@ -21,6 +21,10 @@ class Script(object):
             self.params[k] = v
 
     routing_table = {
+        'set_animation':
+            lambda **kwargs: importmodule('resources.lib.method', 'set_animation')(**kwargs),
+        'run_animation':
+            lambda **kwargs: importmodule('resources.lib.method', 'run_animation')(**kwargs),
         'run_dialog':
             lambda **kwargs: importmodule('resources.lib.method', 'run_dialog')(**kwargs),
         'run_progressdialog':
