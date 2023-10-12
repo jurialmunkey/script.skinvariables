@@ -58,11 +58,18 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
     meta = loads(str(load_filecontent(run_executebuiltin)))
 
     def _check_rules(rules):
+        result = True
         for rule in rules:
+            # Rules can have sublists of rules
+            if isinstance(rule, list):
+                result = _check_rules(rule)
+                if not result:
+                    continue
+                return True
             rule = rule.format(**kwargs)
             if not xbmc.getCondVisibility(rule):
                 return False
-        return True
+        return result
 
     def _get_actions_list(rule_actions):
         actions_list = []
@@ -74,6 +81,7 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
 
             # Parts are prefixed with percent % so needs to be replaced
             if isinstance(action, str) and action.startswith('%'):
+                action = action.format(**kwargs)
                 action = meta['parts'][action[1:]]
 
             # Standard actions are strings - add formatted action to list and continue
@@ -88,10 +96,26 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
 
             # Rules are dictionaries - successful rules add their actions and stop iterating (like a skin variable)
             if _check_rules(action['rules']):
-                actions_list += _get_actions_list(action['actions'])
+                actions_list += _get_actions_list(action['value'])
                 break
 
         return actions_list
+
+    for k, v in meta.get('infolabels', {}).items():
+        k = k.format(**kwargs)
+        v = v.format(**kwargs)
+        kwargs[k] = xbmc.getInfoLabel(v)
+
+    for k, v in meta.get('values', {}).items():
+        k = k.format(**kwargs)
+        kwargs[k] = _get_actions_list(v)[0]
+
+    for k, v in meta.get('sums', {}).items():
+        k = k.format(**kwargs)
+        x = 0
+        for i in v:
+            x += int(i.format(**kwargs))
+        kwargs[k] = x
 
     actions_list = _get_actions_list(meta['actions'])
     return _run_executebuiltin(actions_list)
