@@ -14,28 +14,87 @@ class FileUtils(jurialmunkey.futils.FileUtils):
 boolean = jurialmunkey.parser.boolean
 
 
-def set_animation(set_animation, **kwargs):
+def _set_animation(animations):
     import xbmcgui
     win_id = xbmcgui.getCurrentWindowId()
     window = xbmcgui.Window(win_id)
-
-    for i in set_animation.split('||'):
-        control_id, event, effect = i.split('|')
+    for control_id, event, effect in animations:
         control = window.getControl(int(control_id))
         control.setAnimations([(event, effect,)])
 
 
-def run_executebuiltin(run_executebuiltin=None, **kwargs):
+def set_animation(set_animation, **kwargs):
+    _set_animation([
+        (control_id, event, effect,)
+        for i in set_animation.split('||')
+        for control_id, event, effect in i.split('|')
+    ])
+
+
+def _run_executebuiltin(builtins):
     import xbmc
-
-    if not run_executebuiltin:
-        return
-
-    for builtin in run_executebuiltin.split('||'):
+    for builtin in builtins:
         if builtin.startswith('sleep='):
             xbmc.Monitor().waitForAbort(float(builtin[6:]))
             continue
+        if builtin.startswith('animation='):
+            animation = builtin[10:]
+            control_id, event, effect = animation.split('|')
+            _set_animation([(control_id, event, effect, )])
+            continue
         xbmc.executebuiltin(builtin)
+
+
+def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
+    if not run_executebuiltin:
+        return
+    if not boolean(use_rules):
+        return _run_executebuiltin(run_executebuiltin.split('||'))
+
+    import xbmc
+    from json import loads
+    from jurialmunkey.futils import load_filecontent
+
+    meta = loads(str(load_filecontent(run_executebuiltin)))
+
+    def _check_rules(rules):
+        for rule in rules:
+            rule = rule.format(**kwargs)
+            if not xbmc.getCondVisibility(rule):
+                return False
+        return True
+
+    def _get_actions_list(rule_actions):
+        actions_list = []
+
+        if not isinstance(rule_actions, list):
+            rule_actions = [rule_actions]
+
+        for action in rule_actions:
+
+            # Parts are prefixed with percent % so needs to be replaced
+            if isinstance(action, str) and action.startswith('%'):
+                action = meta['parts'][action[1:]]
+
+            # Standard actions are strings - add formatted action to list and continue
+            if isinstance(action, str):
+                actions_list.append(action.format(**kwargs))
+                continue
+
+            # Sublists of actions are lists - recursively add sublists and continue
+            if isinstance(action, list):
+                actions_list += _get_actions_list(action)
+                continue
+
+            # Rules are dictionaries - successful rules add their actions and stop iterating (like a skin variable)
+            if _check_rules(action['rules']):
+                actions_list += _get_actions_list(action['actions'])
+                break
+
+        return actions_list
+
+    actions_list = _get_actions_list(meta['actions'])
+    return _run_executebuiltin(actions_list)
 
 
 def get_paramstring_tuplepairs(paramstring):
