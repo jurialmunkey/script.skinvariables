@@ -51,6 +51,7 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
     if not boolean(use_rules):
         return _run_executebuiltin(run_executebuiltin.split('||'))
 
+    import re
     import xbmc
     from json import loads
     from jurialmunkey.futils import load_filecontent
@@ -106,16 +107,17 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
         v = v.format(**kwargs)
         kwargs[k] = xbmc.getInfoLabel(v)
 
+    for k, v in meta.get('regex', {}).items():
+        k = k.format(**kwargs)
+        kwargs[k] = re.sub(v['regex'].format(**kwargs), v['value'].format(**kwargs), v['input'].format(**kwargs))
+
     for k, v in meta.get('values', {}).items():
         k = k.format(**kwargs)
         kwargs[k] = _get_actions_list(v)[0]
 
     for k, v in meta.get('sums', {}).items():
         k = k.format(**kwargs)
-        x = 0
-        for i in v:
-            x += int(i.format(**kwargs))
-        kwargs[k] = x
+        kwargs[k] = sum([int(i.format(**kwargs)) for i in v])
 
     actions_list = _get_actions_list(meta['actions'])
     return _run_executebuiltin(actions_list)
