@@ -106,22 +106,60 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
 
         return actions_list
 
-    for k, v in meta.get('infolabels', {}).items():
-        k = k.format(**kwargs)
-        v = v.format(**kwargs)
-        kwargs[k] = xbmc.getInfoLabel(v)
+    def _set_infolabels(d):
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            v = v.format(**kwargs)
+            kwargs[k] = xbmc.getInfoLabel(v)
 
-    for k, v in meta.get('regex', {}).items():
-        k = k.format(**kwargs)
-        kwargs[k] = re.sub(v['regex'].format(**kwargs), v['value'].format(**kwargs), v['input'].format(**kwargs))
+    def _set_regex(d):
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            kwargs[k] = re.sub(v['regex'].format(**kwargs), v['value'].format(**kwargs), v['input'].format(**kwargs))
 
-    for k, v in meta.get('values', {}).items():
-        k = k.format(**kwargs)
-        kwargs[k] = _get_actions_list(v)[0]
+    def _set_values(d):
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            kwargs[k] = _get_actions_list(v)[0]
 
-    for k, v in meta.get('sums', {}).items():
-        k = k.format(**kwargs)
-        kwargs[k] = sum([int(i.format(**kwargs)) for i in v])
+    def _set_sums(d):
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            kwargs[k] = sum([int(i.format(**kwargs)) for i in v])
+
+    def _set_decode(d):
+        from urllib.parse import unquote_plus
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            v = v.format(**kwargs)
+            kwargs[k] = unquote_plus(v)
+
+    def _set_encode(d):
+        from urllib.parse import quote_plus
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            v = v.format(**kwargs)
+            kwargs[k] = quote_plus(v)
+
+    routes = {
+        'infolabels': _set_infolabels,
+        'regex': _set_regex,
+        'values': _set_values,
+        'sums': _set_sums,
+        'decode': _set_decode,
+        'encode': _set_encode,
+    }
+
+    operations = [
+        {'infolabels': meta.get('infolabels', {})},
+        {'regex': meta.get('regex', {})},
+        {'values': meta.get('values', {})},
+        {'sums': meta.get('sums', {})}
+    ] + meta.get('operations', [])
+
+    for i in operations:
+        for k, v in i.items():
+            routes[k](v)
 
     actions_list = _get_actions_list(meta['actions'])
     return _run_executebuiltin(actions_list)
