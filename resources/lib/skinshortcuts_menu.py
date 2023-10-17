@@ -219,7 +219,7 @@ class SkinShortcutsMenu():
         return name
 
     def imp_skinshortcut(self):
-        files = [i for i in get_files_in_folder(DATA_FOLDER, r'.*?-(.*)\.DATA\.xml') if not i.startswith(self.skin)]
+        files = [i for i in get_files_in_folder(DATA_FOLDER, r'.*?-(.*)\.DATA\.xml')]
         if not files:
             xbmcgui.Dialog().ok(get_localized(32019), get_localized(32022))
             return
