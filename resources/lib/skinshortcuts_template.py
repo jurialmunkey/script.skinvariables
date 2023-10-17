@@ -15,18 +15,18 @@ class SkinShortcutsTemplate(object):
     def __init__(self, template: str = None):
         self.template = f'skinvariables-generator-{template}' if template else 'skinvariables-generator'
         self.hashname = f'script-{self.template}-hash'
-        self.folders = ['shortcuts']
         self.content = load_filecontent(f'special://skin/shortcuts/{self.template}.json')
         self.meta = loads(self.content) or {}
         self.filename = self.meta['output']
+        self.filepath = f'special://skin/shortcuts/{self.filename}'
 
     @staticmethod
-    def create_xml(meta, header=None, footer=None, pregen=None):
+    def create_xml(meta, header=None, footer=None, pregen=None, getnfo=None):
 
         def _make_template(i, d):
             template = i.pop("template")
             template = load_filecontent(f'special://skin/shortcuts/{template}')
-            template = template.format(**dict(d, **{k: _make_template(v, d) if isinstance(v, dict) else v for k, v in i.items()}))
+            template = template.format(**dict(d, **{k: _make_template(v, d) if isinstance(v, dict) else v for k, v in i.items()}, **(getnfo or {})))
             return template
 
         _pregen = {k: _make_template(v, {}) for k, v in pregen.items()} if pregen else {}
@@ -36,11 +36,11 @@ class SkinShortcutsTemplate(object):
 
         return '\n'.join(content)
 
-    def update_xml(self, force=False, no_reload=False, **kwargs):
+    def update_xml(self, force=False, no_reload=False, genxml='', **kwargs):
         if not self.meta:
             return
 
-        hashvalue = make_hash(self.content)
+        hashvalue = f'{make_hash(self.content + load_filecontent(self.filepath) + genxml)}--{xbmc.getInfoLabel("System.ProfileName")}'
 
         if not force:  # Allow overriding over built check
             last_version = xbmc.getInfoLabel(f'Skin.String({self.hashname})')
@@ -50,10 +50,18 @@ class SkinShortcutsTemplate(object):
         p_dialog = xbmcgui.DialogProgressBG()
         p_dialog.create(ADDON.getLocalizedString(32001), ADDON.getLocalizedString(32000))
 
-        content = self.create_xml(self.meta['genxml'], header=self.meta.get('header'), footer=self.meta.get('footer'), pregen=self.meta.get('global'))
+        self.meta['genxml'] += [{k: v for j in i.split('|') for k, v in (j.split('='), )} for i in genxml.split('||')] if genxml else []
+        self.meta['getnfo'] = {k: xbmc.getInfoLabel(v) for k, v in self.meta['getnfo'].items()} if 'getnfo' in self.meta else {}
+
+        content = self.create_xml(
+            self.meta['genxml'],
+            header=self.meta.get('header'),
+            footer=self.meta.get('footer'),
+            pregen=self.meta.get('global'),
+            getnfo=self.meta['getnfo'])
 
         # Save to folder
-        write_skinfile(folders=self.folders, filename=self.filename, content=content, hashvalue=hashvalue, hashname=self.hashname)
+        write_skinfile(folders=['shortcuts'], filename=self.filename, content=content, hashvalue=hashvalue, hashname=self.hashname)
 
         p_dialog.close()
         xbmc.executebuiltin('ReloadSkin()') if not no_reload else None

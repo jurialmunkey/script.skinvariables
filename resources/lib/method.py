@@ -37,6 +37,10 @@ def _run_executebuiltin(builtins):
         if builtin.startswith('sleep='):
             xbmc.Monitor().waitForAbort(float(builtin[6:]))
             continue
+        if builtin.startswith('route='):
+            from resources.lib.script import Script
+            Script(paramstring=builtin[6:]).run()
+            continue
         if builtin.startswith('animation='):
             animation = builtin[10:]
             control_id, event, effect = animation.split('|')

@@ -2,12 +2,11 @@
 # Module: default
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
-import sys
 from jurialmunkey.modimp import importmodule
 
 
 class Script(object):
-    def __init__(self):
+    def __init__(self, *args, paramstring=None):
         def map_args(arg):
             if '=' in arg:
                 key, value = arg.split('=', 1)
@@ -16,7 +15,11 @@ class Script(object):
             return (arg, True)
 
         self.params = {}
-        for arg in sys.argv[1:]:
+
+        if paramstring:
+            args = [i for i in args] + paramstring.split('&')
+
+        for arg in args:
             k, v = map_args(arg)
             self.params[k] = v
 
