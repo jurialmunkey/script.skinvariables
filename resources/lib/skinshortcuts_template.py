@@ -41,7 +41,8 @@ class SkinShortcutsTemplate(object):
         if not self.meta:
             return
 
-        hashvalue = f'{self.content}{load_filecontent(self.filepath)}{genxml}'
+        hashvalue = '_'.join([f'{k}.{v}' for k, v in kwargs.items()])
+        hashvalue = f'{self.content}{load_filecontent(self.filepath)}{genxml}{hashvalue}'
         hashvalue = f'{make_hash(hashvalue)}--{xbmc.getInfoLabel("System.ProfileName")}'
 
         if not force:  # Allow overriding over built check
