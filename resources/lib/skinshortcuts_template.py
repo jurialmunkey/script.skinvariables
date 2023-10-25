@@ -7,6 +7,7 @@ import xbmcgui
 import xbmcaddon
 from json import loads
 from jurialmunkey.futils import load_filecontent, write_skinfile, make_hash
+from xml.sax.saxutils import escape
 
 ADDON = xbmcaddon.Addon()
 
@@ -53,6 +54,8 @@ class SkinShortcutsTemplate(object):
 
         self.meta['genxml'] += [{k: v for j in i.split('|') for k, v in (j.split('='), )} for i in genxml.split('||')] if genxml else []
         self.meta['getnfo'] = {k: xbmc.getInfoLabel(v) for k, v in self.meta['getnfo'].items()} if 'getnfo' in self.meta else {}
+        self.meta['getnfo'].update(kwargs)
+        self.meta['getnfo'].update({f'{k}_escaped': escape(v) for k, v in self.meta['getnfo'].items() if not k.endswith('_escaped')})
 
         content = self.create_xml(
             self.meta['genxml'],
