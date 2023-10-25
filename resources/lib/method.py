@@ -141,6 +141,13 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
             v = v.format(**kwargs)
             kwargs[k] = quote_plus(v)
 
+    def _set_escape(d):
+        from xml.sax.saxutils import escape
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            v = v.format(**kwargs)
+            kwargs[k] = escape(v)
+
     routes = {
         'infolabels': _set_infolabels,
         'regex': _set_regex,
@@ -148,13 +155,17 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
         'sums': _set_sums,
         'decode': _set_decode,
         'encode': _set_encode,
+        'escape': _set_escape,
     }
 
     operations = [
         {'infolabels': meta.get('infolabels', {})},
         {'regex': meta.get('regex', {})},
         {'values': meta.get('values', {})},
-        {'sums': meta.get('sums', {})}
+        {'sums': meta.get('sums', {})},
+        {'decode': meta.get('decode', {})},
+        {'encode': meta.get('encode', {})},
+        {'escape': meta.get('escape', {})}
     ] + meta.get('operations', [])
 
     for i in operations:
