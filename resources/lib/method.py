@@ -148,6 +148,21 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
             v = v.format(**kwargs)
             kwargs[k] = escape(v)
 
+    def _set_lower(d):
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            kwargs[k] = v.format(**kwargs).lower()
+
+    def _set_upper(d):
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            kwargs[k] = v.format(**kwargs).upper()
+
+    def _set_capitalize(d):
+        for k, v in d.items():
+            k = k.format(**kwargs)
+            kwargs[k] = v.format(**kwargs).capitalize()
+
     routes = {
         'infolabels': _set_infolabels,
         'regex': _set_regex,
@@ -156,17 +171,12 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
         'decode': _set_decode,
         'encode': _set_encode,
         'escape': _set_escape,
+        'lower': _set_lower,
+        'upper': _set_upper,
+        'capitalize': _set_capitalize,
     }
 
-    operations = [
-        {'infolabels': meta.get('infolabels', {})},
-        {'regex': meta.get('regex', {})},
-        {'values': meta.get('values', {})},
-        {'sums': meta.get('sums', {})},
-        {'decode': meta.get('decode', {})},
-        {'encode': meta.get('encode', {})},
-        {'escape': meta.get('escape', {})}
-    ] + meta.get('operations', [])
+    operations = [{i: meta[i]} for i in routes if i in meta] + meta.get('operations', [])
 
     for i in operations:
         for k, v in i.items():
