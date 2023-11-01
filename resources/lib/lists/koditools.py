@@ -19,6 +19,18 @@ class ListGetNumberSum(Container):
         self.add_items(items)
 
 
+class ListRunExecuteBuiltin(Container):
+    def get_directory(self, paths, **kwargs):
+        from resources.lib.method import run_executebuiltin
+
+        for path in paths:
+            run_executebuiltin(path, use_rules=True, **kwargs)
+
+        items = [self.get_list_item('None')]  # Add a blank item to keep container alive
+
+        self.add_items(items)
+
+
 class ListGetSplitString(Container):
     def get_directory(self, values=None, infolabel=None, separator='|', window_prop=None, window_id=None, **kwargs):
         from xbmc import getInfoLabel as get_infolabel

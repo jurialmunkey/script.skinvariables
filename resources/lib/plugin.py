@@ -41,6 +41,9 @@ class Plugin():
         'get_file_exists': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListGetFileExists'},
+        'run_executebuiltin': {
+            'module_name': 'resources.lib.lists.koditools',
+            'import_attr': 'ListRunExecuteBuiltin'},
         'get_filter_dir': {
             'module_name': 'resources.lib.lists.filterdir',
             'import_attr': 'ListGetFilterDir'},
