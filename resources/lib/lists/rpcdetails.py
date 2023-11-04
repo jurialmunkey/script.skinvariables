@@ -122,7 +122,7 @@ class ListGetItemDetails(Container):
             return [self.make_item(item, self.jrpc_sublookups)]
 
         items = [
-            {'url': li.getPath(), 'listitem': li, 'isFolder': li.getProperty('isfolder').lower() == 'true'}
+            (li.getPath(), li, li.getProperty('isfolder').lower() == 'true', )
             for li in _get_items() if li] if dbid else []
 
         return items

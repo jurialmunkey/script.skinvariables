@@ -83,3 +83,44 @@ class ListGetFileExists(Container):
             set_to_windowprop(path, x, window_prop, window_id)
 
         self.add_items(items)
+
+
+class ListGetSelectedItem(Container):
+    def get_directory(
+            self, container, infolabels='', artwork='', separator='/', listitem='ListItem(0)',
+            window_prop=None, window_id=None, **kwargs
+    ):
+        import xbmc
+
+        if not container:
+            return
+
+        _fstr = f'Container({container}).{listitem}.{{}}'
+        _label = xbmc.getInfoLabel(_fstr.format('Label'))
+
+        _infoproperties = {}
+        for i in infolabels.split(separator):
+            _infoproperties[i] = xbmc.getInfoLabel(_fstr.format(i))
+
+        _artwork = {}
+        for i in artwork.split(separator):
+            _artwork[i] = xbmc.getInfoLabel(_fstr.format(f'Art({i})'))
+
+        item = self.get_list_item(_label)
+        item[1].setProperties(_infoproperties)
+        item[1].setArt(_artwork)
+
+        self.add_items([item])
+
+        if not window_prop:
+            return
+
+        window_id = f',{window_id}' if window_id else ''
+
+        for k, v in _infoproperties.items():
+            window_prop_name = f'{window_prop}.{k}'
+            xbmc.executebuiltin(f'SetProperty({window_prop_name},{v}{window_id})')
+
+        for k, v in _artwork.items():
+            window_prop_name = f'{window_prop}.{k}'
+            xbmc.executebuiltin(f'SetProperty({window_prop_name},{v}{window_id})')

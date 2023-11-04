@@ -41,6 +41,9 @@ class Plugin():
         'get_file_exists': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListGetFileExists'},
+        'get_selected_item': {
+            'module_name': 'resources.lib.lists.koditools',
+            'import_attr': 'ListGetSelectedItem'},
         'run_executebuiltin': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListRunExecuteBuiltin'},

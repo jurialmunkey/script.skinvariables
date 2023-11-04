@@ -331,7 +331,7 @@ class ListGetFilterDir(Container):
             if listitem_jsonrpc.mediatype:
                 mediatypes[listitem_jsonrpc.mediatype] = mediatypes.get(listitem_jsonrpc.mediatype, 0) + 1
 
-            item = {'url': listitem_jsonrpc.path, 'listitem': listitem_jsonrpc.listitem, 'isFolder': listitem_jsonrpc.is_folder}
+            item = (listitem_jsonrpc.path, listitem_jsonrpc.listitem, listitem_jsonrpc.is_folder, )
 
             if not no_label_dupes:
                 return item
@@ -386,7 +386,7 @@ class ListGetContainerLabels(Container):
                 (k.format(label=title, thumb=image, label2=label), v.format(label=title, thumb=image, label2=label))
                 for k, v in contextmenu])
 
-            item = {'url': '', 'listitem': listitem, 'isFolder': True}
+            item = ('', listitem, True, )
 
             added_items.append((title, image, label, ))
             return item

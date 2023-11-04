@@ -48,7 +48,7 @@ class ListGetPlayerStreams(Container):
             return
 
         items = [
-            {'url': li.getPath(), 'listitem': li, 'isFolder': li.getProperty('isfolder').lower() == 'true'}
+            (li.getPath(), li, li.getProperty('isfolder').lower() == 'true', )
             for li in _get_items(stream_type) if li]
 
         self.add_items(items)
