@@ -21,6 +21,23 @@ DIRECTORY_PROPERTIES_MUSIC = [
     "disc", "description", "theme", "mood", "style", "albumlabel", "sorttitle", "uniqueid", "dateadded", "customproperties",
     "totaldiscs", "disctitle", "releasedate", "originaldate", "bpm", "bitrate", "samplerate", "channels"]
 
+
+def update_global_property_versions():
+    """ Add additional properties from newer versions of JSON RPC """
+
+    from jurialmunkey.jsnrpc import get_jsonrpc
+
+    response = get_jsonrpc("JSONRPC.Version")
+    version = (
+        response['result']['version']['major'],
+        response['result']['version']['minor'],
+        response['result']['version']['patch'],
+    )
+
+    if version >= (13, 3, 0):
+        DIRECTORY_PROPERTIES_MUSIC.append('songvideourl')  # Added in 13.3.0 of JSON RPC
+
+
 INFOLABEL_MAP = {
     "title": "title",
     "artist": "artist",
@@ -73,7 +90,8 @@ INFOPROPERTY_MAP = {
     "style": "style",
     "albumlabel": "albumlabel",
     "tvshowid": "tvshow.dbid",
-    "setid": "set.dbid"
+    "setid": "set.dbid",
+    "songvideourl": "songvideourl",
 }
 
 
@@ -296,6 +314,8 @@ class ListGetFilterDir(Container):
 
         if not paths:
             return
+
+        update_global_property_versions()  # Add in any properties added in later JSON-RPC versions
 
         def _get_filters(filters):
             all_filters = {}
