@@ -72,6 +72,7 @@ INFOLABEL_MAP = {
     "episodeguide": "episodeguide",
     "dateadded": "date",
     "id": "dbid",
+    "songvideourl": "songvideourl",
 }
 
 INFOPROPERTY_MAP = {
