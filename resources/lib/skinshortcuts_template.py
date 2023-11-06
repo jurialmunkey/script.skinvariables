@@ -11,22 +11,26 @@ from xml.sax.saxutils import escape
 
 ADDON = xbmcaddon.Addon()
 
+SKIN_BASEDIR = 'special://skin'
+SHORTCUTS_FOLDER = 'shortcuts'
+
 
 class SkinShortcutsTemplate(object):
     def __init__(self, template: str = None):
         self.template = f'skinvariables-generator-{template}' if template else 'skinvariables-generator'
         self.hashname = f'script-{self.template}-hash'
-        self.content = load_filecontent(f'special://skin/shortcuts/{self.template}.json')
+        self.content = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{self.template}.json')
         self.meta = loads(self.content) or {}
+        self.folder = self.meta.get('folder') or SHORTCUTS_FOLDER
         self.filename = self.meta['output']
-        self.filepath = f'special://skin/shortcuts/{self.filename}'
+        self.filepath = f'{SKIN_BASEDIR}/{self.folder}/{self.filename}'
 
     @staticmethod
     def create_xml(meta, header=None, footer=None, pregen=None, getnfo=None):
 
         def _make_template(i, d):
             template = i.pop("template")
-            template = load_filecontent(f'special://skin/shortcuts/{template}')
+            template = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{template}')
             template = template.format(**dict(d, **{k: _make_template(v, d) if isinstance(v, dict) else v for k, v in i.items()}, **(getnfo or {})))
             return template
 
@@ -41,9 +45,13 @@ class SkinShortcutsTemplate(object):
         if not self.meta:
             return
 
-        hashvalue = '_'.join([f'{k}.{v}' for k, v in kwargs.items()])
-        hashvalue = f'{self.content}{load_filecontent(self.filepath)}{genxml}{hashvalue}'
-        hashvalue = f'{make_hash(hashvalue)}--{xbmc.getInfoLabel("System.ProfileName")}'
+        hashvalue = '--'.join([
+            '_'.join([f'{k}.{v}' for k, v in kwargs.items()]),
+            make_hash(f'{genxml}'),
+            make_hash(f'{self.content}'),
+            make_hash(f'{load_filecontent(self.filepath)}'),
+            xbmc.getInfoLabel("System.ProfileName")
+        ])
 
         if not force:  # Allow overriding over built check
             last_version = xbmc.getInfoLabel(f'Skin.String({self.hashname})')
@@ -66,7 +74,12 @@ class SkinShortcutsTemplate(object):
             getnfo=self.meta['getnfo'])
 
         # Save to folder
-        write_skinfile(folders=['shortcuts'], filename=self.filename, content=content, hashvalue=hashvalue, hashname=self.hashname)
+        write_skinfile(folders=[self.folder], filename=self.filename, content=content, hashvalue=hashvalue, hashname=self.hashname)
 
         p_dialog.close()
-        xbmc.executebuiltin('ReloadSkin()') if not no_reload else None
+
+        if no_reload:
+            return
+
+        xbmc.Monitor().waitForAbort(0.5)
+        xbmc.executebuiltin('ReloadSkin()')
