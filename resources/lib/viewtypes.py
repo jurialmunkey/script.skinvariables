@@ -322,6 +322,13 @@ class ViewTypes(object):
             pluginname = pluginname or 'library'
             makexml = self.add_pluginview(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
 
-        if makexml or not self.xmlfile_exists(skinfolder):
-            self.make_xmlfile(skinfolder=skinfolder, hashvalue=hashvalue)
-            xbmc.executebuiltin('ReloadSkin()') if not no_reload else None
+        if not makexml and self.xmlfile_exists(skinfolder):
+            return
+
+        self.make_xmlfile(skinfolder=skinfolder, hashvalue=hashvalue)
+
+        if no_reload:
+            return
+
+        xbmc.Monitor().waitForAbort(0.5)
+        xbmc.executebuiltin('ReloadSkin()')
