@@ -8,6 +8,17 @@ from infotagger.listitem import ListItemInfoTag
 from jurialmunkey.parser import split_items
 from jurialmunkey.litems import Container
 from jurialmunkey.window import set_to_windowprop
+from resources.lib.kodiutils import kodi_log
+import jurialmunkey.thread as jurialmunkey_thread
+
+
+class ParallelThread(jurialmunkey_thread.ParallelThread):
+    thread_max = 50
+
+    @staticmethod
+    def kodi_log(msg, level=0):
+        kodi_log(msg, level)
+
 
 DIRECTORY_PROPERTIES_BASIC = ["title", "art", "file", "fanart"]
 
@@ -311,10 +322,10 @@ class ListItemJSONRPC():
 
 class ListGetFilterDir(Container):
     def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, **kwargs):
-        from jurialmunkey.jsnrpc import get_directory
-
         if not paths:
             return
+
+        from jurialmunkey.jsnrpc import get_directory
 
         update_global_property_versions()  # Add in any properties added in later JSON-RPC versions
 
@@ -342,6 +353,9 @@ class ListGetFilterDir(Container):
             'music': DIRECTORY_PROPERTIES_MUSIC}.get(library) or []
 
         def _make_item(i):
+            if not i:
+                return
+
             listitem_jsonrpc = ListItemJSONRPC(i, library=library, dbtype=dbtype)
             listitem_jsonrpc.infolabels['title'] = listitem_jsonrpc.label
 
@@ -354,19 +368,23 @@ class ListGetFilterDir(Container):
 
             item = (listitem_jsonrpc.path, listitem_jsonrpc.listitem, listitem_jsonrpc.is_folder, )
 
-            if not no_label_dupes:
-                return item
-
-            if listitem_jsonrpc.label in added_items:
-                return
-
-            added_items.append(listitem_jsonrpc.label)
             return item
+
+        def _is_not_dupe(i):
+            if not no_label_dupes:
+                return i
+            label = i.infolabels['title']
+            if label in added_items:
+                return
+            added_items.append(label)
+            return i
 
         items = []
         for path in paths:
             directory = get_directory(path, directory_properties)
-            items += [j for j in (_make_item(i) for i in directory if i) if j]
+            with ParallelThread(directory, _make_item) as pt:
+                item_queue = pt.queue
+            items += [i for i in item_queue if i and (not no_label_dupes or _is_not_dupe(i))]
 
         plugin_category = ''
         container_content = f'{max(mediatypes, key=lambda key: mediatypes[key])}s' if mediatypes else ''
