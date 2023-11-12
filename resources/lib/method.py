@@ -14,7 +14,7 @@ class FileUtils(jurialmunkey.futils.FileUtils):
 boolean = jurialmunkey.parser.boolean
 
 
-def _set_animation(animations):
+def set_animation_list(animations):
     import xbmcgui
     win_id = xbmcgui.getCurrentWindowId()
     window = xbmcgui.Window(win_id)
@@ -24,14 +24,14 @@ def _set_animation(animations):
 
 
 def set_animation(set_animation, **kwargs):
-    _set_animation([
+    set_animation_list([
         (control_id, event, effect,)
         for i in set_animation.split('||')
         for control_id, event, effect in i.split('|')
     ])
 
 
-def _run_executebuiltin(builtins):
+def run_executebuiltin_list(builtins):
     import xbmc
     for builtin in builtins:
         if builtin.startswith('sleep='):
@@ -44,7 +44,7 @@ def _run_executebuiltin(builtins):
         if builtin.startswith('animation='):
             animation = builtin[10:]
             control_id, event, effect = animation.split('|')
-            _set_animation([(control_id, event, effect, )])
+            set_animation_list([(control_id, event, effect, )])
             continue
         xbmc.executebuiltin(builtin)
 
@@ -53,137 +53,16 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
     if not run_executebuiltin:
         return
     if not boolean(use_rules):
-        return _run_executebuiltin(run_executebuiltin.split('||'))
+        return run_executebuiltin_list(run_executebuiltin.split('||'))
 
-    import re
-    import xbmc
     from json import loads
     from jurialmunkey.futils import load_filecontent
+    from resources.lib.operations import RuleOperations
 
     meta = loads(str(load_filecontent(run_executebuiltin)))
-
-    def _check_rules(rules):
-        result = True
-        for rule in rules:
-            # Rules can have sublists of rules
-            if isinstance(rule, list):
-                result = _check_rules(rule)
-                if not result:
-                    continue
-                return True
-            rule = rule.format(**kwargs)
-            if not xbmc.getCondVisibility(rule):
-                return False
-        return result
-
-    def _get_actions_list(rule_actions):
-        actions_list = []
-
-        if not isinstance(rule_actions, list):
-            rule_actions = [rule_actions]
-
-        for action in rule_actions:
-
-            # Parts are prefixed with percent % so needs to be replaced
-            if isinstance(action, str) and action.startswith('%'):
-                action = action.format(**kwargs)
-                action = meta['parts'][action[1:]]
-
-            # Standard actions are strings - add formatted action to list and continue
-            if isinstance(action, str):
-                actions_list.append(action.format(**kwargs))
-                continue
-
-            # Sublists of actions are lists - recursively add sublists and continue
-            if isinstance(action, list):
-                actions_list += _get_actions_list(action)
-                continue
-
-            # Rules are dictionaries - successful rules add their actions and stop iterating (like a skin variable)
-            if _check_rules(action['rules']):
-                actions_list += _get_actions_list(action['value'])
-                break
-
-        return actions_list
-
-    def _set_infolabels(d):
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            v = v.format(**kwargs)
-            kwargs[k] = xbmc.getInfoLabel(v)
-
-    def _set_regex(d):
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            kwargs[k] = re.sub(v['regex'].format(**kwargs), v['value'].format(**kwargs), v['input'].format(**kwargs))
-
-    def _set_values(d):
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            kwargs[k] = _get_actions_list(v)[0]
-
-    def _set_sums(d):
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            kwargs[k] = sum([int(i.format(**kwargs)) for i in v])
-
-    def _set_decode(d):
-        from urllib.parse import unquote_plus
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            v = v.format(**kwargs)
-            kwargs[k] = unquote_plus(v)
-
-    def _set_encode(d):
-        from urllib.parse import quote_plus
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            v = v.format(**kwargs)
-            kwargs[k] = quote_plus(v)
-
-    def _set_escape(d):
-        from xml.sax.saxutils import escape
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            v = v.format(**kwargs)
-            kwargs[k] = escape(v)
-
-    def _set_lower(d):
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            kwargs[k] = v.format(**kwargs).lower()
-
-    def _set_upper(d):
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            kwargs[k] = v.format(**kwargs).upper()
-
-    def _set_capitalize(d):
-        for k, v in d.items():
-            k = k.format(**kwargs)
-            kwargs[k] = v.format(**kwargs).capitalize()
-
-    routes = {
-        'infolabels': _set_infolabels,
-        'regex': _set_regex,
-        'values': _set_values,
-        'sums': _set_sums,
-        'decode': _set_decode,
-        'encode': _set_encode,
-        'escape': _set_escape,
-        'lower': _set_lower,
-        'upper': _set_upper,
-        'capitalize': _set_capitalize,
-    }
-
-    operations = [{i: meta[i]} for i in routes if i in meta] + meta.get('operations', [])
-
-    for i in operations:
-        for k, v in i.items():
-            routes[k](v)
-
-    actions_list = _get_actions_list(meta['actions'])
-    return _run_executebuiltin(actions_list)
+    rule_operations = RuleOperations(meta, **kwargs)
+    actions_list = rule_operations.get_actions_list(rule_operations.meta['actions'])
+    return run_executebuiltin_list(actions_list)
 
 
 def get_paramstring_tuplepairs(paramstring):

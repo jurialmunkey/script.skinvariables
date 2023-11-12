@@ -64,7 +64,11 @@ class SkinShortcutsTemplate(object):
         self.meta['genxml'] += [{k: v for j in i.split('|') for k, v in (j.split('='), )} for i in genxml.split('||')] if genxml else []
         self.meta['getnfo'] = {k: xbmc.getInfoLabel(v) for k, v in self.meta['getnfo'].items()} if 'getnfo' in self.meta else {}
         self.meta['getnfo'].update(kwargs)
-        self.meta['getnfo'].update({f'{k}_escaped': escape(v) for k, v in self.meta['getnfo'].items() if not k.endswith('_escaped')})
+        self.meta['getnfo'].update({f'{k}_escaped': escape(v) for k, v in self.meta['getnfo'].items() if v and k and not k.endswith('_escaped')})
+
+        if 'addnfo' in self.meta:
+            from resources.lib.operations import RuleOperations
+            self.meta['getnfo'].update(RuleOperations(self.meta['addnfo'], **self.meta['getnfo']).params)
 
         content = self.create_xml(
             self.meta['genxml'],
