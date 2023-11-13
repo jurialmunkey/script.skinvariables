@@ -76,6 +76,10 @@ class ViewTypes(object):
             self._addon_meta = loads(self.addon_content) or {}
             return self._addon_meta
 
+    @addon_meta.setter
+    def addon_meta(self, value):
+        self._addon_meta = value
+
     @property
     def prefix(self):
         try:
