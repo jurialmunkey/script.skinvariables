@@ -53,22 +53,26 @@ def set_listitem_to_menunode(set_listitem_to_menunode, skin, label=None, icon=No
     if x == -1:
         return
     menu = menunodes[x]
-    item = None
-    mode = None
-    guid = None
-
     from resources.lib.shortcuts.node import ListGetShortcutsNode
-    lgsn = ListGetShortcutsNode(-1, '')
-    lgsn.get_directory(menu=menu, skin=skin, item=item, mode=mode, guid=guid, func='node')
-    x = xbmcgui.Dialog().select('Choose menu', [parse_localize(i.get('label') or '') for i in lgsn.menunode] + ['Add here...'], useDetails=True)
-    if x == -1:
-        return
-    if x == len(lgsn.menunode):
-        lgsn.menunode.append(new_item)
-        lgsn.write_meta_to_file()
-        lgsn.do_refresh()
-        return
-    return
+
+    available_modes = ['submenu', 'widgets']
+
+    def get_menu_node(mode, guid):
+        lgsn = ListGetShortcutsNode(-1, '')
+        lgsn.get_directory(menu=menu, skin=skin, item=None, mode=mode, guid=guid, func='node')
+        x = xbmcgui.Dialog().select('Choose menu', [parse_localize(i.get('label') or '') for i in lgsn.menunode] + ['Add here...'])
+        if x == -1:
+            return
+        if x == len(lgsn.menunode):
+            lgsn.menunode.append(new_item)
+            lgsn.write_meta_to_file()
+            lgsn.do_refresh()
+            return
+        y = xbmcgui.Dialog().select('Choose menu', available_modes)
+        if y == -1:
+            return get_menu_node(mode, guid)
+        return get_menu_node(available_modes[y], lgsn.menunode[x].get('guid'))
+    return get_menu_node('submenu', None)
 
 
 def set_shortcut(set_shortcut):
