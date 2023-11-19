@@ -14,6 +14,21 @@ class FileUtils(jurialmunkey.futils.FileUtils):
 boolean = jurialmunkey.parser.boolean
 
 
+def set_shortcut(set_shortcut):
+    from resources.lib.shortcuts.browser import GetDirectoryBrowser
+    from jurialmunkey.window import WindowProperty
+    with WindowProperty(('IsSkinShortcut', 'True')):
+        item = GetDirectoryBrowser(return_item=True).get_directory()
+    if not item:
+        return
+    import xbmc
+    item = {f'{set_shortcut}.{k}': v for k, v in item.items()}
+    for k, v in item.items():
+        if not isinstance(v, str):
+            continue
+        xbmc.executebuiltin(f'Skin.SetString({k},{v})')
+
+
 def set_animation_list(animations):
     import xbmcgui
     win_id = xbmcgui.getCurrentWindowId()
@@ -59,7 +74,11 @@ def run_executebuiltin(run_executebuiltin=None, use_rules=False, **kwargs):
     from jurialmunkey.futils import load_filecontent
     from resources.lib.operations import RuleOperations
 
-    meta = loads(str(load_filecontent(run_executebuiltin)))
+    try:
+        meta = loads(str(load_filecontent(run_executebuiltin)))
+    except Exception:
+        raise Exception(f'Unable to load {run_executebuiltin} !')
+
     rule_operations = RuleOperations(meta, **kwargs)
     actions_list = rule_operations.get_actions_list(rule_operations.meta['actions'])
     return run_executebuiltin_list(actions_list)

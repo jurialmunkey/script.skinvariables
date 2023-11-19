@@ -205,6 +205,7 @@ class MetaItemJSONRPC():
         for a, k in remap:
             if self.meta.get(k) and not artwork.get(a):
                 artwork[a] = self.meta[k]
+
         return artwork
 
     @property

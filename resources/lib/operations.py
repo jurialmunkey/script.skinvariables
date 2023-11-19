@@ -2,10 +2,35 @@ import re
 import xbmc
 
 
+def check_condition(condition):
+    if not condition:
+        return True  # No condition set so we treat as True
+    if '==' in condition:
+        a, b = condition.split('==')
+        return True if a == b else False
+    if '!=' in condition:
+        a, b = condition.split('!=')
+        return True if a != b else False
+    if '<=' in condition:
+        a, b = condition.split('<=')
+        return True if a != b else False
+    if '>=' in condition:
+        a, b = condition.split('>=')
+        return True if a != b else False
+    if xbmc.getCondVisibility(condition):
+        return True
+    return False
+
+
+class FormatDict(dict):
+    def __missing__(self, key):
+        return ''
+
+
 class RuleOperations():
     def __init__(self, meta, **params):
         self.meta = meta
-        self.params = params
+        self.params = FormatDict(params)
         self.run_operations()
 
     def run_operations(self):
@@ -23,6 +48,7 @@ class RuleOperations():
             return self._routes
         except AttributeError:
             self._routes = {
+                'capitalize': self.set_capitalize,
                 'infolabels': self.set_infolabels,
                 'regex': self.set_regex,
                 'values': self.set_values,
@@ -32,80 +58,72 @@ class RuleOperations():
                 'escape': self.set_escape,
                 'lower': self.set_lower,
                 'upper': self.set_upper,
-                'capitalize': self.set_capitalize,
             }
             return self._routes
 
     def set_infolabels(self, d):
         for k, v in d.items():
-            k = k.format(**self.params)
-            v = v.format(**self.params)
+            k = k.format_map(self.params)
+            v = v.format_map(self.params)
             self.params[k] = xbmc.getInfoLabel(v)
 
     def set_regex(self, d):
         for k, v in d.items():
-            k = k.format(**self.params)
-            self.params[k] = re.sub(v['regex'].format(**self.params), v['value'].format(**self.params), v['input'].format(**self.params))
+            k = k.format_map(self.params)
+            self.params[k] = re.sub(v['regex'].format_map(self.params), v['value'].format_map(self.params), v['input'].format_map(self.params))
 
     def set_values(self, d):
         for k, v in d.items():
-            k = k.format(**self.params)
+            k = k.format_map(self.params)
             self.params[k] = self.get_actions_list(v)[0]
 
     def set_sums(self, d):
         for k, v in d.items():
-            k = k.format(**self.params)
-            self.params[k] = sum([int(i.format(**self.params)) for i in v])
+            k = k.format_map(self.params)
+            self.params[k] = sum([int(i.format_map(self.params)) for i in v])
 
     def set_decode(self, d):
         from urllib.parse import unquote_plus
         for k, v in d.items():
-            k = k.format(**self.params)
-            v = v.format(**self.params)
+            k = k.format_map(self.params)
+            v = v.format_map(self.params)
             self.params[k] = unquote_plus(v)
 
     def set_encode(self, d):
         from urllib.parse import quote_plus
         for k, v in d.items():
-            k = k.format(**self.params)
-            v = v.format(**self.params)
+            k = k.format_map(self.params)
+            v = v.format_map(self.params)
             self.params[k] = quote_plus(v)
 
     def set_escape(self, d):
         from xml.sax.saxutils import escape
         for k, v in d.items():
-            k = k.format(**self.params)
-            v = v.format(**self.params)
+            k = k.format_map(self.params)
+            v = v.format_map(self.params)
             self.params[k] = escape(v)
 
     def set_lower(self, d):
         for k, v in d.items():
-            k = k.format(**self.params)
-            self.params[k] = v.format(**self.params).lower()
+            k = k.format_map(self.params)
+            self.params[k] = v.format_map(self.params).lower()
 
     def set_upper(self, d):
         for k, v in d.items():
-            k = k.format(**self.params)
-            self.params[k] = v.format(**self.params).upper()
+            k = k.format_map(self.params)
+            self.params[k] = v.format_map(self.params).upper()
 
     def set_capitalize(self, d):
         for k, v in d.items():
-            k = k.format(**self.params)
-            self.params[k] = v.format(**self.params).capitalize()
+            k = k.format_map(self.params)
+            self.params[k] = v.format_map(self.params).capitalize()
 
     def check_rules(self, rules):
-        result = True
         for rule in rules:
-            # Rules can have sublists of rules
-            if isinstance(rule, list):
-                result = self.check_rules(rule)
-                if not result:
-                    continue
-                return True
-            rule = rule.format(**self.params)
-            if not xbmc.getCondVisibility(rule):
+            rule = rule.format_map(self.params)
+            if not check_condition(rule):  # If one rule of many is false then rule is false overall so exit early
                 return False
-        return result
+        return True  # If all rules are successful then rule is true
 
     def get_actions_list(self, rule_actions):
         actions_list = []
@@ -117,12 +135,12 @@ class RuleOperations():
 
             # Parts are prefixed with percent % so needs to be replaced
             if isinstance(action, str) and action.startswith('%'):
-                action = action.format(**self.params)
+                action = action.format_map(self.params)
                 action = self.meta['parts'][action[1:]]
 
             # Standard actions are strings - add formatted action to list and continue
             if isinstance(action, str):
-                actions_list.append(action.format(**self.params))
+                actions_list.append(action.format_map(self.params))
                 continue
 
             # Sublists of actions are lists - recursively add sublists and continue

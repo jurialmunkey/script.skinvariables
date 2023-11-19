@@ -40,20 +40,22 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.method', 'set_editcontrol')(**kwargs),
         'set_dbid_tag':
             lambda **kwargs: importmodule('resources.lib.method', 'set_dbid_tag')(**kwargs),
+        'set_shortcut':
+            lambda **kwargs: importmodule('resources.lib.method', 'set_shortcut')(**kwargs),
         'get_jsonrpc':
             lambda **kwargs: importmodule('resources.lib.method', 'get_jsonrpc')(**kwargs),
         'add_skinstring_history':
             lambda **kwargs: importmodule('resources.lib.method', 'add_skinstring_history')(**kwargs),
         'add_skinshortcut':
-            lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('add_skinshortcut'),
+            lambda **kwargs: importmodule('resources.lib.shortcuts.skinshortcuts', 'get_skinshortcuts_menu')(route='add_skinshortcut', **kwargs),
         'del_skinshortcut':
-            lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('del_skinshortcut'),
+            lambda **kwargs: importmodule('resources.lib.shortcuts.skinshortcuts', 'get_skinshortcuts_menu')(route='del_skinshortcut', **kwargs),
         'mod_skinshortcut':
-            lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('mod_skinshortcut'),
+            lambda **kwargs: importmodule('resources.lib.shortcuts.skinshortcuts', 'get_skinshortcuts_menu')(route='mod_skinshortcut', **kwargs),
         'imp_skinshortcut':
-            lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('imp_skinshortcut'),
+            lambda **kwargs: importmodule('resources.lib.shortcuts.skinshortcuts', 'get_skinshortcuts_menu')(route='imp_skinshortcut', **kwargs),
         'mov_skinshortcut':
-            lambda **kwargs: importmodule('resources.lib.skinshortcuts_menu', 'SkinShortcutsMenu')(**kwargs).run('mov_skinshortcut'),
+            lambda **kwargs: importmodule('resources.lib.shortcuts.skinshortcuts', 'get_skinshortcuts_menu')(route='mov_skinshortcut', **kwargs),
     }
 
     def run(self):
@@ -72,8 +74,8 @@ class Script(object):
             return ViewTypes().update_xml(skinfolder=self.params.get('folder'), **self.params)
 
         if self.params.get('action') == 'buildtemplate':
-            from resources.lib.skinshortcuts_template import SkinShortcutsTemplate
-            return SkinShortcutsTemplate(template=self.params.get('template')).update_xml(**self.params)
+            from resources.lib.shortcuts.template import ShortcutsTemplate
+            return ShortcutsTemplate(template=self.params.get('template')).update_xml(**self.params)
 
         from resources.lib.skinvariables import SkinVariables
         return SkinVariables(template=self.params.get('template'), skinfolder=self.params.get('folder')).update_xml(**self.params)

@@ -53,6 +53,9 @@ class Plugin():
         'get_container_labels': {
             'module_name': 'resources.lib.lists.filterdir',
             'import_attr': 'ListGetContainerLabels'},
+        'get_shortcuts_node': {
+            'module_name': 'resources.lib.shortcuts.node',
+            'import_attr': 'ListGetShortcutsNode'},
     }
 
     def __init__(self, handle, paramstring):
