@@ -463,7 +463,7 @@ class NodeMethods():
         menunode_item.update(item)
         self.write_meta_to_file()
 
-    def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT):
+    def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT, create_new=False):
         x = int(self.item)
         from resources.lib.shortcuts.browser import GetDirectoryBrowser
         from jurialmunkey.window import WindowProperty
@@ -472,8 +472,11 @@ class NodeMethods():
         if not item:
             return
         item = {f'{prefix}_{k}': v for k, v in item.items()} if prefix else item
-        self.get_menunode_item(x).update(item)
+        self.menunode.append(item) if boolean(create_new) else self.get_menunode_item(x).update(item)
         self.write_meta_to_file()
+
+    def do_new(self, prefix=None, grouping=GROUPING_DEFAULT):
+        self.do_choose(prefix=prefix, grouping=grouping)
 
     def do_move(self, move=0, refocus=None):
         x = int(self.item)
