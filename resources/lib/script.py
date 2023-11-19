@@ -46,6 +46,8 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.method', 'get_jsonrpc')(**kwargs),
         'add_skinstring_history':
             lambda **kwargs: importmodule('resources.lib.method', 'add_skinstring_history')(**kwargs),
+        'set_listitem_to_menunode':
+            lambda **kwargs: importmodule('resources.lib.method', 'set_listitem_to_menunode')(**kwargs),
         'add_skinshortcut':
             lambda **kwargs: importmodule('resources.lib.shortcuts.skinshortcuts', 'get_skinshortcuts_menu')(route='add_skinshortcut', **kwargs),
         'del_skinshortcut':

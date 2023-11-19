@@ -12,6 +12,63 @@ class FileUtils(jurialmunkey.futils.FileUtils):
 
 
 boolean = jurialmunkey.parser.boolean
+parse_localize = jurialmunkey.parser.parse_localize
+
+
+def set_listitem_to_menunode(set_listitem_to_menunode, skin, label=None, icon=None, path=None, target=None, use_listitem=True):
+    import xbmc
+    import xbmcgui
+
+    if not set_listitem_to_menunode:
+        return
+
+    def get_target():
+        if xbmc.getCondVisibility('Window.IsVisible(MyVideoNav.xml)'):
+            return 'videos'
+        if xbmc.getCondVisibility('Window.IsVisible(MyMusicNav.xml)'):
+            return 'music'
+        if xbmc.getCondVisibility('Window.IsVisible(MyPics.xml)'):
+            return 'pictures'
+        if xbmc.getCondVisibility('Window.IsVisible(MyPrograms.xml)'):
+            return 'programs'
+        if xbmc.getCondVisibility('Window.IsVisible(MyPVRGuide.xml)'):
+            return 'tvguide'
+        if xbmc.getCondVisibility('Window.IsVisible(MyPVRChannels.xml)'):
+            return 'tvchannels'
+
+    if use_listitem:
+        label = xbmc.getInfoLabel('Container.ListItem.Label') or label or ''
+        icon = xbmc.getInfoLabel('Container.ListItem.Icon') or icon or ''
+        path = xbmc.getInfoLabel('Container.ListItem.FolderPath') or path or ''
+        target = get_target() or target or 'videos'
+
+    if not path:
+        xbmcgui.Dialog().ok(heading='No path', message='No item path found!')
+        return
+
+    new_item = {'label': label, 'icon': icon, 'path': path, 'target': target}
+
+    menunodes = set_listitem_to_menunode.split('||')
+    x = xbmcgui.Dialog().select('Choose menu', menunodes)
+    if x == -1:
+        return
+    menu = menunodes[x]
+    item = None
+    mode = None
+    guid = None
+
+    from resources.lib.shortcuts.node import ListGetShortcutsNode
+    lgsn = ListGetShortcutsNode(-1, '')
+    lgsn.get_directory(menu=menu, skin=skin, item=item, mode=mode, guid=guid, func='node')
+    x = xbmcgui.Dialog().select('Choose menu', [parse_localize(i.get('label') or '') for i in lgsn.menunode] + ['Add here...'], useDetails=True)
+    if x == -1:
+        return
+    if x == len(lgsn.menunode):
+        lgsn.menunode.append(new_item)
+        lgsn.write_meta_to_file()
+        lgsn.do_refresh()
+        return
+    return
 
 
 def set_shortcut(set_shortcut):
