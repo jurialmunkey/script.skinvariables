@@ -195,7 +195,7 @@ def assign_guid(meta):
 
 def cache_meta_from_file(filepath, fileprop, refresh=False):
     meta = shortcutfutils.read_meta_from_prop(fileprop) if not refresh else None
-    if not meta:
+    if meta is None:
         meta = shortcutfutils.read_meta_from_file(filepath)
         meta = assign_guid(meta)
         shortcutfutils.write_meta_to_prop(meta, fileprop)
@@ -371,9 +371,9 @@ class NodeMethods():
         self.menunode.append(deepcopy(self.get_menunode_item(x)))
         self.write_meta_to_file()
 
-    def do_delete(self):
+    def do_delete(self, warning=True):
         x = int(self.item)
-        n = Dialog().yesno(heading=DELETE_HEADING, message=DELETE_MESSAGE)
+        n = Dialog().yesno(heading=DELETE_HEADING, message=DELETE_MESSAGE) if boolean(warning) else 1
         if not n or n == -1:
             return
         self.menunode.pop(x)
@@ -497,9 +497,9 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
         if not self.filepath:
             return
         meta = cache_meta_from_file(self.filepath, fileprop=self.filename, refresh=refresh) if not restore else None
-        if not meta:
+        if meta is None:
             meta = cache_meta_from_file(f'{SKIN_DIR}{self.filename}', fileprop=self.filename, refresh=refresh)  # Get from skin
-            shortcutfutils.write_meta_to_file(meta, folder=self.skin, filename=self.filename, fileprop=self.filename) if meta else None  # Write to addon_data
+            shortcutfutils.write_meta_to_file(meta, folder=self.skin, filename=self.filename, fileprop=self.filename) if meta is not None else None  # Write to addon_data
         return meta
 
     def write_meta_to_file(self, reload=True):
