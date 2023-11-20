@@ -472,7 +472,7 @@ class NodeMethods():
         if not item:
             return
         item = {f'{prefix}_{k}': v for k, v in item.items()} if prefix else item
-        self.menunode.append(item) if boolean(create_new) else self.get_menunode_item(x).update(item)
+        self.menunode.insert(x + 1, item) if boolean(create_new) else self.get_menunode_item(x).update(item)
         self.write_meta_to_file()
 
     def do_new(self, prefix=None, grouping=GROUPING_DEFAULT):
