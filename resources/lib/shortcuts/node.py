@@ -10,8 +10,9 @@ from jurialmunkey.parser import boolean, parse_localize
 # from resources.lib.kodiutils import kodi_log
 # from jurialmunkey.logger import TimerFunc
 
+FILE_PREFIX = shortcutfutils.FILE_PREFIX
+
 ICON_DIR = 'special://skin/extras/icons/'
-FILE_PREFIX = 'skinvariables-shortcut-'
 SKIN_DIR = 'special://skin/shortcuts/'
 CONTEXTMENU_CONFIGFILE = f'{SKIN_DIR}/skinvariables-shortcut-context.json'
 ICON_FOLDER = f'{ICON_DIR}folder.png'

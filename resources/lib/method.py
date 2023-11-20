@@ -89,9 +89,7 @@ def executebuiltin(executebuiltin='', index=None, values=None, **kwargs):
     if not executebuiltin:
         return
 
-    import xbmc
-    for builtin in executebuiltin.split('||'):
-        xbmc.executebuiltin(builtin.format(x=index, v=value))
+    run_executebuiltin_list([builtin.format(x=index, v=value) for builtin in executebuiltin.split('||')])
 
 
 def run_progressdialog(run_progressdialog, background=False, heading='', message='', polling='0.1', message_info='', progress_info='', timeout='200', max_value='100', **kwargs):

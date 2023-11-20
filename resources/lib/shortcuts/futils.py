@@ -4,6 +4,7 @@ import jurialmunkey.futils as jmfutils
 BASE_PROPERTY = 'SkinVariables.ShortcutsNode'
 ADDON_DATA = 'special://profile/addon_data/script.skinvariables/nodes/'
 RELOAD_PROPERTY = f'{BASE_PROPERTY}.Reload'
+FILE_PREFIX = 'skinvariables-shortcut-'
 
 
 validify_filename = jmfutils.validify_filename

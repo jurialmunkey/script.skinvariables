@@ -1,7 +1,5 @@
 import xbmc
 import xbmcgui
-from jurialmunkey.parser import parse_localize
-from resources.lib.shortcuts.node import ListGetShortcutsNode
 
 
 LISTITEM_VALUE_PAIRS = (('label', 'Label'), ('icon', 'Icon'), ('path', 'FolderPath'))
@@ -11,6 +9,8 @@ NODE_SELECT_HEADING = 'Choose menu'
 MODE_SELECT_HEADING = 'Choose mode'
 NODE_ADDITEM_LABEL = 'Add here...'
 DEFAULT_MODES = ('submenu', 'widgets')
+
+OVERWRITE_WARNING = 'Are you sure you want to overwrite {filename} with {copy_menufile}?\n[B][COLOR=red]WARNING[/COLOR][/B]: This action cannot be undone.'
 
 
 def get_target_from_window():
@@ -60,12 +60,14 @@ class MenuNode():
             return self.get_menu()
 
     def select_node(self, mode, guid, level=0):
+        from resources.lib.shortcuts.node import ListGetShortcutsNode
         lgsn = ListGetShortcutsNode(-1, '')
         lgsn.get_directory(menu=self.menu, skin=self.skin, item=None, mode=mode, guid=guid, func='node')
         if lgsn.menunode is None:
             return
         choices = [NODE_ADDITEM_LABEL]
         if level < self.levels:  # Only add the options to traverse submenu/widgets if we're not deeper than our max level
+            from jurialmunkey.parser import parse_localize
             choices = [parse_localize(i.get('label') or '') for i in lgsn.menunode] + choices
         x = xbmcgui.Dialog().select(NODE_SELECT_HEADING, choices)
         if x == -1:
@@ -119,3 +121,18 @@ def set_shortcut(set_shortcut):
         if not isinstance(v, str):
             continue
         xbmc.executebuiltin(f'Skin.SetString({k},{v})')
+
+
+def copy_menufile(copy_menufile, filename, skin):
+    from resources.lib.shortcuts.futils import read_meta_from_file, write_meta_to_file, FILE_PREFIX
+    if not copy_menufile or not filename or not skin:
+        return xbmcgui.Dialog().ok('No details', f'copy_menufile={copy_menufile}\nfilename={filename}\nskin={skin}')
+    filename = f'{FILE_PREFIX}{filename}.json'
+    meta = read_meta_from_file(copy_menufile)
+    if meta is None:
+        return xbmcgui.Dialog().ok('No content', f'copy_menufile={copy_menufile}\nfilename={filename}\nskin={skin}')
+    x = xbmcgui.Dialog().yesno('Warning', OVERWRITE_WARNING.format(filename=filename, copy_menufile=copy_menufile))
+    if not x or x == -1:
+        return
+    from resources.lib.shortcuts.node import assign_guid
+    write_meta_to_file(assign_guid(meta), folder=skin, filename=filename, fileprop=filename, reload=True)

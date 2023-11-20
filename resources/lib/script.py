@@ -46,6 +46,8 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.method', 'add_skinstring_history')(**kwargs),
         'set_shortcut':
             lambda **kwargs: importmodule('resources.lib.shortcuts.method', 'set_shortcut')(**kwargs),
+        'copy_menufile':
+            lambda **kwargs: importmodule('resources.lib.shortcuts.method', 'copy_menufile')(**kwargs),
         'set_listitem_to_menunode':
             lambda **kwargs: importmodule('resources.lib.shortcuts.method', 'set_listitem_to_menunode')(**kwargs),
         'add_skinshortcut':
