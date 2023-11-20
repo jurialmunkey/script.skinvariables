@@ -35,9 +35,10 @@ def get_item_from_listitem(item=None, value_pairs=None, listitem='Container.List
 
 
 class MenuNode():
-    def __init__(self, skin, menufiles=None):
+    def __init__(self, skin, menufiles=None, levels=1):
         self.skin = skin
         self.menufiles = menufiles or []
+        self.levels = int(levels)
 
     def select_menu(self):
         if not self.menufiles:
@@ -58,20 +59,23 @@ class MenuNode():
         except AttributeError:
             return self.get_menu()
 
-    def select_node(self, mode, guid):
+    def select_node(self, mode, guid, level=0):
         lgsn = ListGetShortcutsNode(-1, '')
         lgsn.get_directory(menu=self.menu, skin=self.skin, item=None, mode=mode, guid=guid, func='node')
         if lgsn.menunode is None:
             return
-        x = xbmcgui.Dialog().select(NODE_SELECT_HEADING, [parse_localize(i.get('label') or '') for i in lgsn.menunode] + [NODE_ADDITEM_LABEL])
+        choices = [NODE_ADDITEM_LABEL]
+        if level < self.levels:  # Only add the options to traverse submenu/widgets if we're not deeper than our max level
+            choices = [parse_localize(i.get('label') or '') for i in lgsn.menunode] + choices
+        x = xbmcgui.Dialog().select(NODE_SELECT_HEADING, choices)
         if x == -1:
             return
-        if x == len(lgsn.menunode):
+        if choices[x] == NODE_ADDITEM_LABEL:
             return lgsn
         y = xbmcgui.Dialog().select(MODE_SELECT_HEADING, DEFAULT_MODES)
         if y == -1:
-            return self.select_node(mode, guid)
-        return self.select_node(DEFAULT_MODES[y], lgsn.menunode[x].get('guid'))
+            return self.select_node(mode, guid, level)  # Go back to previous level
+        return self.select_node(DEFAULT_MODES[y], lgsn.menunode[x].get('guid'), level=level + 1)  # Go up to next level
 
     def set_item_to_node(self, item):
         lgsn = self.select_node('submenu', None)
