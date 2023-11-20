@@ -17,6 +17,12 @@ def check_condition(condition):
     if '>=' in condition:
         a, b = condition.split('>=')
         return True if a != b else False
+    if '>>' in condition:
+        a, b = condition.split('<<')
+        return True if a in b else False
+    if '<<' in condition:
+        a, b = condition.split('<<')
+        return True if b in a else False
     if xbmc.getCondVisibility(condition):
         return True
     return False
