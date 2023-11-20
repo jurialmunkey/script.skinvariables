@@ -40,14 +40,14 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.method', 'set_editcontrol')(**kwargs),
         'set_dbid_tag':
             lambda **kwargs: importmodule('resources.lib.method', 'set_dbid_tag')(**kwargs),
-        'set_shortcut':
-            lambda **kwargs: importmodule('resources.lib.method', 'set_shortcut')(**kwargs),
         'get_jsonrpc':
             lambda **kwargs: importmodule('resources.lib.method', 'get_jsonrpc')(**kwargs),
         'add_skinstring_history':
             lambda **kwargs: importmodule('resources.lib.method', 'add_skinstring_history')(**kwargs),
+        'set_shortcut':
+            lambda **kwargs: importmodule('resources.lib.shortcuts.method', 'set_shortcut')(**kwargs),
         'set_listitem_to_menunode':
-            lambda **kwargs: importmodule('resources.lib.method', 'set_listitem_to_menunode')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.shortcuts.method', 'set_listitem_to_menunode')(**kwargs),
         'add_skinshortcut':
             lambda **kwargs: importmodule('resources.lib.shortcuts.skinshortcuts', 'get_skinshortcuts_menu')(route='add_skinshortcut', **kwargs),
         'del_skinshortcut':
