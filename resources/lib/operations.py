@@ -5,6 +5,8 @@ import xbmc
 def check_condition(condition):
     if not condition:
         return True  # No condition set so we treat as True
+    if '||' in condition:
+        return check_or_conditions(condition.split('||'))
     if '==' in condition:
         a, b = condition.split('==')
         return True if a == b else False
@@ -26,6 +28,20 @@ def check_condition(condition):
     if xbmc.getCondVisibility(condition):
         return True
     return False
+
+
+def check_or_conditions(conditions):
+    for condition in conditions:
+        if condition and check_condition(condition):
+            return True
+    return False
+
+
+def check_and_conditions(conditions):
+    for condition in conditions:
+        if condition and not check_condition(condition):
+            return False
+    return True
 
 
 class FormatDict(dict):
