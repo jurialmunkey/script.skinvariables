@@ -114,6 +114,7 @@ class TemplatePart():
                 item_d['item_sum_x'] = self.sum_ix[sub_mode]  # Accumlate item index
                 item_d['item_total_x'] = self.sum_ix[menu]  # Accumlate item index
                 item_d['item_action_x'] = action_x  # Add item index
+                item_d['item_length_x'] = len(nodelist)  # Add length of nodelist that current item is in
                 item_d['item_menu'] = menu  # Add item menu
                 item_d['item_node'] = item  # Add item menu
                 item_d['item_mode'] = mode  # Add item menu
