@@ -134,17 +134,27 @@ class TemplatePart():
         return contents
 
     def get_template(self):  # _make_template
-        template = self.genxml.pop("template")
-        template = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{template}') if template.endswith('.xmltemplate') else template
-        template = self.get_formatted(template, self.update_params())
-        return [template]
+        filelist = self.genxml.pop("template")
+        filelist = filelist if isinstance(filelist, list) else [filelist]
+        contents = []
+        fmt_dict = self.update_params()
+        for template in filelist:
+            file = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{template}') if template.endswith('.xmltemplate') else template
+            item = self.get_formatted(file, fmt_dict)
+            contents.append(item)
+        return ['\n'.join(contents)]
 
     def add_jsonfile(self):
-        jsonfile = self.genxml.pop("jsonfile")
-        jsonfile = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{jsonfile}')
-        jsonfile = loads(jsonfile) if jsonfile else {}
-        jsonfile.update(self.genxml)
-        self.genxml = jsonfile
+        filelist = self.genxml.pop("jsonfile")
+        filelist = filelist if isinstance(filelist, list) else [filelist]
+        contents = {}
+        for jsonfile in filelist:
+            file = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{jsonfile}')
+            meta = loads(file) if file else {}
+            contents.update(meta)
+        contents.update(self.genxml)
+        self.genxml = contents
+        return self.genxml
 
     def get_for_each(self):
         if 'list' in self.genxml:
