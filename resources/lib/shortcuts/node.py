@@ -359,6 +359,9 @@ class NodeMethods():
         xbmc.executebuiltin('ActivateWindow({target},{path},return)' if target else path)
 
     def do_icon(self, key='icon', value=None, heading=ICON_HEADING, icon_dir=ICON_DIR):
+        """
+        Set property[key] to value or prompt user to browse images in icon_dir if no value specified
+        """
         x = int(self.item)
         new_value = value or Dialog().browse(type=2, heading=heading, useThumbs=True, defaultt=icon_dir, shares="")
         if not new_value or new_value == -1 or new_value == icon_dir:
@@ -381,6 +384,9 @@ class NodeMethods():
         self.write_meta_to_file()
 
     def do_toggle(self, key='disabled'):
+        """
+        Toggles property[key] between 'True' and empty
+        """
         x = int(self.item)
         current = self.get_menunode_item(x).get(key)
         self.get_menunode_item(x)[key] = 'True' if not current else ''
@@ -394,6 +400,14 @@ class NodeMethods():
             xbmc.executebuiltin(i)
 
     def do_edit(self, key='label', value=None, heading=EDIT_HEADING, use_prop_pairs=False):
+        """
+        key, value = property to edit and value to set
+        heading = heading of select dialog when use_prop_pairs enabled
+        use_prop_pairs allows for selecting key/values using & separated list with = partition for key value pairs
+            -- e.g. foo=bar&fizz=buzz will show a list with foo|fizz as options that set bar|buzz respectively
+            -- 'edit' as value will prompt input via keyboard
+            -- 'null' as value will delete value for key
+        """
         x = int(self.item)
 
         def _get_items():
@@ -418,10 +432,14 @@ class NodeMethods():
         if not value:
             return
 
-        self.get_menunode_item(x)[key] = value
+        self.get_menunode_item(x)[key] = value if value != 'null' else ''
         self.write_meta_to_file()
 
     def do_numeric(self, key='limit', value=None, heading=EDIT_HEADING):
+        """
+        Set property[key] to a numeric value.
+        Prompts for user input if value not specified.
+        """
         x = int(self.item)
 
         if not value and value != 0:
@@ -433,6 +451,11 @@ class NodeMethods():
         self.write_meta_to_file()
 
     def do_action(self, prefix=None, grouping=GROUPING_DEFAULT):
+        """
+        Update path and target for item by giving user option to browse or edit
+        Specify prefix to set a specific property e.g. prefix=myshortcut updates myshortcut_path myshortcut_target
+        Specify grouping to open at grouping other than basedir default
+        """
         x = int(self.item)
         menunode_item = self.get_menunode_item(x)
         path = menunode_item.get('path') or ''
@@ -465,6 +488,11 @@ class NodeMethods():
         self.write_meta_to_file()
 
     def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT, create_new=False):
+        """
+        Wrapper for do_action which also sets icon and label
+        Specify prefix to set a specific property e.g. prefix=myshortcut updates myshortcut_path myshortcut_target myshortcut_icon myshortcut_label
+        Specify create_new boolean to insert in place, otherwise updates item
+        """
         x = int(self.item)
         from resources.lib.shortcuts.browser import GetDirectoryBrowser
         from jurialmunkey.window import WindowProperty
@@ -477,6 +505,9 @@ class NodeMethods():
         self.write_meta_to_file()
 
     def do_new(self, prefix=None, grouping=GROUPING_DEFAULT):
+        """
+        Wrapper for do_choose that forces create_new=True
+        """
         self.do_choose(prefix=prefix, grouping=grouping, create_new=True)
 
     def do_move(self, move=0, refocus=None):
