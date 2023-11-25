@@ -286,15 +286,15 @@ class ListItemJSONRPC():
         self._path = value
         self.is_folder = True
 
+        if self._path.startswith('script://'):
+            self._path = f'RunScript({self._path[9:]})'
+
         if self.filetype == 'file':
             self.is_folder = False
             self.infoproperties['isPlayable'] = 'true'
             return
 
-        if self._path.startswith('videodb://'):
-            return
-
-        if self._path.startswith('plugin://'):
+        if self._path.contains('://'):
             return
 
         if self.mediatype == 'tvshow' and self.infolabels.get('dbid'):
