@@ -294,7 +294,7 @@ class ListItemJSONRPC():
             self.infoproperties['isPlayable'] = 'true'
             return
 
-        if self._path.contains('://'):
+        if '://' in self._path:
             return
 
         if self.mediatype == 'tvshow' and self.infolabels.get('dbid'):
