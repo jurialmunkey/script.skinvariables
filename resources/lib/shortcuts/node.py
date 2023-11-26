@@ -450,7 +450,7 @@ class NodeMethods():
         self.get_menunode_item(x)[key] = str(value or '')
         self.write_meta_to_file()
 
-    def do_action(self, prefix=None, grouping=GROUPING_DEFAULT):
+    def do_action(self, prefix=None, grouping=GROUPING_DEFAULT, use_rawpath=False):
         """
         Update path and target for item by giving user option to browse or edit
         Specify prefix to set a specific property e.g. prefix=myshortcut updates myshortcut_path myshortcut_target
@@ -471,7 +471,7 @@ class NodeMethods():
             from resources.lib.shortcuts.browser import GetDirectoryBrowser
             from jurialmunkey.window import WindowProperty
             with WindowProperty(('IsSkinShortcut', 'True')):
-                item = GetDirectoryBrowser().get_directory(path=grouping)
+                item = GetDirectoryBrowser(use_rawpath=boolean(use_rawpath)).get_directory(path=grouping)
             try:
                 path = item['path']
                 target = item['target']
@@ -487,7 +487,7 @@ class NodeMethods():
         menunode_item.update(item)
         self.write_meta_to_file()
 
-    def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT, create_new=False):
+    def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT, create_new=False, use_rawpath=False):
         """
         Wrapper for do_action which also sets icon and label
         Specify prefix to set a specific property e.g. prefix=myshortcut updates myshortcut_path myshortcut_target myshortcut_icon myshortcut_label
@@ -497,18 +497,18 @@ class NodeMethods():
         from resources.lib.shortcuts.browser import GetDirectoryBrowser
         from jurialmunkey.window import WindowProperty
         with WindowProperty(('IsSkinShortcut', 'True')):
-            item = GetDirectoryBrowser().get_directory(path=grouping)
+            item = GetDirectoryBrowser(use_rawpath=boolean(use_rawpath)).get_directory(path=grouping)
         if not item:
             return
         item = {f'{prefix}_{k}': v for k, v in item.items()} if prefix else item
         self.menunode.insert(x + 1, item) if boolean(create_new) else self.get_menunode_item(x).update(item)
         self.write_meta_to_file()
 
-    def do_new(self, prefix=None, grouping=GROUPING_DEFAULT):
+    def do_new(self, prefix=None, grouping=GROUPING_DEFAULT, use_rawpath=False):
         """
         Wrapper for do_choose that forces create_new=True
         """
-        self.do_choose(prefix=prefix, grouping=grouping, create_new=True)
+        self.do_choose(prefix=prefix, grouping=grouping, create_new=True, use_rawpath=use_rawpath)
 
     def do_move(self, move=0, refocus=None):
         x = int(self.item)
@@ -635,4 +635,7 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
         if not self.meta and self.filepath:
             self._meta = [get_default_item()]  # Create a blank item in meta to write to if we're trying to do a function on it.
 
-        item_func(*self.params.get('paths', []))  # If an item is specified we do its function
+        path_partitions = [i.partition('::') if i else ('', '', '', ) for i in self.params.get('paths', [])]
+        path_args = [k for k, s, v in path_partitions if not s]
+        path_kwargs = {k: v for k, s, v in path_partitions if s}
+        item_func(*path_args, **path_kwargs)  # If an item is specified we do its function
