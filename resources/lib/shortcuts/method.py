@@ -104,13 +104,14 @@ def set_listitem_to_menunode(set_listitem_to_menunode, skin, label=None, icon=No
     MenuNode(skin, menufiles=set_listitem_to_menunode.split('||')).set_item_to_node(item)
 
 
-def set_shortcut(set_shortcut):
+def set_shortcut(set_shortcut, use_rawpath=False):
     import xbmc
+    from jurialmunkey.parser import boolean
     from jurialmunkey.window import WindowProperty
     from resources.lib.shortcuts.browser import GetDirectoryBrowser
 
     with WindowProperty(('IsSkinShortcut', 'True')):
-        item = GetDirectoryBrowser().get_directory()
+        item = GetDirectoryBrowser(use_rawpath=boolean(use_rawpath)).get_directory()
 
     if not item:
         return
