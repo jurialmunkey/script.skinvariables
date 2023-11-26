@@ -60,8 +60,11 @@ class Plugin():
 
     def __init__(self, handle, paramstring):
         # plugin:// params configuration
-        from jurialmunkey.parser import parse_paramstring
         self.handle = handle  # plugin:// handle
+        self.parse_paramstring(paramstring)
+
+    def parse_paramstring(self, paramstring):
+        from jurialmunkey.parser import parse_paramstring
         self.paramstring, *secondary_params = paramstring.split('&&')  # plugin://plugin.video.themoviedb.helper?paramstring
         self.params = parse_paramstring(self.paramstring)  # paramstring dictionary
         if not secondary_params:
@@ -78,4 +81,7 @@ class Plugin():
         return container.get_directory(**self.params)
 
     def run(self):
+        if self.params.get('info') == 'get_params_file':
+            from resources.lib.shortcuts.futils import read_meta_from_file
+            self.params = read_meta_from_file(self.params['paths'][0])
         self.get_directory()

@@ -376,7 +376,7 @@ class ListGetFilterDir(Container):
             return i
 
         def _get_sorting(i):
-            return i.infolabels.get(sort_by) or i.infoproperties.get(sort_by) or ''
+            return str(i.infolabels.get(sort_by) or i.infoproperties.get(sort_by) or '')
 
         items = []
         for path in paths:
