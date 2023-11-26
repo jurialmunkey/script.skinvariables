@@ -7,15 +7,22 @@ from xbmcgui import ListItem, Dialog
 
 SHORTCUT_CONFIG = 'skinvariables-shortcut-config.json'
 SHORTCUT_FOLDER = 'special://skin/shortcuts/'
-TARGET_NODE_BLOCKLIST = ['link', None]
+PLAYLIST_EXT = ('.xsp', '.m3u', '.m3u8', '.strm', '.wpl')
+PLAYLIST_MESSAGE = 'Do you want to use this playlist as a playable shortcut or a browseable directory?'
+PLAYLIST_HEADING = 'Add playlist'
+
+
+def _ask_is_playable(path):
+    return Dialog().yesno(PLAYLIST_HEADING, f'{PLAYLIST_MESSAGE}\n{path}', yeslabel='Play', nolabel='Browse')
 
 
 class GetDirectoryBrowser():
-    def __init__(self, use_details=True, item_prefix=None):
+    def __init__(self, use_details=True, item_prefix=None, use_rawpath=False):
         self.history = []
         self.filepath = f'{SHORTCUT_FOLDER}{SHORTCUT_CONFIG}'
         self.item_prefix = item_prefix or ''
         self.use_details = use_details
+        self.use_rawpath = use_rawpath
 
     @property
     def definitions(self):
@@ -30,6 +37,8 @@ class GetDirectoryBrowser():
     def get_formatted_path(path, node=None, link=True):
         if not path:
             return ('', '')
+        if node and not link and path.endswith(PLAYLIST_EXT) and _ask_is_playable(path):
+            return (f'PlayMedia({path})', '')
         if (not node) is not (not link):  # XOR: Links without nodes return raw path; Folders with nodes return raw path (+ node)
             return (path, node)
         if path.startswith('script://'):
@@ -40,8 +49,8 @@ class GetDirectoryBrowser():
         if node == 'link':
             link = True
             node = ''
-        path, target = self.get_formatted_path(path, node, link)
-        item = {"label": name, "path": path, "icon": icon, "target": target}
+        path, target = self.get_formatted_path(path, node, link) if not self.use_rawpath else (path, node)
+        item = {"label": name or '', "path": path or '', "icon": icon or '', "target": target or ''}
         # from resources.lib.shortcuts.futils import dumps_log_to_file
         # dumps_log_to_file({'name': name, 'path': path, 'icon': icon, 'node': node, 'item': item}, filename=f'{name}.json')
         return item
