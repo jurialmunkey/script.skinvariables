@@ -11,11 +11,10 @@ TARGET_NODE_BLOCKLIST = ['link', None]
 
 
 class GetDirectoryBrowser():
-    def __init__(self, return_item=False, use_details=True, item_prefix=None):
+    def __init__(self, use_details=True, item_prefix=None):
         self.history = []
         self.filepath = f'{SHORTCUT_FOLDER}{SHORTCUT_CONFIG}'
         self.item_prefix = item_prefix or ''
-        self.return_item = return_item
         self.use_details = use_details
 
     @property
@@ -27,34 +26,37 @@ class GetDirectoryBrowser():
             self._definitions = read_meta_from_file(self.filepath)
             return self._definitions
 
-    def get_onclick_path(self, path, node=None):
+    @staticmethod
+    def get_formatted_path(path, node=None, link=True):
         if not path:
-            return
-        if not node:
-            return f'PlayMedia({path})'
+            return ('', '')
+        if (not node) is not (not link):  # XOR: Links without nodes return raw path; Folders with nodes return raw path (+ node)
+            return (path, node)
+        if path.startswith('script://'):
+            return (f'RunScript({path[9:]})', '')
+        return (f'PlayMedia({path})', '')
+
+    def get_formatted_item(self, name, path, icon, node=None, link=True):
         if node == 'link':
-            return f'{path}'
-        return f'ActivateWindow({node},{path},return)'
+            link = True
+            node = ''
+        path, target = self.get_formatted_path(path, node, link)
+        item = {"label": name, "path": path, "icon": icon, "target": target}
+        # from resources.lib.shortcuts.futils import dumps_log_to_file
+        # dumps_log_to_file({'name': name, 'path': path, 'icon': icon, 'node': node, 'item': item}, filename=f'{name}.json')
+        return item
 
     def get_new_item(self, item):
+        from jurialmunkey.parser import boolean
         # Update to new item values
         icon = item[1].getArt('thumb') or ''
         node = item[1].getProperty('nodetype') or None
         name = item[1].getProperty('nodename') or item[1].getLabel() or ''
+        link = not boolean(item[1].getProperty('isfolder') or False)
         path = item[0] or ''
 
-        if item[2]:  # Item is a folder so we open it
-            return self.get_directory(path, icon, name, item, True)
-
-        if not self.return_item:  # Just want action not full item
-            return self.get_onclick_path(path, node)
-
-        return {
-            "label": name,
-            "path": path,
-            "icon": icon,
-            "target": node if node not in TARGET_NODE_BLOCKLIST else '',
-        }
+        # If the item is a folder then we open it otherwise return formatted item
+        return self.get_directory(path, icon, name, item, True) if item[2] else self.get_formatted_item(name, path, icon, node, link)
 
     def get_items(self, directory, path, icon, name, item, add_item=False):
         directory_items = directory.items.copy()
@@ -62,6 +64,7 @@ class GetDirectoryBrowser():
         if add_item and path and not path.startswith('grouping://'):
             li = ListItem(label='Add folder...', label2=path, path=path, offscreen=True)
             li.setArt({'icon': icon, 'thumb': icon})
+            li.setProperty('isfolder', 'True')
             li.setProperty('nodename', name)
             li.setProperty('nodetype', item[1].getProperty('nodetype') or '')
             directory_items.insert(0, (path, li, False, ))

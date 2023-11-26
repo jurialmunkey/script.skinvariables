@@ -10,6 +10,8 @@ class GetDirectoryJSONRPC(GetDirectoryCommon):
             return []
         from jurialmunkey.jsnrpc import get_directory
         self._directory = get_directory(self.path, DIRECTORY_PROPERTIES_BASIC)
+        # from resources.lib.shortcuts.futils import dumps_log_to_file
+        # dumps_log_to_file(self._directory)
         return self._directory
 
     def get_items(self):
@@ -21,7 +23,7 @@ class GetDirectoryJSONRPC(GetDirectoryCommon):
                 return
             listitem_jsonrpc = ListItemJSONRPC(i, library=self.library, dbtype=self.dbtype)
             listitem_jsonrpc.infolabels['title'] = listitem_jsonrpc.label
-            listitem_jsonrpc.infoproperties['nodetype'] = 'link' if not listitem_jsonrpc.is_folder else self.target or ''
+            listitem_jsonrpc.infoproperties['nodetype'] = self.target or ''
             listitem_jsonrpc.artwork = self.get_artwork_fallback(listitem_jsonrpc)
             listitem_jsonrpc.label2 = listitem_jsonrpc.path
             item = (listitem_jsonrpc.path, listitem_jsonrpc.listitem, listitem_jsonrpc.is_folder, )

@@ -260,7 +260,7 @@ class NodeSubmenuMethods():
         from resources.lib.shortcuts.browser import GetDirectoryBrowser
         from jurialmunkey.window import WindowProperty
         with WindowProperty(('IsSkinShortcut', 'True')):
-            item = GetDirectoryBrowser(return_item=True).get_directory()
+            item = GetDirectoryBrowser().get_directory()
         if not item:
             return
         self.get_menunode_item(x).setdefault(mode, []).append(item)
@@ -471,7 +471,7 @@ class NodeMethods():
             from resources.lib.shortcuts.browser import GetDirectoryBrowser
             from jurialmunkey.window import WindowProperty
             with WindowProperty(('IsSkinShortcut', 'True')):
-                item = GetDirectoryBrowser(return_item=True).get_directory(path=grouping)
+                item = GetDirectoryBrowser().get_directory(path=grouping)
             try:
                 path = item['path']
                 target = item['target']
@@ -497,7 +497,7 @@ class NodeMethods():
         from resources.lib.shortcuts.browser import GetDirectoryBrowser
         from jurialmunkey.window import WindowProperty
         with WindowProperty(('IsSkinShortcut', 'True')):
-            item = GetDirectoryBrowser(return_item=True).get_directory(path=grouping)
+            item = GetDirectoryBrowser().get_directory(path=grouping)
         if not item:
             return
         item = {f'{prefix}_{k}': v for k, v in item.items()} if prefix else item

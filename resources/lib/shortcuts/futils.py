@@ -17,6 +17,10 @@ class FileUtils(jmfutils.FileUtils):
 FILEUTILS = FileUtils()
 
 
+def dumps_log_to_file(meta, folder='logging', filename='logging.json', indent=4):
+    FILEUTILS.dumps_to_file(meta, folder=folder, filename=filename, indent=indent)
+
+
 def reload_shortcut_dir():
     import xbmc
     import time

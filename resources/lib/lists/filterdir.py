@@ -286,9 +286,6 @@ class ListItemJSONRPC():
         self._path = value
         self.is_folder = True
 
-        if self._path.startswith('script://'):
-            self._path = f'RunScript({self._path[9:]})'
-
         if self.filetype == 'file':
             self.is_folder = False
             self.infoproperties['isPlayable'] = 'true'

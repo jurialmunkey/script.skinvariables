@@ -110,7 +110,7 @@ def set_shortcut(set_shortcut):
     from resources.lib.shortcuts.browser import GetDirectoryBrowser
 
     with WindowProperty(('IsSkinShortcut', 'True')):
-        item = GetDirectoryBrowser(return_item=True).get_directory()
+        item = GetDirectoryBrowser().get_directory()
 
     if not item:
         return
