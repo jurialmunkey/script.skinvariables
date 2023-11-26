@@ -319,7 +319,7 @@ class ListItemJSONRPC():
 
 
 class ListGetFilterDir(Container):
-    def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, **kwargs):
+    def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, sort_by=None, sort_how=None, **kwargs):
         if not paths:
             return
 
@@ -364,9 +364,7 @@ class ListGetFilterDir(Container):
             if listitem_jsonrpc.mediatype:
                 mediatypes[listitem_jsonrpc.mediatype] = mediatypes.get(listitem_jsonrpc.mediatype, 0) + 1
 
-            item = (listitem_jsonrpc.path, listitem_jsonrpc.listitem, listitem_jsonrpc.is_folder, )
-
-            return item
+            return listitem_jsonrpc
 
         def _is_not_dupe(i):
             if not no_label_dupes:
@@ -377,12 +375,18 @@ class ListGetFilterDir(Container):
             added_items.append(label)
             return i
 
+        def _get_sorting(i):
+            return i.infolabels.get(sort_by) or i.infoproperties.get(sort_by) or ''
+
         items = []
         for path in paths:
             directory = get_directory(path, directory_properties)
             with ParallelThread(directory, _make_item) as pt:
                 item_queue = pt.queue
             items += [i for i in item_queue if i and (not no_label_dupes or _is_not_dupe(i))]
+
+        items = sorted(items, key=_get_sorting, reverse=sort_how == 'desc') if sort_by else items
+        items = [(i.path, i.listitem, i.is_folder, ) for i in items if i]
 
         plugin_category = ''
         container_content = f'{max(mediatypes, key=lambda key: mediatypes[key])}s' if mediatypes else ''
