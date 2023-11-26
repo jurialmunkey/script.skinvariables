@@ -50,6 +50,9 @@ class Plugin():
         'get_filter_dir': {
             'module_name': 'resources.lib.lists.filterdir',
             'import_attr': 'ListGetFilterDir'},
+        'set_filter_dir': {
+            'module_name': 'resources.lib.lists.filterdir',
+            'import_attr': 'ListSetFilterDir'},
         'get_container_labels': {
             'module_name': 'resources.lib.lists.filterdir',
             'import_attr': 'ListGetContainerLabels'},
@@ -83,5 +86,6 @@ class Plugin():
     def run(self):
         if self.params.get('info') == 'get_params_file':
             from resources.lib.shortcuts.futils import read_meta_from_file
-            self.params = read_meta_from_file(self.params['paths'][0])
+            path = self.params.get('path') or self.params.get('paths', [None])[0] or ''
+            self.params = read_meta_from_file(path) if path else {}
         self.get_directory()

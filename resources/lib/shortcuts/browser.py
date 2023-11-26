@@ -11,6 +11,8 @@ PLAYLIST_EXT = ('.xsp', '.m3u', '.m3u8', '.strm', '.wpl')
 PLAYLIST_MESSAGE = 'Do you want to use this playlist as a playable shortcut or a browseable directory?'
 PLAYLIST_HEADING = 'Add playlist'
 
+NO_FOLDER_ITEM = ('grouping://', 'plugin://script.skinvariables/?info=set_filter_dir')
+
 
 def _ask_is_playable(path):
     return Dialog().yesno(PLAYLIST_HEADING, f'{PLAYLIST_MESSAGE}\n{path}', yeslabel='Play', nolabel='Browse')
@@ -70,7 +72,7 @@ class GetDirectoryBrowser():
     def get_items(self, directory, path, icon, name, item, add_item=False):
         directory_items = directory.items.copy()
 
-        if add_item and path and not path.startswith('grouping://'):
+        if add_item and path and not path.startswith(NO_FOLDER_ITEM):
             li = ListItem(label='Add folder...', label2=path, path=path, offscreen=True)
             li.setArt({'icon': icon, 'thumb': icon})
             li.setProperty('isfolder', 'True')

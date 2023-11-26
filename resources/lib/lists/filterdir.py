@@ -33,6 +33,20 @@ DIRECTORY_PROPERTIES_MUSIC = [
     "totaldiscs", "disctitle", "releasedate", "originaldate", "bpm", "bitrate", "samplerate", "channels"]
 
 
+SFD_ANOTHERPATH_HEADING = 'Add another path?'
+SFD_ANOTHERPATH_MESSAGE = 'Do you want to add another path?'
+SFD_FILENAMEINPUT_HEADING = 'Enter name'
+SFD_SORTBY_METHODS = [
+    "none", "title", "genre", "year", "rating", "playcount", "director", "trailer", "tagline", "plot", "originaltitle", "lastplayed", "writer",
+    "studio", "mpaa", "country", "premiered", "top250", "votes", "tvshowtitle", "custom"
+]
+SFD_SORTHOW_HEADING = 'Sort direction'
+SFD_SORTHOW_MESSAGE = 'Select sort direction'
+SFD_SORTBY_HEADING = 'Method for {}'
+SFD_SORTBY_INPUT_HEADING = 'Enter custom {} infolabel or property name'
+SFD_SORTBY_VALUE_HEADING = 'Enter custom {} value to match'
+
+
 def update_global_property_versions():
     """ Add additional properties from newer versions of JSON RPC """
 
@@ -316,6 +330,83 @@ class ListItemJSONRPC():
 
         self._listitem.setProperties(self.infoproperties)
         return self._listitem
+
+
+class ListSetFilterDir(Container):
+    def get_directory(self, library='video', filename=None, **kwargs):
+        from xbmcgui import Dialog
+        from jurialmunkey.window import WindowProperty
+        from resources.lib.shortcuts.browser import GetDirectoryBrowser
+        from resources.lib.shortcuts.futils import FILEUTILS, validify_filename
+
+        meta = {
+            'info': 'get_filter_dir',
+            'library': library,
+            'paths': []
+        }
+
+        def _get_path():
+            with WindowProperty(('IsSkinShortcut', 'True')):
+                item = GetDirectoryBrowser(use_rawpath=True).get_directory(path='library://video/')  # TODO: Add some choice of library
+            try:
+                path, target = item['path'], item['target']
+            except (TypeError, KeyError):
+                return
+            if not target:  # TODO: Add some validation we have correct library
+                pass
+            return path
+
+        def _add_path():
+            path = _get_path()
+            if path is not None:
+                meta['paths'].append(path)
+            if Dialog().yesno(SFD_ANOTHERPATH_HEADING, SFD_ANOTHERPATH_MESSAGE):
+                return _add_path()
+            return meta['paths']
+
+        def _add_sort_by(heading, customheading):
+            x = Dialog().select(heading, SFD_SORTBY_METHODS)
+            if x == -1:
+                return ''
+            v = SFD_SORTBY_METHODS[x]
+            if v == 'custom':
+                return Dialog().input(heading=customheading)
+            if v == 'none':
+                return ''
+            return v
+
+        def _add_sort_by_and_how():
+            sort_by = _add_sort_by(SFD_SORTBY_HEADING.format('sort'), SFD_SORTBY_INPUT_HEADING.format('sort'))
+            sort_how = ''
+            if sort_by and Dialog().yesno(SFD_SORTHOW_HEADING.format('sort'), SFD_SORTHOW_MESSAGE.format('sort'), yeslabel='Descending', nolabel='Ascending'):
+                sort_how = 'desc'
+            meta['sort_by'], meta['sort_how'] = sort_by, sort_how
+
+        def _add_filter_by_and_how(prefix='filter'):
+            filter_key = _add_sort_by(SFD_SORTBY_HEADING.format(prefix), SFD_SORTBY_INPUT_HEADING.format(prefix))
+            if not filter_key:
+                return
+            filter_value = Dialog().input(heading=SFD_SORTBY_VALUE_HEADING.format(prefix))
+            if not filter_value:
+                return
+            meta[f'{prefix}_key'] = filter_key
+            meta[f'{prefix}_value'] = filter_value
+
+        _add_path()
+        _add_sort_by_and_how()
+        _add_filter_by_and_how('filter')
+        _add_filter_by_and_how('exclude')
+
+        filename = filename or Dialog().input(heading=SFD_FILENAMEINPUT_HEADING)
+        filename = validify_filename(filename)
+        if not filename:  # TODO: Ask user if they are sure they dont want to make the file.
+            return
+        filename = f'{filename}.json'
+
+        FILEUTILS.dumps_to_file(meta, folder='dynamic', filename=filename, indent=4)  # TODO: Make sure we dont overwrite?
+        paramstring = f'plugin://script.skinvariables/?info=get_params_file&path=special://profile/addon_data/script.skinvariables/nodes/dynamic/{filename}'
+        self.add_items([(paramstring, ListItem(label=filename, label2='', path=paramstring), True, )])
+        # ListGetFilterDir(self.handle, paramstring, **meta).get_directory(**meta)
 
 
 class ListGetFilterDir(Container):
