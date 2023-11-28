@@ -428,9 +428,7 @@ class ListSetFilterDir(Container):
         filename = f'{filename}.json'
 
         FILEUTILS.dumps_to_file(meta, folder='dynamic', filename=filename, indent=4)  # TODO: Make sure we dont overwrite?
-        paramstring = f'plugin://script.skinvariables/?info=get_params_file&path=special://profile/addon_data/script.skinvariables/nodes/dynamic/{filename}'
-        self.add_items([(paramstring, ListItem(label=filename, label2='', path=paramstring), True, )])
-        # ListGetFilterDir(self.handle, paramstring, **meta).get_directory(**meta)
+        ListGetFilterFiles(self.handle, '').get_directory()
 
 
 class ListGetFilterDir(Container):
