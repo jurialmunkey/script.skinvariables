@@ -17,6 +17,12 @@ class FileUtils(jmfutils.FileUtils):
 FILEUTILS = FileUtils()
 
 
+def get_files_in_folder(folder, regex):
+    import re
+    import xbmcvfs
+    return [x for x in xbmcvfs.listdir(folder)[1] if re.match(regex, x)]
+
+
 def dumps_log_to_file(meta, folder='logging', filename='logging.json', indent=4):
     FILEUTILS.dumps_to_file(meta, folder=folder, filename=filename, indent=indent)
 

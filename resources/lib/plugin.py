@@ -47,6 +47,9 @@ class Plugin():
         'run_executebuiltin': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListRunExecuteBuiltin'},
+        'get_filter_files': {
+            'module_name': 'resources.lib.lists.filterdir',
+            'import_attr': 'ListGetFilterFiles'},
         'get_filter_dir': {
             'module_name': 'resources.lib.lists.filterdir',
             'import_attr': 'ListGetFilterDir'},

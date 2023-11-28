@@ -332,6 +332,30 @@ class ListItemJSONRPC():
         return self._listitem
 
 
+class ListGetFilterFiles(Container):
+    def get_directory(self, filepath=None, **kwargs):
+        from resources.lib.shortcuts.futils import get_files_in_folder
+
+        basepath = 'plugin://script.skinvariables/'
+        filepath = filepath or 'special://profile/addon_data/script.skinvariables/nodes/dynamic/'
+
+        def _make_item(i):
+            path = f'{basepath}?info=get_params_file'
+            path = f'{path}&path=special://profile/addon_data/script.skinvariables/nodes/dynamic/{i}'
+            return (path, ListItem(label=f'{i}', path=path), True)
+
+        def _add_new_item():
+            path = f'{basepath}?info=set_filter_dir'
+            return (path, ListItem(label='Add new...', path=path), True)
+
+        files = get_files_in_folder(filepath, r'.*\.json')
+        items = [_make_item(i) for i in files if i] + [_add_new_item()]
+
+        plugin_category = ''
+        container_content = ''
+        self.add_items(items, container_content=container_content, plugin_category=plugin_category)
+
+
 class ListSetFilterDir(Container):
     def get_directory(self, library='video', filename=None, **kwargs):
         from xbmcgui import Dialog
