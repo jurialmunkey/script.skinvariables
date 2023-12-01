@@ -32,6 +32,13 @@ REBUILD_HEADING = 'Rebuild shortcuts'
 REBUILD_MESSAGE = 'Rebuild shortcuts template to include recent changes?'
 RESTORE_HEADING = 'Restore shortcuts'
 RESTORE_MESSAGE = f'Restore shortcuts from skin defaults?\n{WARNING_TEXT}'
+ADDLIST_HEADING = 'Add list of items'
+ADDLIST_MESSAGE = '[B][COLOR=red]WARNING[/COLOR][/B]: Adding this list will add {item_count} new items (skipping {skip_count} existing items previously added). This action cannot be undone. Are you sure you want to continue?'
+ADDLIST_NOITEMS_MESSAGE = 'No new items to add!'
+ADDLIST_TOOMANY_MESSAGE = 'This list contains {item_count} items. The current max item limit is {item_limit}. This list will not be added.'
+DELLIST_HEADING = 'Delete list of items'
+DELLIST_MESSAGE = '[B][COLOR=red]WARNING[/COLOR][/B]: Deleting this list will remove {item_count} existing items. This action cannot be undone. Are you sure you want to continue?'
+DELLIST_NOITEMS_MESSAGE = 'No items to delete!'
 
 
 CONTEXTMENU_BASIC = [
@@ -201,6 +208,70 @@ def cache_meta_from_file(filepath, fileprop, refresh=False):
         meta = assign_guid(meta)
         shortcutfutils.write_meta_to_prop(meta, fileprop)
     return meta
+
+
+class GetDirectoryItems():
+    def __init__(self, grouping=GROUPING_DEFAULT, use_rawpath=False, folder_name=None):
+        self.grouping = grouping
+        self.use_rawpath = use_rawpath
+        self.folder_name = folder_name
+
+    @property
+    def directory_browser(self):
+        try:
+            return self._directory_browser
+        except AttributeError:
+            from resources.lib.shortcuts.browser import GetDirectoryBrowser
+            self._directory_browser = GetDirectoryBrowser(use_rawpath=True, allow_links=False, folder_name=self.folder_name)
+            return self._directory_browser
+
+    @property
+    def directory_jsonrpc(self):
+        try:
+            return self._directory_jsonrpc
+        except AttributeError:
+            from resources.lib.shortcuts.jsonrpc import GetDirectoryJSONRPC
+            self._directory_jsonrpc = GetDirectoryJSONRPC(self.item_folder['path'], definitions=self.directory_browser.definitions, target=self.item_folder['target'])
+            return self._directory_jsonrpc
+
+    @property
+    def item_folder(self):
+        try:
+            return self._item_folder
+        except AttributeError:
+            self._item_folder = self.get_item_folder()
+            return self._item_folder
+
+    @property
+    def items(self):
+        try:
+            return self._items
+        except AttributeError:
+            self._items = self.get_items()
+            return self._items
+
+    def get_item_folder(self):
+        from jurialmunkey.window import WindowProperty
+        with WindowProperty(('IsSkinShortcut', 'True')):
+            self._item_folder = self.directory_browser.get_directory(path=self.grouping)
+        return self._item_folder
+
+    def get_items(self):
+        if not self.item_folder:
+            return
+
+        if not self.directory_jsonrpc.items:
+            return
+
+        if not boolean(self.use_rawpath):
+            self.directory_browser.use_rawpath = False
+            self.directory_browser.allow_links = True
+
+        def _configure_item(i):
+            i[1].setProperty('isfolder', 'True' if i[2] else 'False')
+            return i
+
+        return (self.directory_browser.get_new_item(_configure_item(i), allow_browsing=False) for i in self.directory_jsonrpc.items)
 
 
 class NodeProperties():
@@ -485,6 +556,55 @@ class NodeMethods():
             f'{prefix}target': target
         }
         menunode_item.update(item)
+        self.write_meta_to_file()
+
+    def do_list_del(self, grouping=GROUPING_DEFAULT, use_rawpath=False):
+        directory_item_getter = GetDirectoryItems(grouping=grouping, use_rawpath=use_rawpath, folder_name='Delete list...')
+        items = directory_item_getter.items or []
+        paths = [i['path'] for i in items if i and i.get('path')]
+        index = [x for x, i in enumerate(self.menunode) if i and i.get('path') in paths]
+        if not index:
+            Dialog().ok(DELLIST_HEADING, DELLIST_NOITEMS_MESSAGE)
+            return
+        if not Dialog().yesno(DELLIST_HEADING, DELLIST_MESSAGE.format(item_count=len(index))):
+            return
+        for x in sorted(index, reverse=True):
+            del self.menunode[x]
+        self.write_meta_to_file()
+
+    def do_list_add(self, grouping=GROUPING_DEFAULT, use_rawpath=False, item_limit=30):
+        """
+        Choose a list to add multiple items automatically
+        """
+        x = int(self.item)
+        item_limit = int(item_limit)
+
+        directory_item_getter = GetDirectoryItems(grouping=grouping, use_rawpath=use_rawpath, folder_name='Add list...')
+        items = directory_item_getter.items
+        if not items:
+            Dialog().ok(ADDLIST_HEADING, ADDLIST_NOITEMS_MESSAGE)
+            return
+        directory_jsonrpc_items = directory_item_getter.directory_jsonrpc.items
+
+        paths = [i['path'] for i in self.menunode if i and i.get('path')]
+        items = [i for i in items if i and i['path'] not in paths]
+
+        if len(items) < 1:
+            Dialog().ok(ADDLIST_HEADING, ADDLIST_NOITEMS_MESSAGE)
+            return
+
+        if len(items) > item_limit:
+            Dialog().ok(ADDLIST_HEADING, ADDLIST_TOOMANY_MESSAGE.format(item_count=len(items), item_limit=item_limit))
+            return
+
+        if not Dialog().yesno(ADDLIST_HEADING, ADDLIST_MESSAGE.format(
+                item_count=len(items),
+                skip_count=len(directory_jsonrpc_items) - len(items))):
+            return
+
+        for y, item in enumerate(items):
+            self.menunode.insert(x + y + 1, item)  # Add enumerator to original position to insert in order
+
         self.write_meta_to_file()
 
     def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT, create_new=False, use_rawpath=False):

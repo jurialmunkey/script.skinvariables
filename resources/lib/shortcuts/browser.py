@@ -19,12 +19,14 @@ def _ask_is_playable(path):
 
 
 class GetDirectoryBrowser():
-    def __init__(self, use_details=True, item_prefix=None, use_rawpath=False):
+    def __init__(self, use_details=True, item_prefix=None, use_rawpath=False, allow_links=True, folder_name=None):
         self.history = []
         self.filepath = f'{SHORTCUT_FOLDER}{SHORTCUT_CONFIG}'
         self.item_prefix = item_prefix or ''
         self.use_details = use_details
         self.use_rawpath = use_rawpath
+        self.allow_links = allow_links
+        self.folder_name = folder_name or 'Add folder...'
 
     @property
     def definitions(self):
@@ -57,7 +59,7 @@ class GetDirectoryBrowser():
         # dumps_log_to_file({'name': name, 'path': path, 'icon': icon, 'node': node, 'item': item}, filename=f'{name}.json')
         return item
 
-    def get_new_item(self, item):
+    def get_new_item(self, item, allow_browsing=True):
         from jurialmunkey.parser import boolean
         # Update to new item values
         icon = item[1].getArt('thumb') or ''
@@ -67,13 +69,15 @@ class GetDirectoryBrowser():
         path = item[0] or ''
 
         # If the item is a folder then we open it otherwise return formatted item
-        return self.get_directory(path, icon, name, item, True) if item[2] else self.get_formatted_item(name, path, icon, node, link)
+        if allow_browsing and item[2]:
+            return self.get_directory(path, icon, name, item, True)
+        return self.get_formatted_item(name, path, icon, node, link)
 
     def get_items(self, directory, path, icon, name, item, add_item=False):
-        directory_items = directory.items.copy()
+        directory_items = [i for i in directory.items if self.allow_links or i[2]]  # All items if allow links otherwise filter for folders only
 
         if add_item and path and not path.startswith(NO_FOLDER_ITEM):
-            li = ListItem(label='Add folder...', label2=path, path=path, offscreen=True)
+            li = ListItem(label=self.folder_name, label2=path, path=path, offscreen=True)
             li.setArt({'icon': icon, 'thumb': icon})
             li.setProperty('isfolder', 'True')
             li.setProperty('nodename', name)
