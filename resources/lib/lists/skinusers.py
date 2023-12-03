@@ -21,6 +21,7 @@ class ListAddSkinUser(Container):
         import re
         import random
         from jurialmunkey.futils import load_filecontent
+        from resources.lib.shortcuts.futils import reload_shortcut_dir
         from json import loads
         filepath = f'{BASEFOLDER}/{skinid}/{USERS_FILE}'
         file = load_filecontent(filepath)
@@ -58,12 +59,11 @@ class ListAddSkinUser(Container):
 
         meta.append(item)
         FileUtils().dumps_to_file(meta, folder=skinid, filename=USERS_FILE, indent=4)
-        self.params['info'] = 'get_skin_user'
-        ListGetSkinUser(self.handle, self.paramstring, **self.params).get_directory(**self.params)
+        reload_shortcut_dir()
 
 
 class ListGetSkinUser(Container):
-    def get_directory(self, skinid, folder, slug=None, allow_new=False, **kwargs):
+    def get_directory(self, skinid, folder, slug=None, allow_new=False, func=None, **kwargs):
         from jurialmunkey.futils import load_filecontent, write_skinfile
         from json import loads
 
@@ -106,6 +106,11 @@ class ListGetSkinUser(Container):
             li.setProperty('code', code) if code else None
             li.setArt({'thumb': icon, 'icon': icon}) if icon else None
 
+            li.addContextMenuItems([
+                ('Rename', f'RunPlugin({path}&func=rename)'),
+                ('Delete', f'RunPlugin({path}&func=delete)')
+            ])
+
             return (path, li, False)
 
         def _join_item():
@@ -124,4 +129,40 @@ class ListGetSkinUser(Container):
             container_content = ''
             self.add_items(items, container_content=container_content, plugin_category=plugin_category)
 
-        _login_user() if slug else _open_directory()
+        def _delete_user():
+            from resources.lib.shortcuts.futils import reload_shortcut_dir
+            x, user = next((x, i) for x, i in enumerate(meta) if slug == i.get('slug'))
+
+            if user.get('code') and str(user.get('code')) != str(Dialog().input('Enter pin code', type=INPUT_NUMERIC)):
+                Dialog().ok('Wrong pin code!', 'Incorrect pin code entered')
+                return
+            if not Dialog().yesno('Delete user', f'Are you sure you want to delete the skin profile for {user["name"]}? This action cannot be undone.'):
+                return
+
+            del meta[x]
+            FileUtils().dumps_to_file(meta, folder=skinid, filename=USERS_FILE, indent=4)
+            reload_shortcut_dir()
+
+        def _rename_user():
+            from resources.lib.shortcuts.futils import reload_shortcut_dir
+            x, user = next((x, i) for x, i in enumerate(meta) if slug == i.get('slug'))
+
+            if user.get('code') and str(user.get('code')) != str(Dialog().input('Enter pin code', type=INPUT_NUMERIC)):
+                Dialog().ok('Wrong pin code!', 'Incorrect pin code entered')
+                return
+            user['name'] = Dialog().input('Rename user', defaultt=user.get('name', ''))
+            if not user['name']:
+                return
+            meta[x] = user
+            FileUtils().dumps_to_file(meta, folder=skinid, filename=USERS_FILE, indent=4)
+            reload_shortcut_dir()
+
+        if not slug:
+            _open_directory()
+            return
+
+        route = {
+            'delete': _delete_user,
+            'rename': _rename_user
+        }
+        route.get(func, _login_user)()
