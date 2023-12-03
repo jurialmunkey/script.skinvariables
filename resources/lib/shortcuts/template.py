@@ -179,16 +179,62 @@ class TemplatePart():
 
 
 class ShortcutsTemplate(object):
+    allow_users = True
+
     def __init__(self, template: str = None):
         self.template = f'skinvariables-generator-{template}' if template else 'skinvariables-generator'
-        self.hashname = f'script-{self.template}-hash'
+        self.hashname = f'script-{self.template}{self.skinuser}-hash'
         self.contents = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{self.template}.json')
         self.meta = loads(self.contents) or {}
         self.folder = self.meta.get('folder') or SHORTCUTS_FOLDER
-        self.filename = self.meta['output']
-        self.filepath = f'{SKIN_BASEDIR}/{self.folder}/{self.filename}'
-        self.skinid = self.meta.get('skinid')
         self.p_dialog = None
+
+    @property
+    def skinuser(self):
+        try:
+            return self._skinuser
+        except AttributeError:
+            return self.get_skinuser()
+
+    def get_skinuser(self):
+        self._skinuser = '' if not self.allow_users else xbmc.getInfoLabel("Skin.String(SkinVariables.SkinUser)") or ''
+        return self._skinuser
+
+    @property
+    def filepath(self):
+        try:
+            return self._filepath
+        except AttributeError:
+            return self.get_filepath()
+
+    def get_filepath(self):
+        self._filepath = f'{SKIN_BASEDIR}/{self.folder}/{self.filename}'
+        return self._filepath
+
+    @property
+    def filename(self):
+        try:
+            return self._filename
+        except AttributeError:
+            return self.get_filename()
+
+    def get_filename(self):
+        self._filename = self.meta['output'].format(skinuser=self.skinuser)
+        return self._filename
+
+    @property
+    def skinid(self):
+        try:
+            return self._skinid
+        except AttributeError:
+            return self.get_skinid()
+
+    def get_skinid(self):
+        self._skinid = self.meta.get('skinid')
+        if not self._skinid or not self.skinuser:
+            return self._skinid
+        self._skinid = f'{self._skinid}-{self.skinuser}'
+        return self._skinid
 
     def create_xml(self):
         self.p_dialog.update(message='Generating globals...')

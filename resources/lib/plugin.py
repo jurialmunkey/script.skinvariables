@@ -62,6 +62,12 @@ class Plugin():
         'get_shortcuts_node': {
             'module_name': 'resources.lib.shortcuts.node',
             'import_attr': 'ListGetShortcutsNode'},
+        'get_skin_user': {
+            'module_name': 'resources.lib.lists.skinusers',
+            'import_attr': 'ListGetSkinUser'},
+        'add_skin_user': {
+            'module_name': 'resources.lib.lists.skinusers',
+            'import_attr': 'ListAddSkinUser'},
     }
 
     def __init__(self, handle, paramstring):

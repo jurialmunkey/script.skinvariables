@@ -136,4 +136,4 @@ def copy_menufile(copy_menufile, filename, skin):
     if not x or x == -1:
         return
     from resources.lib.shortcuts.node import assign_guid
-    write_meta_to_file(assign_guid(meta), folder=skin, filename=filename, fileprop=filename, reload=True)
+    write_meta_to_file(assign_guid(meta), folder=skin, filename=filename, fileprop=f'{skin}-{filename}', reload=True)

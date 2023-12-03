@@ -276,6 +276,16 @@ class GetDirectoryItems():
 
 class NodeProperties():
     @property
+    def fileprop(self):
+        try:
+            return self._fileprop
+        except AttributeError:
+            if not self.skin or not self.filename:
+                return
+            self._fileprop = f'{self.skin}-{self.filename}'
+            return self._fileprop
+
+    @property
     def filepath(self):
         try:
             return self._filepath
@@ -410,7 +420,7 @@ class NodeMethods():
             return
         self.write_meta_to_file(reload=False)
         from resources.lib.script import Script
-        Script(paramstring='action=buildtemplate&force').run()
+        Script(paramstring=f'action=buildtemplate&force').run()
         if not executebuiltin:
             return
         import xbmc
@@ -648,14 +658,14 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
     def get_meta(self, refresh=False, restore=False):
         if not self.filepath:
             return
-        meta = cache_meta_from_file(self.filepath, fileprop=self.filename, refresh=refresh) if not restore else None
+        meta = cache_meta_from_file(self.filepath, fileprop=self.fileprop, refresh=refresh) if not restore else None
         if meta is None:
-            meta = cache_meta_from_file(f'{SKIN_DIR}{self.filename}', fileprop=self.filename, refresh=refresh)  # Get from skin
-            shortcutfutils.write_meta_to_file(meta, folder=self.skin, filename=self.filename, fileprop=self.filename) if meta is not None else None  # Write to addon_data
+            meta = cache_meta_from_file(f'{SKIN_DIR}{self.filename}', fileprop=self.fileprop, refresh=refresh)  # Get from skin
+            shortcutfutils.write_meta_to_file(meta, folder=self.skin, filename=self.filename, fileprop=self.fileprop) if meta is not None else None  # Write to addon_data
         return meta
 
     def write_meta_to_file(self, reload=True):
-        shortcutfutils.write_meta_to_file(assign_guid(self.meta), folder=self.skin, filename=self.filename, fileprop=self.filename, reload=reload)
+        shortcutfutils.write_meta_to_file(assign_guid(self.meta), folder=self.skin, filename=self.filename, fileprop=self.fileprop, reload=reload)
 
     def get_directory_items(self, blank=False):
 
