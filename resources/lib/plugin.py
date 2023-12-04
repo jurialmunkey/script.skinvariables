@@ -35,6 +35,9 @@ class Plugin():
         'get_split_string': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListGetSplitString'},
+        'get_jsonrpc': {
+            'module_name': 'resources.lib.lists.koditools',
+            'import_attr': 'ListGetJSONRPC'},
         'get_encoded_string': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListGetEncodedString'},

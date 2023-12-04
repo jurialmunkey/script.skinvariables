@@ -31,6 +31,26 @@ class ListRunExecuteBuiltin(Container):
         self.add_items(items)
 
 
+class ListGetJSONRPC(Container):
+    def get_directory(self, info, method, window_prop=None, window_id=None, **kwargs):
+        from jurialmunkey.jsnrpc import get_jsonrpc
+        result = get_jsonrpc(method, kwargs) or {}
+        result = result.get("result")
+        if not result:
+            return
+
+        items = [self.get_list_item(method)]
+
+        li = items[0][1]
+        for k, v in result.items():
+            li.setProperty(str(k), str(v))
+            set_to_windowprop(v, k, window_prop, window_id)
+
+        self.add_items(items)
+
+        return result
+
+
 class ListGetSplitString(Container):
     def get_directory(self, values=None, infolabel=None, separator='|', window_prop=None, window_id=None, **kwargs):
         from xbmc import getInfoLabel as get_infolabel
