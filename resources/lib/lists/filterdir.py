@@ -432,11 +432,12 @@ class ListSetFilterDir(Container):
 
 
 class ListGetFilterDir(Container):
-    def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, sort_by=None, sort_how=None, **kwargs):
+    def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, sort_by=None, sort_how=None, randomise=False, **kwargs):
         if not paths:
             return
 
         from jurialmunkey.jsnrpc import get_directory
+        from jurialmunkey.parser import boolean
 
         update_global_property_versions()  # Add in any properties added in later JSON-RPC versions
 
@@ -490,6 +491,10 @@ class ListGetFilterDir(Container):
 
         def _get_sorting(i):
             return str(i.infolabels.get(sort_by) or i.infoproperties.get(sort_by) or '')
+
+        if boolean(randomise):
+            import random
+            paths = [random.choice(paths)]
 
         items = []
         for path in paths:
