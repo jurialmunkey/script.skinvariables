@@ -3,11 +3,11 @@
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import operator
-from xbmcgui import ListItem
+from xbmcgui import ListItem, Dialog
 from infotagger.listitem import ListItemInfoTag
 from jurialmunkey.parser import split_items
 from jurialmunkey.litems import Container
-from jurialmunkey.window import set_to_windowprop
+from jurialmunkey.window import set_to_windowprop, WindowProperty
 from resources.lib.kodiutils import kodi_log
 import jurialmunkey.thread as jurialmunkey_thread
 
@@ -45,6 +45,18 @@ SFD_SORTHOW_MESSAGE = 'Select sort direction'
 SFD_SORTBY_HEADING = 'Method for {}'
 SFD_SORTBY_INPUT_HEADING = 'Enter custom {} infolabel or property name'
 SFD_SORTBY_VALUE_HEADING = 'Enter custom {} value to match'
+SFD_FILTEROPERATOR_HEADING = 'Operator for {}'
+
+
+STANDARD_OPERATORS = {
+    'contains': 'Contains',
+    'lt': 'Less than <',
+    'le': 'Less than or equal <=',
+    'eq': 'Equal ==',
+    'ne': 'Not equal !=',
+    'ge': 'Greater than or equal >=',
+    'gt': 'Greater than >',
+}
 
 
 def update_global_property_versions():
@@ -340,9 +352,11 @@ class ListGetFilterFiles(Container):
         filepath = filepath or 'special://profile/addon_data/script.skinvariables/nodes/dynamic/'
 
         def _make_item(i):
-            path = f'{basepath}?info=get_params_file'
-            path = f'{path}&path=special://profile/addon_data/script.skinvariables/nodes/dynamic/{i}'
-            return (path, ListItem(label=f'{i}', path=path), True)
+            editpath = f'{basepath}?info=set_filter_dir&filepath=special://profile/addon_data/script.skinvariables/nodes/dynamic/{i}'
+            itempath = f'{basepath}?info=get_params_file&path=special://profile/addon_data/script.skinvariables/nodes/dynamic/{i}'
+            li = ListItem(label=f'{i}', path=itempath)
+            li.addContextMenuItems([('Edit filters', f'RunPlugin({editpath})')])
+            return (itempath, li, True)
 
         def _add_new_item():
             path = f'{basepath}?info=set_filter_dir'
@@ -356,79 +370,250 @@ class ListGetFilterFiles(Container):
         self.add_items(items, container_content=container_content, plugin_category=plugin_category)
 
 
-class ListSetFilterDir(Container):
-    def get_directory(self, library='video', filename=None, **kwargs):
-        from xbmcgui import Dialog
-        from jurialmunkey.window import WindowProperty
-        from resources.lib.shortcuts.browser import GetDirectoryBrowser
-        from resources.lib.shortcuts.futils import FILEUTILS, validify_filename
+class MetaFilterDir():
+    def __init__(self, library='video', filepath=None):
+        self.library = library
+        self.filepath = filepath
 
-        meta = {
+    @property
+    def meta(self):
+        try:
+            return self._meta
+        except AttributeError:
+            self._meta = self.get_files_meta()
+            return self._meta
+
+    def get_blank_meta(self):
+        return {
             'info': 'get_filter_dir',
-            'library': library,
+            'library': self.library,
             'paths': []
         }
 
-        def _get_path():
-            with WindowProperty(('IsSkinShortcut', 'True')):
-                item = GetDirectoryBrowser(use_rawpath=True).get_directory(path='library://video/')  # TODO: Add some choice of library
+    def get_files_meta(self):
+        if not self.filepath:
+            return self.get_blank_meta()
+        from resources.lib.shortcuts.futils import read_meta_from_file
+        return read_meta_from_file(self.filepath) or self.get_blank_meta()
+
+    @staticmethod
+    def get_new_path():
+        from resources.lib.shortcuts.browser import GetDirectoryBrowser
+        with WindowProperty(('IsSkinShortcut', 'True')):
+            item = GetDirectoryBrowser(use_rawpath=True).get_directory(path='library://video/')  # TODO: Add some choice of library
+        try:
+            path, target = item['path'], item['target']
+        except (TypeError, KeyError):
+            return
+        if not target:  # TODO: Add some validation we have correct library
+            pass
+        return path
+
+    @staticmethod
+    def get_new_method(heading, customheading, methods=SFD_SORTBY_METHODS):
+        x = Dialog().select(heading, methods)
+        if x == -1:
+            return None
+        v = methods[x]
+        if v == 'custom':
+            return Dialog().input(heading=customheading)
+        if v == 'none':
+            return ''
+        return v
+
+    def get_new_suffix(self, prefix):
+        import random
+        existing_filter_suffix = [k.replace(f'{prefix}_key__', '') for k in self.meta.keys() if k.startswith(f'{prefix}_key__')]  # Suffix prefixed by double underscore
+
+        def get_suffix():
+            suffix = f'{random.randrange(16**8):08x}'
+            if suffix not in existing_filter_suffix:
+                return f'_{suffix}'  # Suffix prefixed by double underscore but one will be added when joining so only add one now
+            return get_suffix()
+
+        return get_suffix()
+
+    def add_new_path(self, update=None):
+        path = self.get_new_path()
+        if update:
+            x = next(x for x, i in enumerate(self.meta['paths']) if i == update)
+            self.meta['paths'][x] = path
+            self.meta['paths'] = [i for i in self.meta['paths'] if i]  # Remove any null paths
+            return
+        if path is None:
+            return self.meta['paths']
+        self.meta['paths'].append(path)
+        if Dialog().yesno(SFD_ANOTHERPATH_HEADING, SFD_ANOTHERPATH_MESSAGE):
+            return self.add_new_path()
+        return self.meta['paths']
+
+    def add_new_sort_how(self):
+        self.meta['sort_how'] = 'desc' if Dialog().yesno(
+            SFD_SORTHOW_HEADING.format('sort'),
+            SFD_SORTHOW_MESSAGE.format('sort'),
+            yeslabel='Descending',
+            nolabel='Ascending'
+        ) else 'asc'
+
+    def add_new_sort_by(self):
+        sort_by = self.get_new_method(
+            SFD_SORTBY_HEADING.format('sort'),
+            SFD_SORTBY_INPUT_HEADING.format('sort')
+        )
+        if sort_by is None:
+            return
+        self.meta['sort_by'] = sort_by
+
+    def add_new_sort(self):
+        self.add_new_sort_by()
+        if not self.meta['sort_by']:
+            return
+        self.add_new_sort_how()
+
+    def del_filter(self, prefix='filter', suffix='', keys=('key', 'value', 'operator')):
+        key_names = ['_'.join(filter(None, [prefix, k, suffix])) for k in keys]
+        for k in key_names:
             try:
-                path, target = item['path'], item['target']
-            except (TypeError, KeyError):
-                return
-            if not target:  # TODO: Add some validation we have correct library
+                del self.meta[k]
+            except KeyError:
                 pass
-            return path
 
-        def _add_path():
-            path = _get_path()
-            if path is not None:
-                meta['paths'].append(path)
-            if Dialog().yesno(SFD_ANOTHERPATH_HEADING, SFD_ANOTHERPATH_MESSAGE):
-                return _add_path()
-            return meta['paths']
+    def add_new_filter_operator(self, prefix='filter', suffix=''):
+        choices = [(k, v) for k, v in STANDARD_OPERATORS.items()]
+        x = Dialog().select(SFD_FILTEROPERATOR_HEADING.format(prefix), [i for _, i in choices])
+        if x == -1:
+            return
+        k = '_'.join(filter(None, [prefix, 'operator', suffix]))
+        self.meta[k] = choices[x][0]
 
-        def _add_sort_by(heading, customheading):
-            x = Dialog().select(heading, SFD_SORTBY_METHODS)
-            if x == -1:
-                return ''
-            v = SFD_SORTBY_METHODS[x]
-            if v == 'custom':
-                return Dialog().input(heading=customheading)
-            if v == 'none':
-                return ''
-            return v
+    def add_new_filter_key(self, prefix='filter', suffix=''):
+        filter_key = self.get_new_method(
+            SFD_SORTBY_HEADING.format(prefix),
+            SFD_SORTBY_INPUT_HEADING.format(prefix)
+        )
+        if filter_key is None:
+            return
+        if filter_key == '':
+            self.del_filter(prefix, suffix)
+            return
+        k = '_'.join(filter(None, [prefix, 'key', suffix]))
+        self.meta[k] = filter_key
 
-        def _add_sort_by_and_how():
-            sort_by = _add_sort_by(SFD_SORTBY_HEADING.format('sort'), SFD_SORTBY_INPUT_HEADING.format('sort'))
-            sort_how = ''
-            if sort_by and Dialog().yesno(SFD_SORTHOW_HEADING.format('sort'), SFD_SORTHOW_MESSAGE.format('sort'), yeslabel='Descending', nolabel='Ascending'):
-                sort_how = 'desc'
-            meta['sort_by'], meta['sort_how'] = sort_by, sort_how
+    def add_new_filter_value(self, prefix='filter', suffix=''):
+        k = '_'.join(filter(None, [prefix, 'key', suffix]))
+        if not self.meta.get(k):
+            self.del_filter(prefix, suffix)
+            return
+        filter_value = Dialog().input(heading=SFD_SORTBY_VALUE_HEADING.format(prefix))
+        if not filter_value:
+            self.del_filter(prefix, suffix)
+            return
+        k = '_'.join(filter(None, [prefix, 'value', suffix]))
+        self.meta[k] = filter_value
 
-        def _add_filter_by_and_how(prefix='filter'):
-            filter_key = _add_sort_by(SFD_SORTBY_HEADING.format(prefix), SFD_SORTBY_INPUT_HEADING.format(prefix))
-            if not filter_key:
-                return
-            filter_value = Dialog().input(heading=SFD_SORTBY_VALUE_HEADING.format(prefix))
-            if not filter_value:
-                return
-            meta[f'{prefix}_key'] = filter_key
-            meta[f'{prefix}_value'] = filter_value
+    def add_new_filter(self, prefix='filter', suffix=''):
+        self.add_new_filter_key(prefix, suffix)
+        self.add_new_filter_operator(prefix, suffix)
+        self.add_new_filter_value(prefix, suffix)
 
-        _add_path()
-        _add_sort_by_and_how()
-        _add_filter_by_and_how('filter')
-        _add_filter_by_and_how('exclude')
-
+    def write_meta(self, filename=None):
+        from resources.lib.shortcuts.futils import FILEUTILS, validify_filename
         filename = filename or Dialog().input(heading=SFD_FILENAMEINPUT_HEADING)
         filename = validify_filename(filename)
         if not filename:  # TODO: Ask user if they are sure they dont want to make the file.
             return
         filename = f'{filename}.json'
+        FILEUTILS.dumps_to_file(self.meta, folder='dynamic', filename=filename, indent=4)  # TODO: Make sure we dont overwrite?
 
-        FILEUTILS.dumps_to_file(meta, folder='dynamic', filename=filename, indent=4)  # TODO: Make sure we dont overwrite?
-        ListGetFilterFiles(self.handle, '').get_directory()
+    def save_meta(self):
+        if not self.filepath:
+            return
+        import xbmcvfs
+        from json import dump
+        with xbmcvfs.File(self.filepath, 'w') as file:
+            dump(self.meta, file, indent=4)
+
+
+class ListSetFilterDir(Container):
+    def get_directory(self, library='video', filename=None, filepath=None, **kwargs):
+        meta_filter_dir = MetaFilterDir(library=library, filepath=filepath)
+
+        def get_new():
+            meta_filter_dir.add_new_path()
+            meta_filter_dir.add_new_sort()
+            meta_filter_dir.add_new_filter('filter')
+            meta_filter_dir.add_new_filter('exclude')
+            meta_filter_dir.write_meta(filename)
+            ListGetFilterFiles(self.handle, '').get_directory()
+
+        def do_edit():
+            options = [f'path = {i}' for i in meta_filter_dir.meta['paths']]
+            options += [f'{k} = {v}' for k, v in meta_filter_dir.meta.items() if k not in ('paths', 'info', 'library')]
+            options += ['add sort'] if 'sort_by' not in meta_filter_dir.meta.keys() else []
+            options += ['add filter', 'add exclude', 'add path', 'save']
+
+            x = Dialog().select('Edit filters', options)
+            if x == -1:
+                meta_filter_dir.save_meta() if Dialog().yesno('Save changes', 'Do you want to save your changes?') == 1 else None
+                return
+
+            choice_k, choice_s, choice_v = options[x].partition(' = ')
+
+            if choice_k == 'save':
+                meta_filter_dir.save_meta()
+                return
+
+            if choice_k == 'sort_by':
+                meta_filter_dir.add_new_sort_by()
+                return do_edit()
+
+            if choice_k == 'sort_how':
+                meta_filter_dir.add_new_sort_how()
+                return do_edit()
+
+            if choice_k == 'path':
+                meta_filter_dir.add_new_path(update=choice_v)
+                return do_edit()
+
+            if choice_k == 'add path':
+                meta_filter_dir.add_new_path()
+                return do_edit()
+
+            if choice_k == 'add sort':
+                meta_filter_dir.add_new_sort()
+                return do_edit()
+
+            if choice_k == 'add filter':
+                suffix = meta_filter_dir.get_new_suffix('filter')
+                meta_filter_dir.add_new_filter('filter', suffix)
+                return do_edit()
+
+            if choice_k == 'add exclude':
+                suffix = meta_filter_dir.get_new_suffix('exclude')
+                meta_filter_dir.add_new_filter('exclude', suffix)
+                return do_edit()
+
+            if '_key' in choice_k:
+                prefix, sep, suffix = choice_k.partition('_key')
+                suffix = suffix[1:] if suffix else suffix  # Remove additional underscore on suffix
+                meta_filter_dir.add_new_filter_key(prefix, suffix)
+                return do_edit()
+
+            if '_value' in choice_k:
+                prefix, sep, suffix = choice_k.partition('_value')
+                suffix = suffix[1:] if suffix else suffix  # Remove additional underscore on suffix
+                meta_filter_dir.add_new_filter_value(prefix, suffix)
+                return do_edit()
+
+            if '_operator' in choice_k:
+                prefix, sep, suffix = choice_k.partition('_operator')
+                suffix = suffix[1:] if suffix else suffix  # Remove additional underscore on suffix
+                meta_filter_dir.add_new_filter_operator(prefix, suffix)
+                return do_edit()
+
+            return do_edit()
+
+        get_new() if not filepath else do_edit()
 
 
 class ListGetFilterDir(Container):
