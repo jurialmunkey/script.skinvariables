@@ -502,8 +502,10 @@ class MetaFilterDir():
         x = Dialog().select(SFD_FILTEROPERATOR_HEADING.format(prefix), [i for _, i in choices])
         if x == -1:
             return
+        filter_operator = choices[x][0]
         k = '_'.join(filter(None, [prefix, 'operator', suffix]))
-        self.meta[k] = choices[x][0]
+        self.meta[k] = filter_operator
+        return filter_operator
 
     def add_new_filter_key(self, prefix='filter', suffix=''):
         filter_key = self.get_new_method(
@@ -517,6 +519,7 @@ class MetaFilterDir():
             return
         k = '_'.join(filter(None, [prefix, 'key', suffix]))
         self.meta[k] = filter_key
+        return filter_key
 
     def add_new_filter_value(self, prefix='filter', suffix=''):
         k = '_'.join(filter(None, [prefix, 'key', suffix]))
@@ -529,9 +532,11 @@ class MetaFilterDir():
             return
         k = '_'.join(filter(None, [prefix, 'value', suffix]))
         self.meta[k] = filter_value
+        return filter_value
 
     def add_new_filter(self, prefix='filter', suffix=''):
-        self.add_new_filter_key(prefix, suffix)
+        if not self.add_new_filter_key(prefix, suffix):
+            return
         self.add_new_filter_operator(prefix, suffix)
         self.add_new_filter_value(prefix, suffix)
 
