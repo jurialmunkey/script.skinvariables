@@ -63,6 +63,8 @@ META_DELPATH_HEADING = 'Remove path'
 META_EDITFILTERS_HEADING = 'Edit filters'
 META_SAVECHANGES_HEADING = 'Save changes'
 META_SAVECHANGES_MESSAGE = 'Do you want to save your changes?'
+META_DELETEFILE_HEADING = 'Delete file'
+META_DELETEFILE_MESSAGE = 'Are you sure you want to delete this file?\n[COLOR=red][B]WARNING[/B][/COLOR]: This action cannot be undone.'
 
 
 def update_global_property_versions():
@@ -541,6 +543,13 @@ class MetaFilterDir():
             return
         filename = f'{filename}.json'
         FILEUTILS.dumps_to_file(self.meta, folder='dynamic', filename=filename, indent=4)  # TODO: Make sure we dont overwrite?
+        return filename
+
+    def delete_meta(self):
+        if not self.filepath:
+            return
+        import xbmcvfs
+        xbmcvfs.delete(self.filepath)
 
     def save_meta(self):
         if not self.filepath:
@@ -568,7 +577,7 @@ class ListSetFilterDir(Container):
             options += [f'{k} = {v}' for k, v in meta_filter_dir.meta.items() if k not in ('paths', 'info', 'library')]
             options += ['randomise = false'] if 'randomise' not in meta_filter_dir.meta.keys() else []
             options += ['add sort'] if 'sort_by' not in meta_filter_dir.meta.keys() else []
-            options += ['add filter', 'add exclude', 'add path', 'save']
+            options += ['add filter', 'add exclude', 'add path', 'rename', 'delete', 'save']
 
             x = Dialog().select(META_EDITFILTERS_HEADING, options)
             if x == -1:
@@ -580,6 +589,23 @@ class ListSetFilterDir(Container):
             if choice_k == 'save':
                 meta_filter_dir.save_meta()
                 return
+
+            if choice_k == 'rename':
+                filename = meta_filter_dir.write_meta()
+                if filename:
+                    import xbmc
+                    meta_filter_dir.delete_meta()  # Delete the old file
+                    xbmc.executebuiltin('Container.Refresh')  # Refresh container to see changes
+                    return
+                return do_edit()  # If user didn't enter a valid filename we just go back to menu
+
+            if choice_k == 'delete':
+                if Dialog().yesno(META_DELETEFILE_HEADING, META_DELETEFILE_MESSAGE) == 1:
+                    import xbmc
+                    meta_filter_dir.delete_meta()
+                    xbmc.executebuiltin('Container.Refresh')
+                    return
+                return do_edit()
 
             if choice_k == 'sort_by':
                 meta_filter_dir.add_new_sort_by()
