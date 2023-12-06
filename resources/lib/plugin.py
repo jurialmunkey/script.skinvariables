@@ -92,7 +92,7 @@ class Plugin():
         return importmodule(**self.routes[info])
 
     def get_directory(self):
-        container = self.get_container(self.params.get('info'))(self.handle, self.paramstring, **self.params)
+        container = self.get_container(self.params.get('info', 'get_filter_files'))(self.handle, self.paramstring, **self.params)
         return container.get_directory(**self.params)
 
     def run(self):

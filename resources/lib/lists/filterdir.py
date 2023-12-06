@@ -58,6 +58,12 @@ STANDARD_OPERATORS = {
     'gt': 'Greater than >',
 }
 
+META_DELPATH_MESSAGE = 'Are you sure you want to remove this path?\n{}'
+META_DELPATH_HEADING = 'Remove path'
+META_EDITFILTERS_HEADING = 'Edit filters'
+META_SAVECHANGES_HEADING = 'Save changes'
+META_SAVECHANGES_MESSAGE = 'Do you want to save your changes?'
+
 
 def update_global_property_versions():
     """ Add additional properties from newer versions of JSON RPC """
@@ -433,6 +439,17 @@ class MetaFilterDir():
 
         return get_suffix()
 
+    def toggle_randomise(self):
+        from jurialmunkey.parser import boolean
+        if boolean(self.meta.get('randomise', False)):
+            del self.meta['randomise']
+            return
+        self.meta['randomise'] = 'true'
+
+    def del_path(self, value):
+        x = next(x for x, i in enumerate(self.meta['paths']) if i == value)
+        del self.meta['paths'][x]
+
     def add_new_path(self, update=None):
         path = self.get_new_path()
         if update:
@@ -549,12 +566,13 @@ class ListSetFilterDir(Container):
         def do_edit():
             options = [f'path = {i}' for i in meta_filter_dir.meta['paths']]
             options += [f'{k} = {v}' for k, v in meta_filter_dir.meta.items() if k not in ('paths', 'info', 'library')]
+            options += ['randomise = false'] if 'randomise' not in meta_filter_dir.meta.keys() else []
             options += ['add sort'] if 'sort_by' not in meta_filter_dir.meta.keys() else []
             options += ['add filter', 'add exclude', 'add path', 'save']
 
-            x = Dialog().select('Edit filters', options)
+            x = Dialog().select(META_EDITFILTERS_HEADING, options)
             if x == -1:
-                meta_filter_dir.save_meta() if Dialog().yesno('Save changes', 'Do you want to save your changes?') == 1 else None
+                meta_filter_dir.save_meta() if Dialog().yesno(META_SAVECHANGES_HEADING, META_SAVECHANGES_MESSAGE) == 1 else None
                 return
 
             choice_k, choice_s, choice_v = options[x].partition(' = ')
@@ -572,7 +590,11 @@ class ListSetFilterDir(Container):
                 return do_edit()
 
             if choice_k == 'path':
-                meta_filter_dir.add_new_path(update=choice_v)
+                meta_filter_dir.del_path(value=choice_v) if Dialog().yesno(META_DELPATH_HEADING, META_DELPATH_MESSAGE.format(choice_v)) == 1 else None
+                return do_edit()
+
+            if choice_k == 'randomise':
+                meta_filter_dir.toggle_randomise()
                 return do_edit()
 
             if choice_k == 'add path':
