@@ -93,6 +93,7 @@ class ListGetSkinUser(Container):
             last = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
             xbmc.executebuiltin(f'Skin.SetString(SkinVariables.SkinUser.Name,{user.get("name")})')
+            xbmc.executebuiltin(f'Skin.SetString(SkinVariables.SkinUser.Icon,{user.get("icon", "")})')
             xbmc.executebuiltin(f'Skin.SetString(SkinVariables.SkinUser,{slug})' if slug != 'default' else 'Skin.Reset(SkinVariables.SkinUser)')
             xbmc.executebuiltin(f'Skin.SetString(SkinVariables.SkinUser.{slug}.LastLogin,{last})')
             xbmc.executebuiltin('SetProperty(SkinVariables.SkinUserLogin,True,Home)')
