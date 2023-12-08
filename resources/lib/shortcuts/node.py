@@ -130,32 +130,33 @@ def get_menuguid(meta, guid, mode='submenu', subkeys=('submenu', 'widgets')):
         return
 
     def get_menuguid_item(item, node):
+        name = parse_localize(item.get('label', ''))
         if item.get('guid') == guid:
-            return (get_submenunode(item, mode), node)
+            return (get_submenunode(item, mode), node, name)
         for k in subkeys:
-            subitem, subnode = get_menuguid_iter(item.get(k) or [])
+            subitem, subnode, subname = get_menuguid_iter(item.get(k) or [])
             if not isinstance(subitem, list):
                 continue
             subnode = subnode + node
-            return (subitem, subnode)
-        return (None, None)
+            return (subitem, subnode, subname)
+        return (None, None, None)
 
     def get_menuguid_iter(menu):
         for x, i in enumerate(menu):
-            item, node = get_menuguid_item(i, [x])
+            item, node, name = get_menuguid_item(i, [x])
             if not isinstance(item, list):
                 continue
-            return (item, node)
-        return (None, None)
+            return (item, node, name)
+        return (None, None, None)
 
-    i, n = get_menuguid_iter(meta)
-    return (i, tuple(n)) if n else (i, tuple())
+    item, node, name = get_menuguid_iter(meta)
+    return (item, tuple(node), name) if node else (item, tuple(), name)
 
 
 def get_menunode(meta, node, mode='submenu'):
     """ Lookup menu node using node value and return tuple of meta for item and current node """
     if not meta or not node:  # Return base of meta if no node because were in main menu
-        return (meta, node)
+        return (meta, node, '')
 
     for n in node[:-1]:  # Walk submenus until last item
         meta = get_submenuitem(meta, n)
@@ -163,9 +164,10 @@ def get_menunode(meta, node, mode='submenu'):
 
     for n in node[-1:]:  # Last item we get in the current mode
         meta = get_submenuitem(meta, n)
+        name = parse_localize(meta.get('label', ''))
         meta = get_submenunode(meta, mode)
 
-    return (meta, node)
+    return (meta, node, name)
 
 
 def get_nodename(node):
@@ -323,7 +325,7 @@ class NodeProperties():
         try:
             return self._menunode
         except AttributeError:
-            self._menunode, self.node = get_menuguid(self.meta, self.guid, self.mode) or get_menunode(self.meta, self.node, self.mode)
+            self._menunode, self.node, self.name = get_menuguid(self.meta, self.guid, self.mode) or get_menunode(self.meta, self.node, self.mode)
             return self._menunode
 
     @property
@@ -686,6 +688,7 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
             i['menu'] = f'{self.menu}' if self.menu else ''
             i['skin'] = f'{self.skin}' if self.skin else ''
             i['mode'] = f'{self.mode}' if self.mode else ''
+            i['name'] = f'{self.name}' if self.name else ''
 
             submenu = i.pop('submenu', [])
             widgets = i.pop('widgets', [])
