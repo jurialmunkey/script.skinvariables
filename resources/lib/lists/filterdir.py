@@ -728,7 +728,17 @@ class ListGetFilterDir(Container):
             return i
 
         def _get_sorting(i):
-            return str(i.infolabels.get(sort_by) or i.infoproperties.get(sort_by) or '')
+            v = i.infolabels.get(sort_by) or i.infoproperties.get(sort_by) or ''
+            try:
+                v = float(v)
+                x = 2  # We want high numbers (e.g. rating/year) before empty values when sorting in descending order (reversed)
+            except ValueError:
+                v = str(v)
+                x = 1
+            except TypeError:
+                v = ''
+                x = 0  # We want empty values to come last when sorting in descending order (reversed)
+            return (x, v)  # Sorted will sort by first value in tuple, then second order afterwards
 
         if boolean(randomise):
             import random
