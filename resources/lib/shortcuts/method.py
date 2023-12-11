@@ -124,6 +124,35 @@ def set_shortcut(set_shortcut, use_rawpath=False):
         xbmc.executebuiltin(f'Skin.SetString({k},{v})')
 
 
+def copy_menufolder(copy_menufolder, skin):
+    from resources.lib.shortcuts.futils import read_meta_from_file, get_files_in_folder
+
+    files = get_files_in_folder(copy_menufolder, r'.*\.json')
+    if not files:
+        xbmcgui.Dialog().ok('No files found', f'copy_menufolder={copy_menufolder}\nskin={skin}')
+        return
+
+    x = xbmcgui.Dialog().yesno('Warning', OVERWRITE_WARNING.format(
+        filename=f'your {skin} menu files',
+        copy_menufile=f'the menu files from the [B]{copy_menufolder}[/B] folder'))
+    if not x or x == -1:
+        return
+
+    from resources.lib.shortcuts.node import assign_guid
+    from resources.lib.shortcuts.futils import write_meta_to_file
+
+    files = ((read_meta_from_file(f'{copy_menufolder}{f}'), f) for f in files if f)
+    for meta, file in files:
+        if not meta or not file:
+            continue
+        write_meta_to_file(
+            assign_guid(meta),
+            folder=skin,
+            filename=file,
+            fileprop=f'{skin}-{file}',
+            reload=True)
+
+
 def copy_menufile(copy_menufile, filename, skin):
     from resources.lib.shortcuts.futils import read_meta_from_file, write_meta_to_file, FILE_PREFIX
     if not copy_menufile or not filename or not skin:
