@@ -46,7 +46,11 @@ class GetDirectoryBrowser():
         if (not node) is not (not link):  # XOR: Links without nodes return raw path; Folders with nodes return raw path (+ node)
             return (path, node)
         if path.startswith('script://'):
-            return (f'RunScript({path[9:]})', '')
+            path = path.replace('script://', '')
+            return (f'RunScript({path})', '')
+        if path.startswith('androidapp://'):
+            path = path.replace('androidapp://', '')
+            return (f'StartAndroidActivity({path})', '')
         return (f'PlayMedia({path})', '')
 
     def get_formatted_item(self, name, path, icon, node=None, link=True):
