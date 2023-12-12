@@ -642,20 +642,42 @@ class NodeMethods():
         """
         self.do_choose(prefix=prefix, grouping=grouping, create_new=True, use_rawpath=use_rawpath)
 
-    def do_move(self, move=0, refocus=None):
+    def do_move(self, move=0, refocus=None, window_prop=None, window_id=None):
+        import xbmc
+
         x = int(self.item)
-        self.menunode.insert(x + int(move), self.menunode.pop(x))
+        nodeitem = self.menunode.pop(x)
+        nodesize = len(self.menunode)
+
+        x = x + int(move)
+        x = x if x <= nodesize else 0  # Loop back to top
+        x = x if x >= 0 else nodesize + 1  # Loop back to bottom
+
+        self.menunode.insert(x, nodeitem)
         self.write_meta_to_file()
+
+        x = self.menunode.index(nodeitem)
+
+        if window_prop:
+            window_id = '' if not window_id else f',{window_id}'
+            xbmc.executebuiltin(f'SetProperty({window_prop},{self.get_url(x)}{window_id})')
+
         if not refocus:
             return
-        import xbmc
-        xbmc.Monitor().waitForAbort(0.2)  # Wait a moment before refocusing to make sure we
-        xbmc.executebuiltin(f'SetFocus({refocus},{x + int(move)},absolute)')
+
+        xbmc.Monitor().waitForAbort(0.2)  # Wait a moment before refocusing to make sure has updated
+        xbmc.executebuiltin(f'SetFocus({refocus},{x},absolute)')
 
 
 class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMethods):
     refresh = False
     update_listing = False
+
+    def get_url(self, x, node_name=None):
+        url = f'plugin://script.skinvariables/?info=get_shortcuts_node&menu={self.menu}&skin={self.skin}&mode={self.mode}&item={x}'
+        url = url if not self.node else f'{url}&node={node_name or get_nodename(self.node)}'
+        url = url if not self.guid else f'{url}&guid={self.guid}'
+        return url
 
     def get_meta(self, refresh=False, restore=False):
         if not self.filepath:
@@ -677,9 +699,7 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
             if (not i or boolean(i.get('disabled'))) and not blank and not self.edit:
                 return
 
-            url = f'plugin://script.skinvariables/?info=get_shortcuts_node&menu={self.menu}&skin={self.skin}&mode={self.mode}&item={x}'
-            url = url if not self.node else f'{url}&node={node_name}'
-            url = url if not self.guid else f'{url}&guid={self.guid}'
+            url = self.get_url(x, node_name)
             list_name = f'{node_name}.{x}' if self.node else f'{x}'
 
             i['item'] = f'{x}'
