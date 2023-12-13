@@ -495,7 +495,9 @@ class NodeMethods():
 
         def _get_items():
             items = [(k, v if s else k) for k, s, v in (i.partition('=') for i in value.split("&") if i)]
-            choice = Dialog().select(heading=heading, list=[i[0] for i in items])
+            preselect = self.get_menunode_item(x).get(key)
+            preselect = next((x for x, i in enumerate(items) if i[1] == preselect), -1)
+            choice = Dialog().select(heading=heading, list=[i[0] for i in items], preselect=preselect)
             if choice == -1:
                 return -1
             choice = items[choice][1]
@@ -744,7 +746,7 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
             return item
 
         node_name = get_nodename(self.node)
-        items = [_make_item(0, {})] if blank else [j for j in (_make_item(x, i) for x, i in enumerate(self.menunode or [])) if j]
+        items = [_make_item(0, {'label': 'Add item'})] if blank else [j for j in (_make_item(x, i) for x, i in enumerate(self.menunode or [])) if j]
         return items
 
     def get_directory(
