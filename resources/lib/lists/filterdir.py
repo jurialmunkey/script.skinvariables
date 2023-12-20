@@ -395,7 +395,8 @@ class MetaFilterDir():
         return {
             'info': 'get_filter_dir',
             'library': self.library,
-            'paths': []
+            'paths': [],
+            'names': []
         }
 
     def get_files_meta(self):
@@ -408,14 +409,16 @@ class MetaFilterDir():
     def get_new_path():
         from resources.lib.shortcuts.browser import GetDirectoryBrowser
         with WindowProperty(('IsSkinShortcut', 'True')):
-            item = GetDirectoryBrowser(use_rawpath=True).get_directory(path='library://video/')  # TODO: Add some choice of library
+            directory_browser = GetDirectoryBrowser(use_rawpath=True)
+            item = directory_browser.get_directory(path='library://video/')  # TODO: Add some choice of library
+            name = directory_browser.heading_str
         try:
             path, target = item['path'], item['target']
         except (TypeError, KeyError):
-            return
+            return (None, None)
         if not target:  # TODO: Add some validation we have correct library
             pass
-        return path
+        return (path, name)
 
     @staticmethod
     def get_new_method(heading, customheading, methods=SFD_SORTBY_METHODS):
@@ -451,17 +454,21 @@ class MetaFilterDir():
     def del_path(self, value):
         x = next(x for x, i in enumerate(self.meta['paths']) if i == value)
         del self.meta['paths'][x]
+        del self.meta['names'][x]
 
-    def add_new_path(self, update=None):
-        path = self.get_new_path()
-        if update:
-            x = next(x for x, i in enumerate(self.meta['paths']) if i == update)
-            self.meta['paths'][x] = path
-            self.meta['paths'] = [i for i in self.meta['paths'] if i]  # Remove any null paths
+    def rename_path(self, x):
+        name = Dialog().input(heading=SFD_FILENAMEINPUT_HEADING, defaultt=self.meta['names'][x])
+        if not name:
             return
+        self.meta['names'][x] = name
+
+    def add_new_path(self):
+        path, name = self.get_new_path()
         if path is None:
             return self.meta['paths']
+        name = Dialog().input(heading=SFD_FILENAMEINPUT_HEADING, defaultt=name)
         self.meta['paths'].append(path)
+        self.meta['names'].append(name)
         if Dialog().yesno(SFD_ANOTHERPATH_HEADING, SFD_ANOTHERPATH_MESSAGE):
             return self.add_new_path()
         return self.meta['paths']
@@ -577,9 +584,15 @@ class ListSetFilterDir(Container):
             meta_filter_dir.write_meta(filename)
             ListGetFilterFiles(self.handle, '').get_directory()
 
+        def get_path_name_pair(x, i):
+            names = meta_filter_dir.meta.setdefault('names', [])
+            if x >= len(names):
+                names.append('')
+            return (f'path = {i}', f'name = {names[x]}')
+
         def do_edit():
-            options = [f'path = {i}' for i in meta_filter_dir.meta['paths']]
-            options += [f'{k} = {v}' for k, v in meta_filter_dir.meta.items() if k not in ('paths', 'info', 'library')]
+            options = [a for j in (get_path_name_pair(x, i) for x, i in enumerate(meta_filter_dir.meta['paths'])) for a in j]
+            options += [f'{k} = {v}' for k, v in meta_filter_dir.meta.items() if k not in ('paths', 'info', 'library', 'names')]
             options += ['randomise = false'] if 'randomise' not in meta_filter_dir.meta.keys() else []
             options += ['add sort'] if 'sort_by' not in meta_filter_dir.meta.keys() else []
             options += ['add filter', 'add exclude', 'add path', 'rename', 'delete', 'save']
@@ -622,6 +635,10 @@ class ListSetFilterDir(Container):
 
             if choice_k == 'path':
                 meta_filter_dir.del_path(value=choice_v) if Dialog().yesno(META_DELPATH_HEADING, META_DELPATH_MESSAGE.format(choice_v)) == 1 else None
+                return do_edit()
+
+            if choice_k == 'name':
+                meta_filter_dir.rename_path(x=((x - 1) // 2))
                 return do_edit()
 
             if choice_k == 'randomise':
@@ -670,7 +687,7 @@ class ListSetFilterDir(Container):
 
 
 class ListGetFilterDir(Container):
-    def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, sort_by=None, sort_how=None, randomise=False, **kwargs):
+    def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, sort_by=None, sort_how=None, randomise=False, names=None, **kwargs):
         if not paths:
             return
 
@@ -702,12 +719,13 @@ class ListGetFilterDir(Container):
             'video': DIRECTORY_PROPERTIES_VIDEO,
             'music': DIRECTORY_PROPERTIES_MUSIC}.get(library) or []
 
-        def _make_item(i):
+        def _make_item(i, path_name=None):
             if not i:
                 return
 
             listitem_jsonrpc = ListItemJSONRPC(i, library=library, dbtype=dbtype)
             listitem_jsonrpc.infolabels['title'] = listitem_jsonrpc.label
+            listitem_jsonrpc.infoproperties['widget'] = path_name or ''
 
             for _, filters in all_filters.items():
                 if is_excluded({'infolabels': listitem_jsonrpc.infolabels, 'infoproperties': listitem_jsonrpc.infoproperties}, **filters):
@@ -740,14 +758,26 @@ class ListGetFilterDir(Container):
                 x = 0  # We want empty values to come last when sorting in descending order (reversed)
             return (x, v)  # Sorted will sort by first value in tuple, then second order afterwards
 
+        def _get_path_name(x):
+            try:
+                return names[x]
+            except (IndexError, TypeError):
+                return ''
+
         if boolean(randomise):
             import random
-            paths = [random.choice(paths)]
+            x = random.choice(range(len(paths)))
+            paths = [paths[x]]
+            try:
+                names = [names[x]]
+            except (IndexError, TypeError):
+                names = None
 
         items = []
-        for path in paths:
+        for x, path in enumerate(paths):
+            path_name = _get_path_name(x)
             directory = get_directory(path, directory_properties)
-            with ParallelThread(directory, _make_item) as pt:
+            with ParallelThread(directory, _make_item, path_name) as pt:
                 item_queue = pt.queue
             items += [i for i in item_queue if i and (not no_label_dupes or _is_not_dupe(i))]
 

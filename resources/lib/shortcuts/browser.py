@@ -27,6 +27,7 @@ class GetDirectoryBrowser():
         self.use_rawpath = use_rawpath
         self.allow_links = allow_links
         self.folder_name = folder_name or 'Add folder...'
+        self.heading_str = ''
 
     @property
     def definitions(self):
@@ -88,8 +89,9 @@ class GetDirectoryBrowser():
             li.setProperty('nodetype', item[1].getProperty('nodetype') or '')
             directory_items.insert(0, (path, li, False, ))
 
+        self.heading_str = name or path
         items = [i[1] for i in directory_items if i]
-        x = Dialog().select(heading=name or path, list=items, useDetails=self.use_details)
+        x = Dialog().select(heading=self.heading_str, list=items, useDetails=self.use_details)
         if x != -1:
             item = directory_items[x]
             self.history.append((directory, path, icon, name, item, True, )) if item[2] else None  # Add old values to history before updating
