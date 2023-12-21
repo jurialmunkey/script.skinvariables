@@ -9,13 +9,11 @@ from json import loads
 from jurialmunkey.logger import TimerFunc
 from jurialmunkey.parser import parse_math
 from jurialmunkey.futils import load_filecontent, write_skinfile, make_hash
-from resources.lib.kodiutils import ProgressDialog
+from resources.lib.kodiutils import ProgressDialog, get_localized
 from resources.lib.operations import RuleOperations, check_condition
 from resources.lib.shortcuts.node import ListGetShortcutsNode
 from xml.dom import minidom
 from copy import deepcopy
-
-# from resources.lib.kodiutils import kodi_log
 
 
 ADDON = xbmcaddon.Addon()
@@ -237,17 +235,27 @@ class ShortcutsTemplate(object):
         return self._skinid
 
     def create_xml(self):
-        self.p_dialog.update(message='Generating globals...')
-        _pregen = {**self.meta['getnfo']}
-        _pregen.update({k: TemplatePart(self.skinid, v, **self.meta['getnfo']).get_template()[0] for k, v in self.meta.get('global', {}).items()})
+        self.p_dialog.update(message=f'{get_localized(32046)}...')  # Generating globals
 
-        self.p_dialog.update(message='Generating content...')
+        pre_generated_nfo = {**self.meta['getnfo']}
+        pre_generated_nfo.update({
+            k: TemplatePart(self.skinid, v, **self.meta['getnfo']).get_template()[0]
+            for k, v in self.meta.get('global', {}).items()})
+
+        self.p_dialog.update(message=f'{get_localized(32047)}...')  # Generating content
+
         content = []
-        content += [self.meta['header']] if 'header' in self.meta else []
-        content += [j for i in self.meta['genxml'] for j in TemplatePart(self.skinid, i, **_pregen).get_content()]
-        content += [self.meta['footer']] if 'footer' in self.meta else []
 
-        self.p_dialog.update(message='Formatting content...')
+        if 'header' in self.meta:
+            content += [self.meta['header']]
+
+        content += [j for i in self.meta['genxml'] for j in TemplatePart(self.skinid, i, **pre_generated_nfo).get_content()]
+
+        if 'footer' in self.meta:
+            content += [self.meta['footer']]
+
+        self.p_dialog.update(message=f'{get_localized(32048)}...')  # Formatting content
+
         content = '\n'.join(content)
         content = escape_ampersands(content)
         content = pretty_xmlcontent(content)
@@ -257,21 +265,35 @@ class ShortcutsTemplate(object):
         if not self.meta:
             return
 
-        hashstore = '--'.join([
+        hashinput = '_'.join([
             '_'.join([f'{k}.{v}' for k, v in kwargs.items()]),
-            make_hash(f'{genxml}'),
-            make_hash(f'{self.contents}'),
+            f'{genxml}',
+            f'{self.contents}',
             xbmc.getInfoLabel("System.ProfileName")
         ])
 
-        hashvalue = f'{hashstore}--' + make_hash(f'{load_filecontent(self.filepath)}')
+        def get_hashvalue():
+            return make_hash(f'{hashinput}--{load_filecontent(self.filepath)}')
 
-        last_version = xbmc.getInfoLabel(f'Skin.String({self.hashname})') if not force else None
-        if hashvalue and last_version and hashvalue == last_version:
-            return  # Already updated
+        hashvalue = get_hashvalue()
+
+        def is_updated():
+            if force:
+                return
+            if not hashvalue:
+                return
+            last_version = xbmc.getInfoLabel(f'Skin.String({self.hashname})')
+            if not last_version:
+                return
+            if last_version != hashvalue:
+                return
+            return True
+
+        if is_updated():
+            return
 
         with TimerFunc('script.skinvariables - update_xml: ', log_threshold=0.001, inline=True):
-            with ProgressDialog(ADDON.getLocalizedString(32001), 'Creating XML...', logging=2, total=4) as self.p_dialog:
+            with ProgressDialog(ADDON.getLocalizedString(32001), f'{get_localized(32049)}...', logging=2, total=4) as self.p_dialog:
                 self.meta['genxml'] += [{k: v for j in i.split('|') for k, v in (j.split('='), )} for i in genxml.split('||')] if genxml else []
                 self.meta['getnfo'] = {k: xbmc.getInfoLabel(v) for k, v in self.meta['getnfo'].items()} if 'getnfo' in self.meta else {}
                 self.meta['getnfo'].update(kwargs)
@@ -282,5 +304,5 @@ class ShortcutsTemplate(object):
             return
 
         xbmc.Monitor().waitForAbort(0.5)
-        xbmc.executebuiltin('Skin.SetString({},{})'.format(self.hashname, f'{hashstore}--' + make_hash(f'{load_filecontent(self.filepath)}')))  # Update hashvalue with new content to avoid loop
+        xbmc.executebuiltin('Skin.SetString({},{})'.format(self.hashname, get_hashvalue()))  # Update hashvalue with new content to avoid loop
         xbmc.executebuiltin('ReloadSkin()')

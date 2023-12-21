@@ -8,7 +8,7 @@ from infotagger.listitem import ListItemInfoTag
 from jurialmunkey.parser import split_items
 from jurialmunkey.litems import Container
 from jurialmunkey.window import set_to_windowprop, WindowProperty
-from resources.lib.kodiutils import kodi_log
+from resources.lib.kodiutils import kodi_log, get_localized
 import jurialmunkey.thread as jurialmunkey_thread
 
 
@@ -32,39 +32,18 @@ DIRECTORY_PROPERTIES_MUSIC = [
     "disc", "description", "theme", "mood", "style", "albumlabel", "sorttitle", "uniqueid", "dateadded", "customproperties",
     "totaldiscs", "disctitle", "releasedate", "originaldate", "bpm", "bitrate", "samplerate", "channels"]
 
-
-SFD_ANOTHERPATH_HEADING = 'Add another path?'
-SFD_ANOTHERPATH_MESSAGE = 'Do you want to add another path?'
-SFD_FILENAMEINPUT_HEADING = 'Enter name'
-SFD_SORTBY_METHODS = [
+SORTBY_METHODS = [
     "none", "title", "genre", "year", "rating", "playcount", "director", "trailer", "tagline", "plot", "originaltitle", "lastplayed", "writer",
-    "studio", "mpaa", "country", "premiered", "top250", "votes", "tvshowtitle", "custom"
-]
-SFD_SORTHOW_HEADING = 'Sort direction'
-SFD_SORTHOW_MESSAGE = 'Select sort direction'
-SFD_SORTBY_HEADING = 'Method for {}'
-SFD_SORTBY_INPUT_HEADING = 'Enter custom {} infolabel or property name'
-SFD_SORTBY_VALUE_HEADING = 'Enter custom {} value to match'
-SFD_FILTEROPERATOR_HEADING = 'Operator for {}'
+    "studio", "mpaa", "country", "premiered", "top250", "votes", "tvshowtitle", "custom"]
 
-
-STANDARD_OPERATORS = {
-    'contains': 'Contains',
-    'lt': 'Less than <',
-    'le': 'Less than or equal <=',
-    'eq': 'Equal ==',
-    'ne': 'Not equal !=',
-    'ge': 'Greater than or equal >=',
-    'gt': 'Greater than >',
-}
-
-META_DELPATH_MESSAGE = 'Are you sure you want to remove this path?\n{}'
-META_DELPATH_HEADING = 'Remove path'
-META_EDITFILTERS_HEADING = 'Edit filters'
-META_SAVECHANGES_HEADING = 'Save changes'
-META_SAVECHANGES_MESSAGE = 'Do you want to save your changes?'
-META_DELETEFILE_HEADING = 'Delete file'
-META_DELETEFILE_MESSAGE = 'Are you sure you want to delete this file?\n[COLOR=red][B]WARNING[/B][/COLOR]: This action cannot be undone.'
+STANDARD_OPERATORS = (
+    ('contains', 21400),
+    ('lt', 32036),
+    ('le', 32037),
+    ('eq', 32038),
+    ('ne', 32039),
+    ('ge', 32040),
+    ('gt', 32041))
 
 
 def update_global_property_versions():
@@ -421,7 +400,7 @@ class MetaFilterDir():
         return (path, name)
 
     @staticmethod
-    def get_new_method(heading, customheading, methods=SFD_SORTBY_METHODS):
+    def get_new_method(heading, customheading, methods=SORTBY_METHODS):
         x = Dialog().select(heading, methods)
         if x == -1:
             return None
@@ -457,7 +436,7 @@ class MetaFilterDir():
         del self.meta['names'][x]
 
     def rename_path(self, x):
-        name = Dialog().input(heading=SFD_FILENAMEINPUT_HEADING, defaultt=self.meta['names'][x])
+        name = Dialog().input(heading=get_localized(551), defaultt=self.meta['names'][x])
         if not name:
             return
         self.meta['names'][x] = name
@@ -466,25 +445,25 @@ class MetaFilterDir():
         path, name = self.get_new_path()
         if path is None:
             return self.meta['paths']
-        name = Dialog().input(heading=SFD_FILENAMEINPUT_HEADING, defaultt=name)
+        name = Dialog().input(heading=get_localized(551), defaultt=name)
         self.meta['paths'].append(path)
         self.meta['names'].append(name)
-        if Dialog().yesno(SFD_ANOTHERPATH_HEADING, SFD_ANOTHERPATH_MESSAGE):
+        if Dialog().yesno(get_localized(32030), get_localized(32031)):
             return self.add_new_path()
         return self.meta['paths']
 
     def add_new_sort_how(self):
         self.meta['sort_how'] = 'desc' if Dialog().yesno(
-            SFD_SORTHOW_HEADING.format('sort'),
-            SFD_SORTHOW_MESSAGE.format('sort'),
-            yeslabel='Descending',
-            nolabel='Ascending'
+            get_localized(580),  # Sort direction
+            '',
+            yeslabel=get_localized(585),  # Descending
+            nolabel=get_localized(584)  # Ascending
         ) else 'asc'
 
     def add_new_sort_by(self):
         sort_by = self.get_new_method(
-            SFD_SORTBY_HEADING.format('sort'),
-            SFD_SORTBY_INPUT_HEADING.format('sort')
+            get_localized(32032).format(get_localized(32033)),
+            get_localized(32034).format(get_localized(32033))
         )
         if sort_by is None:
             return
@@ -505,8 +484,8 @@ class MetaFilterDir():
                 pass
 
     def add_new_filter_operator(self, prefix='filter', suffix=''):
-        choices = [(k, v) for k, v in STANDARD_OPERATORS.items()]
-        x = Dialog().select(SFD_FILTEROPERATOR_HEADING.format(prefix), [i for _, i in choices])
+        choices = [(k, get_localized(v)) for k, v in STANDARD_OPERATORS.items()]
+        x = Dialog().select('[CAPITALIZE]{}[/CAPITALIZE] operator'.format(prefix), [i for _, i in choices])
         if x == -1:
             return
         filter_operator = choices[x][0]
@@ -516,8 +495,8 @@ class MetaFilterDir():
 
     def add_new_filter_key(self, prefix='filter', suffix=''):
         filter_key = self.get_new_method(
-            SFD_SORTBY_HEADING.format(prefix),
-            SFD_SORTBY_INPUT_HEADING.format(prefix)
+            get_localized(32032).format(prefix),
+            get_localized(32034).format(prefix)
         )
         if filter_key is None:
             return
@@ -533,7 +512,7 @@ class MetaFilterDir():
         if not self.meta.get(k):
             self.del_filter(prefix, suffix)
             return
-        filter_value = Dialog().input(heading=SFD_SORTBY_VALUE_HEADING.format(prefix))
+        filter_value = Dialog().input(heading=get_localized(32035).format(prefix))
         if not filter_value:
             self.del_filter(prefix, suffix)
             return
@@ -549,7 +528,7 @@ class MetaFilterDir():
 
     def write_meta(self, filename=None):
         from resources.lib.shortcuts.futils import FILEUTILS, validify_filename
-        filename = filename or Dialog().input(heading=SFD_FILENAMEINPUT_HEADING)
+        filename = filename or Dialog().input(heading=get_localized(551))
         filename = validify_filename(filename)
         if not filename:  # TODO: Ask user if they are sure they dont want to make the file.
             return
@@ -597,9 +576,9 @@ class ListSetFilterDir(Container):
             options += ['add sort'] if 'sort_by' not in meta_filter_dir.meta.keys() else []
             options += ['add filter', 'add exclude', 'add path', 'rename', 'delete', 'save']
 
-            x = Dialog().select(META_EDITFILTERS_HEADING, options)
+            x = Dialog().select(get_localized(21435), options)
             if x == -1:
-                meta_filter_dir.save_meta() if Dialog().yesno(META_SAVECHANGES_HEADING, META_SAVECHANGES_MESSAGE) == 1 else None
+                meta_filter_dir.save_meta() if Dialog().yesno(get_localized(32044), get_localized(32045)) == 1 else None
                 return
 
             choice_k, choice_s, choice_v = options[x].partition(' = ')
@@ -618,7 +597,7 @@ class ListSetFilterDir(Container):
                 return do_edit()  # If user didn't enter a valid filename we just go back to menu
 
             if choice_k == 'delete':
-                if Dialog().yesno(META_DELETEFILE_HEADING, META_DELETEFILE_MESSAGE) == 1:
+                if Dialog().yesno(get_localized(117), get_localized(32043)) == 1:
                     import xbmc
                     meta_filter_dir.delete_meta()
                     xbmc.executebuiltin('Container.Refresh')
@@ -634,7 +613,7 @@ class ListSetFilterDir(Container):
                 return do_edit()
 
             if choice_k == 'path':
-                meta_filter_dir.del_path(value=choice_v) if Dialog().yesno(META_DELPATH_HEADING, META_DELPATH_MESSAGE.format(choice_v)) == 1 else None
+                meta_filter_dir.del_path(value=choice_v) if Dialog().yesno(get_localized(32042), '\n'.join([choice_v, get_localized(32043)])) == 1 else None
                 return do_edit()
 
             if choice_k == 'name':
