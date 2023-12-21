@@ -725,7 +725,7 @@ class ListGetFilterDir(Container):
 
             listitem_jsonrpc = ListItemJSONRPC(i, library=library, dbtype=dbtype)
             listitem_jsonrpc.infolabels['title'] = listitem_jsonrpc.label
-            listitem_jsonrpc.infoproperties['widget'] = path_name or ''
+            listitem_jsonrpc.infoproperties['widget'] = path_name or listitem_jsonrpc.infoproperties.get('widget') or ''
 
             for _, filters in all_filters.items():
                 if is_excluded({'infolabels': listitem_jsonrpc.infolabels, 'infoproperties': listitem_jsonrpc.infoproperties}, **filters):
