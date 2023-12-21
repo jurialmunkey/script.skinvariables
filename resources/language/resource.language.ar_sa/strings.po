@@ -4,7 +4,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
 "POT-Creation-Date: 2014-10-26 17:05+0000\n"
 "PO-Revision-Date: 2022-07-22 19:06+0000\n"
-"Last-Translator: psp2111-ADSLGATE <>\n"
+"Last-Translator: psp2111-ADSLGATE + Taiseer<>\n"
 "Language-Team: Arabic (Saudi Arabia)\n"
 "Language: ar-SA\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
@@ -18,7 +18,7 @@ msgstr ""
 #: resources/lib/script.py
 msgctxt "#32000"
 msgid "Constructing Variables..."
-msgstr ""
+msgstr "كتابة المتغيرات "
 
 #: resources/lib/script.py
 msgctxt "#32001"
@@ -94,3 +94,73 @@ msgstr "إعادة تعيين طرق العرض لـ{} ..."
 msgctxt "#32015"
 msgid "Do you wish to reset all {} views to default"
 msgstr "هل ترغب في إعادة تعيين كافة طرق العرض لـ{} إلى الوضع الافتراضي"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32016"
+msgid "Choose item to modify"
+msgstr "قم باختيار عنصر للتعديل"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32017"
+msgid "Choose item to delete"
+msgstr "قم باختيار عنصر للمسح"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32018"
+msgid "Successfully added\n[B]{}[/B]\nto\n[B]{}[/B]"
+msgid "لقد تم بنجاح اضافة\n[B]{}[/B]\nto\n[B]{}[/B]"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32019"
+msgid "Import menu"
+msgstr "استيراد عنصر"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32020"
+msgid "Added to menu"
+msgstr "تمت الاضافة للقائمة"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32021"
+msgid "Add to menu"
+msgstr "اضافة للقائمة"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32022"
+msgid "No skinshortcuts found to import."
+msgstr "لا يوجد اختصار للمظهر للاستيراد"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32023"
+msgid "Add as menu"
+msgstr "اضافة كقائمة"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32024"
+msgid "Added as menu"
+msgstr "اضيفت كقائمة"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32025"
+msgid "Successfully added\n[B]{}[/B]\nas\n[B]{}[/B]"
+msgid "تم اضافة\n[B]{}[/B]\nas\n[B]{}[/B]"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32026"
+msgid "Overwrite menu"
+msgstr "اعادة كتابة القائمة"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32027"
+msgid "Importing will overwrite your current menus and setup. Are you sure?"
+msgstr "الاستيراد سيقوم باعدة الكتابة للاعدادت والقوائم، هل انت متاكد؟"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32028"
+msgid "Successfully imported\n[B]{}[/B]\nto\n[B]{}[/B]"
+msgid "تم بنجاح استيراد\n[B]{}[/B]\nto\n[B]{}[/B]"
+
+#: /resources/lib/skinshortcuts.menu.py
+msgctxt "#32029"
+msgid "Choose item"
+msgstr "اختار عنصر"
