@@ -4,6 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem, Dialog, INPUT_NUMERIC
 from jurialmunkey.litems import Container
+from resources.lib.kodiutils import get_localized
 import jurialmunkey.futils as jmfutils
 
 
@@ -27,7 +28,7 @@ class ListAddSkinUser(Container):
         file = load_filecontent(filepath)
         meta = loads(file) if file else []
 
-        name = Dialog().input('Enter profile name')
+        name = Dialog().input(get_localized(32054))
         if not name:
             return
 
@@ -39,12 +40,12 @@ class ListAddSkinUser(Container):
         icon = ''
 
         def _get_code():
-            if not Dialog().yesno('Pin code lock', 'Do you want to add a pin code lock for this profile?'):
+            if not Dialog().yesno(get_localized(32055), get_localized(32056)):
                 return
-            code = Dialog().input('Enter pin code', type=INPUT_NUMERIC)
+            code = Dialog().input(get_localized(32057), type=INPUT_NUMERIC)
             if not code:
                 return
-            if not Dialog().input('Re-enter pin code', type=INPUT_NUMERIC) == code:
+            if not Dialog().input(get_localized(32058), type=INPUT_NUMERIC) == code:
                 return _get_code()
             return str(code)
 
@@ -80,8 +81,8 @@ class ListGetSkinUser(Container):
             else:
                 user = next(i for i in meta if slug == i.get('slug'))
 
-            if user.get('code') and str(user.get('code')) != str(Dialog().input('Enter pin code', type=INPUT_NUMERIC)):
-                Dialog().ok('Wrong pin code!', 'Incorrect pin code entered')
+            if user.get('code') and str(user.get('code')) != str(Dialog().input(get_localized(32057), type=INPUT_NUMERIC)):
+                Dialog().ok(get_localized(32063), get_localized(32060))
                 return
 
             filename = 'script-skinvariables-skinusers.xml'
@@ -100,7 +101,7 @@ class ListGetSkinUser(Container):
             xbmc.executebuiltin('ReloadSkin()')
 
         def _get_default_user():
-            return {'name': 'Default User', 'slug': 'default'}
+            return {'name': get_localized(32061), 'slug': 'default'}
 
         def _make_item(i):
             name = i.get('name') or ''
@@ -114,7 +115,7 @@ class ListGetSkinUser(Container):
             menu = boolean(i.get('menu', True))
             path = f'{BASEPLUGIN}?info=get_skin_user&skinid={skinid}&slug={slug}'
             path = f'{path}&folder={folder}' if folder else path
-            last = xbmc.getInfoLabel(f'Skin.String(SkinVariables.SkinUser.{slug}.LastLogin)') or 'Never logged in'
+            last = xbmc.getInfoLabel(f'Skin.String(SkinVariables.SkinUser.{slug}.LastLogin)') or get_localized(32062)
 
             li = ListItem(label=name, label2=last, path=path)
             li.setProperty('last', last)
@@ -150,10 +151,10 @@ class ListGetSkinUser(Container):
         def _delete_user():
             x, user = next((x, i) for x, i in enumerate(meta) if slug == i.get('slug'))
 
-            if user.get('code') and str(user.get('code')) != str(Dialog().input('Enter pin code', type=INPUT_NUMERIC)):
-                Dialog().ok('Wrong pin code!', 'Incorrect pin code entered')
+            if user.get('code') and str(user.get('code')) != str(Dialog().input(get_localized(32057), type=INPUT_NUMERIC)):
+                Dialog().ok(get_localized(32063), get_localized(32060))
                 return
-            if not Dialog().yesno('Delete user', f'Are you sure you want to delete the skin profile for {user["name"]}? This action cannot be undone.'):
+            if not Dialog().yesno(get_localized(32064), f'{get_localized(32065).format(user["name"])}\n{get_localized(32043)}'):
                 return
 
             del meta[x]
@@ -163,10 +164,10 @@ class ListGetSkinUser(Container):
         def _rename_user():
             x, user = next((x, i) for x, i in enumerate(meta) if slug == i.get('slug'))
 
-            if user.get('code') and str(user.get('code')) != str(Dialog().input('Enter pin code', type=INPUT_NUMERIC)):
-                Dialog().ok('Wrong pin code!', 'Incorrect pin code entered')
+            if user.get('code') and str(user.get('code')) != str(Dialog().input(get_localized(32057), type=INPUT_NUMERIC)):
+                Dialog().ok(get_localized(32063), get_localized(32060))
                 return
-            user['name'] = Dialog().input('Rename user', defaultt=user.get('name', ''))
+            user['name'] = Dialog().input(get_localized(32066), defaultt=user.get('name', ''))
             if not user['name']:
                 return
             meta[x] = user

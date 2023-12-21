@@ -342,12 +342,12 @@ class ListGetFilterFiles(Container):
             editpath = f'{basepath}?info=set_filter_dir&filepath=special://profile/addon_data/script.skinvariables/nodes/dynamic/{i}'
             itempath = f'{basepath}?info=get_params_file&path=special://profile/addon_data/script.skinvariables/nodes/dynamic/{i}'
             li = ListItem(label=f'{i}', path=itempath)
-            li.addContextMenuItems([('Edit filters', f'RunPlugin({editpath})')])
+            li.addContextMenuItems([(get_localized(32094), f'RunPlugin({editpath})')])
             return (itempath, li, True)
 
         def _add_new_item():
             path = f'{basepath}?info=set_filter_dir'
-            return (path, ListItem(label='Add new...', path=path), True)
+            return (path, ListItem(label=f'{get_localized(32095)}...', path=path), True)
 
         files = get_files_in_folder(filepath, r'.*\.json')
         items = [_make_item(i) for i in files if i] + [_add_new_item()]

@@ -7,8 +7,7 @@ import resources.lib.shortcuts.futils as shortcutfutils
 from xbmcgui import ListItem, Dialog, INPUT_NUMERIC
 from jurialmunkey.litems import Container
 from jurialmunkey.parser import boolean, parse_localize
-# from resources.lib.kodiutils import kodi_log
-# from jurialmunkey.logger import TimerFunc
+from resources.lib.kodiutils import get_localized
 
 FILE_PREFIX = shortcutfutils.FILE_PREFIX
 
@@ -20,46 +19,24 @@ ICON_ADD = f'{ICON_DIR}circle-plus.png'
 ICON_WIDGET = f'{ICON_DIR}shapes.png'
 GROUPING_DEFAULT = 'grouping://shortcuts/'
 
-WARNING_TEXT = '[B][COLOR=red]WARNING[/COLOR][/B]: This action cannot be undone.'
-ACTION_HEADING = 'Action'
-ICON_HEADING = 'Icon'
-EDIT_HEADING = 'Edit'
-DELETE_HEADING = 'Delete'
-DELETE_MESSAGE = f'Are you sure you want to delete this item?\n{WARNING_TEXT}'
-ADDITEM_LABEL = 'Add item...'
-SUBMENU_HEADING = 'Submenu'
-REBUILD_HEADING = 'Rebuild shortcuts'
-REBUILD_MESSAGE = 'Rebuild shortcuts template to include recent changes?'
-RESTORE_HEADING = 'Restore shortcuts'
-RESTORE_MESSAGE = f'Restore shortcuts from skin defaults?\n{WARNING_TEXT}'
-ADDLIST_HEADING = 'Add list of items'
-ADDLIST_MESSAGE = '[B][COLOR=red]WARNING[/COLOR][/B]: Adding this list will add {item_count} new items (skipping {skip_count} existing items previously added). This action cannot be undone. Are you sure you want to continue?'
-ADDLIST_NOITEMS_MESSAGE = 'No new items to add!'
-ADDLIST_TOOMANY_MESSAGE = 'This list contains {item_count} items. The current max item limit is {item_limit}. This list will not be added.'
-DELLIST_HEADING = 'Delete list of items'
-DELLIST_MESSAGE = '[B][COLOR=red]WARNING[/COLOR][/B]: Deleting this list will remove {item_count} existing items. This action cannot be undone. Are you sure you want to continue?'
-DELLIST_NOITEMS_MESSAGE = 'No items to delete!'
-
 
 CONTEXTMENU_BASIC = [
-    ["Choose shortcut", "do_choose", []],
-    ["Action", "do_action", []],
-    ["Rename", "do_edit", ["label"]],
-    ["Icon", "do_icon", []],
-    ["Move up", "do_move", ["-1"]],
-    ["Move down", "do_move", ["1"]],
-    ["Copy", "do_copy", []],
-    ["Delete", "do_delete", []],
-    ["Refresh shortcuts", "do_refresh", []],
-    # ["Disable {disabled}", "do_toggle", []],
+    [get_localized(32090), "do_choose", []],
+    [get_localized(15217), "do_action", []],
+    [get_localized(118), "do_edit", ["label"]],
+    [get_localized(32077), "do_icon", []],
+    [get_localized(13332), "do_move", ["-1"]],
+    [get_localized(13333), "do_move", ["1"]],
+    [get_localized(115), "do_copy", []],
+    [get_localized(117), "do_delete", []],
+    [get_localized(32091), "do_refresh", []],
 ]
 
 
 CONTEXTMENU_MAINMENU = [
-    # ["Rebuild shortcuts", "do_rebuild", []],
-    ["Restore shortcuts", "do_refresh", ["True"]],
-    ["Configure submenu", "do_submenu", []],
-    ["Configure widgets", "do_widgets", []],
+    [get_localized(32081), "do_refresh", ["True"]],
+    [get_localized(32092), "do_submenu", []],
+    [get_localized(32093), "do_widgets", []],
 ]
 
 
@@ -365,7 +342,7 @@ class NodeSubmenuMethods():
             return item
 
         def get_add_item():
-            item = ListItem(label=ADDITEM_LABEL)
+            item = ListItem(label=f'{get_localized(32078)}...')
             item.setArt({'icon': ICON_ADD, 'thumb': ICON_ADD})
             return item
 
@@ -373,7 +350,7 @@ class NodeSubmenuMethods():
         submenu_container = ListGetShortcutsNode(self.handle, self.paramstring, **self.params)
         items = submenu_container.get_directory(menu=self.menu, skin=self.skin, node=node, mode=mode, func='list')
         choices = [get_choices_item(i) for i in items] + [get_add_item()]
-        x = Dialog().select(SUBMENU_HEADING, list=choices, useDetails=True)
+        x = Dialog().select(get_localized(1034), list=choices, useDetails=True)
 
         # User cancelled so we leave
         if x == -1:
@@ -412,13 +389,13 @@ class NodeMethods():
 
     def do_refresh(self, restore=False, executebuiltin=None):
         restore = boolean(restore)
-        if restore and not Dialog().yesno(RESTORE_HEADING, RESTORE_MESSAGE):
+        if restore and not Dialog().yesno(get_localized(32081), f'{get_localized(32082)}\n{get_localized(32043)}'):
             return
         self._meta = self.get_meta(refresh=True, restore=restore)
         self.do_rebuild(dialog=False, executebuiltin=executebuiltin)
 
     def do_rebuild(self, dialog=True, executebuiltin=None):
-        if dialog and not Dialog().yesno(REBUILD_HEADING, REBUILD_MESSAGE):
+        if dialog and not Dialog().yesno(get_localized(32079), get_localized(32080)):
             return
         self.write_meta_to_file(reload=False)
         from resources.lib.script import Script
@@ -441,11 +418,14 @@ class NodeMethods():
         xbmc.Monitor().waitForAbort(0.2)
         xbmc.executebuiltin('ActivateWindow({target},{path},return)' if target else path)
 
-    def do_icon(self, key='icon', value=None, heading=ICON_HEADING, icon_dir=ICON_DIR):
+    def do_icon(self, key='icon', value=None, heading=None, icon_dir=ICON_DIR):
         """
         Set property[key] to value or prompt user to browse images in icon_dir if no value specified
         """
         x = int(self.item)
+
+        heading = heading or get_localized(32077)
+
         new_value = value or Dialog().browse(type=2, heading=heading, useThumbs=True, defaultt=icon_dir, shares="")
         if not new_value or new_value == -1 or new_value == icon_dir:
             return
@@ -460,7 +440,7 @@ class NodeMethods():
 
     def do_delete(self, warning=True):
         x = int(self.item)
-        n = Dialog().yesno(heading=DELETE_HEADING, message=DELETE_MESSAGE) if boolean(warning) else 1
+        n = Dialog().yesno(heading=get_localized(117), message=get_localized(32043)) if boolean(warning) else 1
         if not n or n == -1:
             return
         self.menunode.pop(x)
@@ -482,7 +462,7 @@ class NodeMethods():
         for i in args:
             xbmc.executebuiltin(i)
 
-    def do_edit(self, key='label', value=None, heading=EDIT_HEADING, use_prop_pairs=False):
+    def do_edit(self, key='label', value=None, heading=None, use_prop_pairs=False):
         """
         key, value = property to edit and value to set
         heading = heading of select dialog when use_prop_pairs enabled
@@ -492,6 +472,8 @@ class NodeMethods():
             -- 'null' as value will delete value for key
         """
         x = int(self.item)
+
+        heading = heading or get_localized(21435)
 
         def _get_items():
             items = [(k, v if s else k) for k, s, v in (i.partition('=') for i in value.split("&") if i)]
@@ -520,12 +502,14 @@ class NodeMethods():
         self.get_menunode_item(x)[key] = value if value != 'null' else ''
         self.write_meta_to_file()
 
-    def do_numeric(self, key='limit', value=None, heading=EDIT_HEADING):
+    def do_numeric(self, key='limit', value=None, heading=None):
         """
         Set property[key] to a numeric value.
         Prompts for user input if value not specified.
         """
         x = int(self.item)
+
+        heading = heading or get_localized(21435)
 
         if not value and value != 0:
             value = Dialog().input(heading=heading, type=INPUT_NUMERIC, defaultt=parse_localize(self.get_menunode_item(x).get(key) or ''))
@@ -546,12 +530,12 @@ class NodeMethods():
         path = menunode_item.get('path') or ''
         target = menunode_item.get('target') or ''
         a = Dialog().yesnocustom(
-            heading=ACTION_HEADING, message=path,
+            heading=get_localized(15217), message=path,
             yeslabel='Edit', nolabel='Browse', customlabel='Cancel')
         if a == 2 or a == -1:
             return
         if a == 1:
-            path = Dialog().input(heading=ACTION_HEADING, defaultt=path)
+            path = Dialog().input(heading=get_localized(15217), defaultt=path)
         else:
             from resources.lib.shortcuts.browser import GetDirectoryBrowser
             from jurialmunkey.window import WindowProperty
@@ -578,9 +562,9 @@ class NodeMethods():
         paths = [i['path'] for i in items if i and i.get('path')]
         index = [x for x, i in enumerate(self.menunode) if i and i.get('path') in paths]
         if not index:
-            Dialog().ok(DELLIST_HEADING, DELLIST_NOITEMS_MESSAGE)
+            Dialog().ok(get_localized(32087), get_localized(32089))
             return
-        if not Dialog().yesno(DELLIST_HEADING, DELLIST_MESSAGE.format(item_count=len(index))):
+        if not Dialog().yesno(get_localized(32087), get_localized(32088).format(item_count=len(index))):
             return
         for x in sorted(index, reverse=True):
             del self.menunode[x]
@@ -596,7 +580,7 @@ class NodeMethods():
         directory_item_getter = GetDirectoryItems(grouping=grouping, use_rawpath=use_rawpath, folder_name='Add list...')
         items = directory_item_getter.items
         if not items:
-            Dialog().ok(ADDLIST_HEADING, ADDLIST_NOITEMS_MESSAGE)
+            Dialog().ok(get_localized(32083), get_localized(32085))
             return
         directory_jsonrpc_items = directory_item_getter.directory_jsonrpc.items
 
@@ -604,14 +588,14 @@ class NodeMethods():
         items = [i for i in items if i and i['path'] not in paths]
 
         if len(items) < 1:
-            Dialog().ok(ADDLIST_HEADING, ADDLIST_NOITEMS_MESSAGE)
+            Dialog().ok(get_localized(32083), get_localized(32085))
             return
 
         if len(items) > item_limit:
-            Dialog().ok(ADDLIST_HEADING, ADDLIST_TOOMANY_MESSAGE.format(item_count=len(items), item_limit=item_limit))
+            Dialog().ok(get_localized(32083), get_localized(32086).format(item_count=len(items), item_limit=item_limit))
             return
 
-        if not Dialog().yesno(ADDLIST_HEADING, ADDLIST_MESSAGE.format(
+        if not Dialog().yesno(get_localized(32083), get_localized(32084).format(
                 item_count=len(items),
                 skip_count=len(directory_jsonrpc_items) - len(items))):
             return
@@ -746,7 +730,7 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
             return item
 
         node_name = get_nodename(self.node)
-        items = [_make_item(0, {'label': 'Add item'})] if blank else [j for j in (_make_item(x, i) for x, i in enumerate(self.menunode or [])) if j]
+        items = [_make_item(0, {'label': get_localized(32078)})] if blank else [j for j in (_make_item(x, i) for x, i in enumerate(self.menunode or [])) if j]
         return items
 
     def get_directory(

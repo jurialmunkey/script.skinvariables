@@ -1,4 +1,5 @@
 from resources.lib.shortcuts.common import GetDirectoryCommon
+from resources.lib.kodiutils import get_localized
 
 
 DIRECTORY_PROPERTIES_BASIC = ["title", "art", "file", "fanart"]
@@ -30,7 +31,7 @@ class GetDirectoryJSONRPC(GetDirectoryCommon):
             return item
 
         from resources.lib.kodiutils import ProgressDialog
-        with ProgressDialog('Skin Variables', f'Building directory...\n{self.path}', total=1, logging=2, background=False):
+        with ProgressDialog('Skin Variables', f'{get_localized(32053)}...\n{self.path}', total=1, logging=2, background=False):
             if not self.directory:
                 return []
             return [j for j in (_make_item(i) for i in self.directory) if j]

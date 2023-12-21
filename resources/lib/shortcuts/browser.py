@@ -3,19 +3,22 @@
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem, Dialog
+from resources.lib.kodiutils import get_localized
 
 
 SHORTCUT_CONFIG = 'skinvariables-shortcut-config.json'
 SHORTCUT_FOLDER = 'special://skin/shortcuts/'
 PLAYLIST_EXT = ('.xsp', '.m3u', '.m3u8', '.strm', '.wpl')
-PLAYLIST_MESSAGE = 'Do you want to use this playlist as a playable shortcut or a browseable directory?'
-PLAYLIST_HEADING = 'Add playlist'
-
 NO_FOLDER_ITEM = ('grouping://', 'plugin://script.skinvariables/?info=set_filter_dir')
 
 
 def _ask_is_playable(path):
-    return Dialog().yesno(PLAYLIST_HEADING, f'{PLAYLIST_MESSAGE}\n{path}', yeslabel='Play', nolabel='Browse')
+    return Dialog().yesno(
+        get_localized(32050),  # Add playlist
+        f'{path}\n{get_localized(32051)}',  # Add playlist as playable shortcut or browesable directory
+        yeslabel=get_localized(208),  # Play
+        nolabel=get_localized(1024)  # Browse
+    )
 
 
 class GetDirectoryBrowser():
@@ -26,7 +29,7 @@ class GetDirectoryBrowser():
         self.use_details = use_details
         self.use_rawpath = use_rawpath
         self.allow_links = allow_links
-        self.folder_name = folder_name or 'Add folder...'
+        self.folder_name = folder_name or f'{get_localized(32052)}...'
         self.heading_str = ''
 
     @property

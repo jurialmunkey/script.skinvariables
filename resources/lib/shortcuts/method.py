@@ -1,16 +1,10 @@
 import xbmc
 import xbmcgui
+from resources.lib.kodiutils import get_localized
 
 
 LISTITEM_VALUE_PAIRS = (('label', 'Label'), ('icon', 'Icon'), ('path', 'FolderPath'))
-LISTITEM_NOTFOUND_HEADING = 'No path'
-LISTITEM_NOTFOUND_MESSAGE = 'No item path found!'
-NODE_SELECT_HEADING = 'Choose menu'
-MODE_SELECT_HEADING = 'Choose mode'
-NODE_ADDITEM_LABEL = 'Add here...'
 DEFAULT_MODES = ('submenu', 'widgets')
-
-OVERWRITE_WARNING = 'Are you sure you want to overwrite {filename} with {copy_menufile}?\n[B][COLOR=red]WARNING[/COLOR][/B]: This action cannot be undone.'
 
 
 def get_target_from_window():
@@ -43,7 +37,7 @@ class MenuNode():
     def select_menu(self):
         if not self.menufiles:
             return
-        x = xbmcgui.Dialog().select(NODE_SELECT_HEADING, self.menufiles)
+        x = xbmcgui.Dialog().select(get_localized(32069), self.menufiles)
         if x == -1:
             return
         return self.menufiles[x]
@@ -65,16 +59,16 @@ class MenuNode():
         lgsn.get_directory(menu=self.menu, skin=self.skin, item=None, mode=mode, guid=guid, func='node')
         if lgsn.menunode is None:
             return
-        choices = [NODE_ADDITEM_LABEL]
+        choices = [f'{get_localized(32071)}...']
         if level < self.levels:  # Only add the options to traverse submenu/widgets if we're not deeper than our max level
             from jurialmunkey.parser import parse_localize
             choices = [parse_localize(i.get('label') or '') for i in lgsn.menunode] + choices
-        x = xbmcgui.Dialog().select(NODE_SELECT_HEADING, choices)
+        x = xbmcgui.Dialog().select(get_localized(32069), choices)
         if x == -1:
             return
-        if choices[x] == NODE_ADDITEM_LABEL:
+        if choices[x] == f'{get_localized(32071)}...':
             return lgsn
-        y = xbmcgui.Dialog().select(MODE_SELECT_HEADING, DEFAULT_MODES)
+        y = xbmcgui.Dialog().select(get_localized(32070), DEFAULT_MODES)
         if y == -1:
             return self.select_node(mode, guid, level)  # Go back to previous level
         return self.select_node(DEFAULT_MODES[y], lgsn.menunode[x].get('guid'), level=level + 1)  # Go up to next level
@@ -98,7 +92,7 @@ def set_listitem_to_menunode(set_listitem_to_menunode, skin, label=None, icon=No
         item['target'] = get_target_from_window() or target or 'videos'
 
     if not item['path']:
-        xbmcgui.Dialog().ok(heading=LISTITEM_NOTFOUND_HEADING, message=LISTITEM_NOTFOUND_MESSAGE)
+        xbmcgui.Dialog().ok(heading=get_localized(32068), message=get_localized(32067))
         return
 
     MenuNode(skin, menufiles=set_listitem_to_menunode.split('||')).set_item_to_node(item)
@@ -129,12 +123,16 @@ def copy_menufolder(copy_menufolder, skin):
 
     files = get_files_in_folder(copy_menufolder, r'.*\.json')
     if not files:
-        xbmcgui.Dialog().ok('No files found', f'copy_menufolder={copy_menufolder}\nskin={skin}')
+        xbmcgui.Dialog().ok(get_localized(32076), f'copy_menufolder={copy_menufolder}\nskin={skin}')
         return
 
-    x = xbmcgui.Dialog().yesno('Warning', OVERWRITE_WARNING.format(
-        filename=f'your {skin} menu files',
-        copy_menufile=f'the menu files from the [B]{copy_menufolder}[/B] folder'))
+    msg = get_localized(32072).format(
+        filename=get_localized(32073).format(skin=skin),
+        content=get_localized(32074).format(folder=copy_menufolder))
+    msg = f'{msg}\n{get_localized(32043)}'
+
+    x = xbmcgui.Dialog().yesno(get_localized(32075), msg)
+
     if not x or x == -1:
         return
 
@@ -156,12 +154,14 @@ def copy_menufolder(copy_menufolder, skin):
 def copy_menufile(copy_menufile, filename, skin):
     from resources.lib.shortcuts.futils import read_meta_from_file, write_meta_to_file, FILE_PREFIX
     if not copy_menufile or not filename or not skin:
-        return xbmcgui.Dialog().ok('No details', f'copy_menufile={copy_menufile}\nfilename={filename}\nskin={skin}')
+        raise ValueError(f'copy_menufile details missing\ncopy_menufile={copy_menufile}\nfilename={filename}\nskin={skin}')
+        return
     filename = f'{FILE_PREFIX}{filename}.json'
     meta = read_meta_from_file(copy_menufile)
     if meta is None:
-        return xbmcgui.Dialog().ok('No content', f'copy_menufile={copy_menufile}\nfilename={filename}\nskin={skin}')
-    x = xbmcgui.Dialog().yesno('Warning', OVERWRITE_WARNING.format(filename=filename, copy_menufile=copy_menufile))
+        raise ValueError(f'copy_menufile content missing\ncopy_menufile={copy_menufile}\nfilename={filename}\nskin={skin}')
+        return
+    x = xbmcgui.Dialog().yesno(get_localized(32075), f'{get_localized(32072).format(filename=filename, content=copy_menufile)}\n{get_localized(32043)}')
     if not x or x == -1:
         return
     from resources.lib.shortcuts.node import assign_guid

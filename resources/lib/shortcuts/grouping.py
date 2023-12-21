@@ -1,5 +1,6 @@
 from xbmc import getCondVisibility
 from resources.lib.shortcuts.common import GetDirectoryCommon
+from resources.lib.kodiutils import get_localized
 
 
 class GetDirectoryGrouping(GetDirectoryCommon):
@@ -31,7 +32,7 @@ class GetDirectoryGrouping(GetDirectoryCommon):
             item = (i['path'], listitem, listitem_isfolder, )
             return item
 
-        with ProgressDialog('Skin Variables', f'Building directory...\n{self.path}', total=1, logging=2, background=False):
+        with ProgressDialog('Skin Variables', f'{get_localized(32053)}...\n{self.path}', total=1, logging=2, background=False):
             if not self.directory:
                 return []
             items = []
