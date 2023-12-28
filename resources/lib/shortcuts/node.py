@@ -426,7 +426,7 @@ class NodeMethods():
 
         heading = heading or get_localized(32077)
 
-        new_value = value or Dialog().browse(type=2, heading=heading, useThumbs=True, defaultt=icon_dir, shares="")
+        new_value = value or Dialog().browse(type=2, heading=heading, useThumbs=True, defaultt=icon_dir, shares="files")
         if not new_value or new_value == -1 or new_value == icon_dir:
             return
         self.get_menunode_item(x)[key] = new_value
