@@ -24,26 +24,19 @@ class Meta():
         self.root = root
         self.meta = meta
 
-    def set_condition(self):
-        condition = [i.text for i in self.root.findall('condition')]
-        if not condition:
+    def set_listtext(self, tag, key=None):
+        value = [i.text for i in self.root.findall(tag)]
+        if not value:
             return
-        self.meta['condition'] = condition
-        return condition
+        self.meta[key or tag] = value
+        return value
 
-    def set_datafile(self):
-        datafile = [i.text for i in self.root.findall('datafile')]
-        if not datafile:
+    def set_itemtext(self, tag, key=None):
+        value = next((i.text for i in self.root.findall(tag) if i.text), None)
+        if not value:
             return
-        self.meta['datafile'] = datafile
-        return datafile
-
-    def set_template(self):
-        template = next((i.text for i in self.root.findall('template') if i.text), None)
-        if not template:
-            return
-        self.meta['template'] = template
-        return template
+        self.meta[key or tag] = value
+        return value
 
     def set_value(self):
         values = []
@@ -87,8 +80,7 @@ class Meta():
 
 class XMLtoJSON():
     def __init__(self, filecontent):
-        self.tree = ET.parse(filecontent)
-        self.root = self.tree.getroot()
+        self.root = ET.fromstring(filecontent)
         self.meta = {}
 
     def get_meta(self):
@@ -96,9 +88,9 @@ class XMLtoJSON():
         return self.meta
 
     def get_contents(self, meta):
-        meta.set_template()
-        meta.set_datafile()
-        meta.set_condition()
+        meta.set_itemtext('template')
+        meta.set_listtext('datafile')
+        meta.set_listtext('condition')
         for i in meta.set_value():
             self.get_contents(i)
         for i in meta.set_lists():
