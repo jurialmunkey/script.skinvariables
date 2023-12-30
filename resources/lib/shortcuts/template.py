@@ -12,6 +12,7 @@ from jurialmunkey.futils import load_filecontent, write_skinfile, make_hash
 from resources.lib.kodiutils import ProgressDialog, get_localized
 from resources.lib.operations import RuleOperations, check_condition
 from resources.lib.shortcuts.node import ListGetShortcutsNode
+from resources.lib.shortcuts.xmltojson import xml_to_json
 from xml.dom import minidom
 from copy import deepcopy
 
@@ -143,13 +144,14 @@ class TemplatePart():
             contents.append(item)
         return ['\n'.join(contents)]
 
-    def add_jsonfile(self):
-        filelist = self.genxml.pop("jsonfile")
+    def add_datafile(self):
+        filelist = self.genxml.pop("datafile")
         filelist = filelist if isinstance(filelist, list) else [filelist]
         contents = {}
-        for jsonfile in filelist:
-            file = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{jsonfile}')
-            meta = loads(file) if file else {}
+        for datafile in filelist:
+            file = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{datafile}')
+            func = xml_to_json if datafile.endswith('.xml') else loads
+            meta = func(file) if file else {}
             contents.update(meta)
         contents.update(self.genxml)
         self.genxml = contents
@@ -165,8 +167,8 @@ class TemplatePart():
         return getattr(TemplatePart(self.skinid, genxml, self.sum_ix, **params), route)()
 
     def get_content(self):  # _make_contents
-        if 'jsonfile' in self.genxml:
-            self.add_jsonfile()
+        if 'datafile' in self.genxml:
+            self.add_datafile()
         if not self.is_condition:
             return []
         if 'template' in self.genxml:
