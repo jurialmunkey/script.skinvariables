@@ -69,7 +69,7 @@ class TemplatePart():
         for i in items:
             if isinstance(i, str):
                 return self.get_formatted(i)
-            if self.parse_condition(i['condition']):
+            if self.parse_condition(i.get('condition', 'true')):
                 return self.get_formatted(i['value'])
         return ''
 

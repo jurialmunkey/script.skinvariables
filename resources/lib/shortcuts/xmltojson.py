@@ -57,7 +57,7 @@ class Meta():
         self.meta[key or tag] = value
         return value
 
-    def set_value(self):
+    def set_value(self, root):
         """
         XML:
         <value name="N1">
@@ -71,16 +71,52 @@ class Meta():
             }
         }
         """
-        values = []
-        for root in self.root.findall('value'):
-            name = root.attrib['name'] if 'name' in root.attrib else 'value'
-            if not list(root):
-                self.meta[name] = root.text
-                continue
-            values.append(Meta(root, self.meta.setdefault(name, {})))
-        return values
+        items = []
+        name = root.attrib['name'] if 'name' in root.attrib else 'value'
+        if not list(root):
+            self.meta[name] = root.text
+            return items
+        items.append(Meta(root, self.meta.setdefault(name, {})))
+        return items
 
-    def set_items(self):
+    def set_rules(self, root):
+        """
+        XML:
+        <rules name="N1">
+            <rule>
+                <condition>C1</condition>
+                <value>V1</value>
+            </rule>
+            <rule>
+                <condition>C2</condition>
+                <value>V2</value>
+            </rule>
+        </rules>
+
+        JSON:
+        {
+            "N1": [
+                {
+                    "condition": "C1",
+                    "value": "V1"
+                },
+                {
+                    "condition": "C2",
+                    "value": "V2"
+                }
+            ]
+        }
+        """
+        items = []
+        name = root.attrib['name']
+        self.meta[name] = []
+        for item in root.findall('rule'):
+            meta = {}
+            self.meta[name].append(meta)
+            items.append(Meta(item, meta))
+        return items
+
+    def set_items(self, root):
         """
         XML:
         <items node="N1" mode="M1" item="I1">
@@ -107,14 +143,11 @@ class Meta():
             ]
         }
         """
-        root = next((i for i in self.root.findall('items')), None)
-        if not root:
-            return []
+        items = []
 
         for k, v in root.attrib.items():
             self.meta[k] = v
 
-        items = []
         self.meta['for_each'] = []
         for item in root.findall('item'):
             meta = {}
@@ -122,17 +155,19 @@ class Meta():
             items.append(Meta(item, meta))
         return items
 
-    def set_lists(self):
+    def set_lists(self, root):
         """
         XML:
-        <list name="N1">
-            <value name="K1">V1</value>
-            <value name="K2">V2</value>
-        </list>
-        <list name="N2">
-            <value name="K3">V3</value>
-            <value name="K4">V4</value>
-        </list>
+        <lists>
+            <list name="N1">
+                <value name="K1">V1</value>
+                <value name="K2">V2</value>
+            </list>
+            <list name="N2">
+                <value name="K3">V3</value>
+                <value name="K4">V4</value>
+            </list>
+        </lists>
 
         JSON:
         {
@@ -144,7 +179,7 @@ class Meta():
         """
         items = []
         self.meta['list'] = []
-        for item in self.root.findall('list'):
+        for item in root.findall('list'):
             meta = {}
             pair = [item.attrib['name'], meta]
             self.meta['list'].append(pair)
@@ -154,46 +189,16 @@ class Meta():
             return []
         return items
 
-    def set_rules(self):
-        """
-        XML:
-        <variable name="N1">
-            <rule>
-                <condition>C1</condition>
-                <value>V1</value>
-            </rule>
-            <rule>
-                <condition>C2</condition>
-                <value>V2</value>
-            </rule>
-        </variable>
-
-        JSON:
-        {
-            "N1": [
-                {
-                    "condition": "C1",
-                    "value": "V1"
-                },
-                {
-                    "condition": "C2",
-                    "value": "V2"
-                }
-            ]
-        }
-        """
-        items = []
-        for root in self.root.findall('variable'):
-            name = root.attrib['name']
-            self.meta[name] = []
-            for item in root.findall('rule'):
-                meta = {}
-                self.meta[name].append(meta)
-                items.append(Meta(item, meta))
-        return items
-
 
 class XMLtoJSON():
+
+    routes = {
+        'value': 'set_value',
+        'items': 'set_items',
+        'rules': 'set_rules',
+        'lists': 'set_lists'
+    }
+
     def __init__(self, filecontent):
         self.root = ET.fromstring(filecontent)
         self.meta = {}
@@ -203,17 +208,17 @@ class XMLtoJSON():
         return self.meta
 
     def get_contents(self, meta):
+        meta.set_listtext('condition')
         meta.set_itemtext('template')
         meta.set_listtext('datafile')
-        meta.set_listtext('condition')
-        for i in meta.set_rules():
-            self.get_contents(i)
-        for i in meta.set_value():
-            self.get_contents(i)
-        for i in meta.set_lists():
-            self.get_contents(i)
-        for i in meta.set_items():
-            self.get_contents(i)
+
+        for i in meta.root:
+            func = self.routes.get(i.tag)
+            if not func:
+                continue
+            func = getattr(meta, func)
+            for j in func(i):
+                self.get_contents(j)
 
 
 def xml_to_json(filecontent):
