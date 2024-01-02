@@ -70,7 +70,7 @@ class TemplatePart():
             if isinstance(i, str):
                 return self.get_formatted(i)
             if self.parse_condition(i.get('condition', 'true')):
-                return self.get_formatted(i['value'])
+                return self.get_formatted(i['value'] or '')
         return ''
 
     def update_params(self):
