@@ -605,7 +605,7 @@ class NodeMethods():
 
         self.write_meta_to_file()
 
-    def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT, create_new=False, use_rawpath=False):
+    def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT, create_new=False, use_rawpath=False, refocus=None, window_prop=None, window_id=None):
         """
         Wrapper for do_action which also sets icon and label
         Specify prefix to set a specific property e.g. prefix=myshortcut updates myshortcut_path myshortcut_target myshortcut_icon myshortcut_label
@@ -619,18 +619,25 @@ class NodeMethods():
         if not item:
             return
         item = {f'{prefix}_{k}': v for k, v in item.items()} if prefix else item
-        self.menunode.insert(x + 1, item) if boolean(create_new) else self.get_menunode_item(x).update(item)
+        if boolean(create_new):
+            x = x + 1
+            self.menunode.insert(x, item)
+        else:
+            self.get_menunode_item(x).update(item)
         self.write_meta_to_file()
 
-    def do_new(self, prefix=None, grouping=GROUPING_DEFAULT, use_rawpath=False):
+        self.do_windowprop(window_prop, x, window_id)
+        self.do_refocus(refocus, x)
+
+    def do_new(self, prefix=None, grouping=GROUPING_DEFAULT, use_rawpath=False, refocus=None, window_prop=None, window_id=None):
         """
         Wrapper for do_choose that forces create_new=True
         """
-        self.do_choose(prefix=prefix, grouping=grouping, create_new=True, use_rawpath=use_rawpath)
+        self.do_choose(
+            prefix=prefix, grouping=grouping, create_new=True, use_rawpath=use_rawpath,
+            refocus=refocus, window_prop=window_prop, window_id=window_id)
 
     def do_move(self, move=0, refocus=None, window_prop=None, window_id=None):
-        import xbmc
-
         x = int(self.item)
         nodeitem = self.menunode.pop(x)
         nodesize = len(self.menunode)
@@ -644,14 +651,22 @@ class NodeMethods():
 
         x = self.menunode.index(nodeitem)
 
-        if window_prop:
-            window_id = '' if not window_id else f',{window_id}'
-            xbmc.executebuiltin(f'SetProperty({window_prop},{self.get_url(x)}{window_id})')
+        self.do_windowprop(window_prop, x, window_id)
+        self.do_refocus(refocus, x)
 
-        if not refocus:
+    def do_windowprop(self, window_prop, x, window_id=None):
+        import xbmc
+        if not window_prop or x is None:
             return
+        window_id = '' if not window_id else f',{window_id}'
+        xbmc.executebuiltin(f'SetProperty({window_prop},{self.get_url(x)}{window_id})')
 
-        xbmc.Monitor().waitForAbort(0.2)  # Wait a moment before refocusing to make sure has updated
+    @staticmethod
+    def do_refocus(refocus, x, sleep=0.2):
+        import xbmc
+        if not refocus or x is None:
+            return
+        xbmc.Monitor().waitForAbort(sleep)  # Wait a moment before refocusing to make sure has updated
         xbmc.executebuiltin(f'SetFocus({refocus},{x},absolute)')
 
 
