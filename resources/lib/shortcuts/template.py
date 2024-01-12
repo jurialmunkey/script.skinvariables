@@ -41,12 +41,11 @@ class FormatDict(dict):
 
 
 class TemplatePart():
-    def __init__(self, skinid, genxml, sum_ix=None, **kwargs):
-        # kodi_log(f'\nskinid: {skinid}\ngenxml: {genxml}\nsum_ix: {sum_ix}\nkwargs: {kwargs}', 1)
-        self.skinid = skinid
+    def __init__(self, parent, genxml, **kwargs):
+        self.skinid = parent.skinid
         self.genxml = deepcopy(genxml)
         self.params = FormatDict(kwargs)
-        self.sum_ix = sum_ix or {}
+        self.stored = parent.stored if hasattr(parent, 'stored') else {}
 
     @property
     def is_condition(self):
@@ -76,7 +75,7 @@ class TemplatePart():
     def update_params(self):
         for k, v in self.genxml.items():
             if isinstance(v, dict):
-                self.params[k] = '\n'.join(self.get_reroute(v, self.params))
+                self.params[k] = '\n'.join(self.get_contents(v, self.params))
                 continue
             if isinstance(v, list):
                 self.params[k] = self.get_conditional_value(v)
@@ -96,28 +95,21 @@ class TemplatePart():
         node_obj.refresh = True  # Refresh mem cache because we want to build from the file
         nodelist = node_obj.get_directory(menu=menu, skin=self.skinid, node=item, mode=mode, func='node') or []
 
-        sub_mode = f'{menu}_{item}'
-        self.sum_ix.setdefault(menu, 0)
-        self.sum_ix.setdefault(sub_mode, 0)
         for item_x, item_i in enumerate(nodelist):
             item_i = {'value': item_i} if isinstance(item_i, str) else item_i  # In case of actions list we only have strings so massage to dictionary
             item_i.pop('submenu', [])
             item_i.pop('widgets', [])
-            self.sum_ix[menu] += 1
-            self.sum_ix[sub_mode] += 1
             for action_x, action_i in enumerate(for_each):
                 item_d = deepcopy(self.params)  # Inherit parent values
                 item_d.update({f'parent_{k}': v for k, v in item_d.items()})  # Update with item values
                 item_d.update({f'item_{k}': v for k, v in item_i.items()})  # Update with item values
                 item_d['item_x'] = item_x  # Add item index
-                item_d['item_sum_x'] = self.sum_ix[sub_mode]  # Accumlate item index
-                item_d['item_total_x'] = self.sum_ix[menu]  # Accumlate item index
                 item_d['item_action_x'] = action_x  # Add item index
                 item_d['item_length_x'] = len(nodelist)  # Add length of nodelist that current item is in
                 item_d['item_menu'] = menu  # Add item menu
                 item_d['item_node'] = item  # Add item menu
                 item_d['item_mode'] = mode  # Add item menu
-                contents += self.get_reroute(action_i, item_d)
+                contents += self.get_contents(action_i, item_d)
         return contents
 
     def get_itemlist(self):
@@ -130,7 +122,7 @@ class TemplatePart():
             item_d.update({f'parent_{k}': v for k, v in item_d.items()})  # Update with item values
             item_d['item'] = item  # Add item menu
             for action in for_each:
-                contents += self.get_reroute(action, item_d)
+                contents += self.get_contents(action, item_d)
         return contents
 
     def get_template(self):  # _make_template
@@ -157,20 +149,32 @@ class TemplatePart():
         self.genxml = contents
         return self.genxml
 
+    def get_enumitem(self):
+        enumitem = self.genxml.pop("enumitem")
+        for k, v in enumitem.items():
+            name = self.get_formatted(v)
+            enum = self.stored.setdefault(name, 0) + 1
+            self.stored[name] = enum
+            self.genxml[k] = f'{enum}'
+            self.params[k] = f'{enum}'
+        return self.genxml
+
     def get_for_each(self):
         if 'list' in self.genxml:
             return self.get_itemlist()
         return self.get_menunode()
 
-    def get_reroute(self, genxml, params, route='get_content'):
+    def get_contents(self, genxml, params):
         params = params or {}
-        return getattr(TemplatePart(self.skinid, genxml, self.sum_ix, **params), route)()
+        return TemplatePart(self, genxml, **params).get_content()
 
     def get_content(self):  # _make_contents
         if 'datafile' in self.genxml:
             self.add_datafile()
         if not self.is_condition:
             return []
+        if 'enumitem' in self.genxml:
+            self.get_enumitem()
         if 'template' in self.genxml:
             return self.get_template()
         if 'for_each' in self.genxml:
@@ -241,7 +245,7 @@ class ShortcutsTemplate(object):
 
         pre_generated_nfo = {**self.meta['getnfo']}
         pre_generated_nfo.update({
-            k: TemplatePart(self.skinid, v, **self.meta['getnfo']).get_template()[0]
+            k: TemplatePart(self, v, **self.meta['getnfo']).get_template()[0]
             for k, v in self.meta.get('global', {}).items()})
 
         self.p_dialog.update(message=f'{get_localized(32047)}...')  # Generating content
@@ -251,7 +255,7 @@ class ShortcutsTemplate(object):
         if 'header' in self.meta:
             content += [self.meta['header']]
 
-        content += [j for i in self.meta['genxml'] for j in TemplatePart(self.skinid, i, **pre_generated_nfo).get_content()]
+        content += [j for i in self.meta['genxml'] for j in TemplatePart(self, i, **pre_generated_nfo).get_content()]
 
         if 'footer' in self.meta:
             content += [self.meta['footer']]

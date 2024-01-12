@@ -41,6 +41,30 @@ class Meta():
         self.meta[key or tag] = value
         return value
 
+    def set_dicttext(self, tag, key=None):
+        """
+        XML:
+        <tag name="K1">V1</tag>
+        <tag name="K2">V2</tag>
+
+        JSON:
+        {
+            "key or tag": {
+                "K1": "V1",
+                "K2": "V2"
+            }
+        }
+        """
+        value = {}
+        for i in self.root.findall(tag):
+            k = i.attrib['name']
+            v = i.text
+            value[k] = v
+        if not value:
+            return
+        self.meta[key or tag] = value
+        return value
+
     def set_itemtext(self, tag, key=None):
         """
         XML:
@@ -211,6 +235,7 @@ class XMLtoJSON():
         meta.set_listtext('condition')
         meta.set_itemtext('template')
         meta.set_listtext('datafile')
+        meta.set_dicttext('enumitem')
 
         for i in meta.root:
             func = self.routes.get(i.tag)
