@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: XBMC-Addons\n"
 "Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
 "POT-Creation-Date: 2014-10-26 17:05+0000\n"
-"PO-Revision-Date: 2024-01-21 16:01+0100\n"
+"PO-Revision-Date: 2024-01-21 16:12+0100\n"
 "Last-Translator: \n"
 "Language-Team: LANGUAGE\n"
 "Language: de\n"
@@ -199,7 +199,7 @@ msgstr "Weiteren Pfad hinzufügen?"
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32031"
 msgid "Add an additional path to the filter."
-msgstr "Einen weiteren Pfad zu Filter hinzufügen."
+msgstr "Einen weiteren Pfad zum Filter hinzufügen."
 
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32032"
@@ -294,12 +294,12 @@ msgstr "Erstelle XML"
 #: /resources/lib/shortcuts/browser.py
 msgctxt "#32050"
 msgid "Add playlist"
-msgstr "Playlisten hinzufügen"
+msgstr "Playliste hinzufügen"
 
 #: /resources/lib/shortcuts/browser.py
 msgctxt "#32051"
 msgid "Add playlist as playable shortcut or a browseable directory?"
-msgstr "Playliste als abspielbare Verknüpfung oder durchsuchbares Verzeichnis hinzufügen?"
+msgstr "Als abspielbare Verknüpfung oder durchsuchbares Verzeichnis hinzufügen?"
 
 #: /resources/lib/shortcuts/browser.py
 msgctxt "#32052"
@@ -484,11 +484,7 @@ msgstr "Lösche Liste"
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32088"
 msgid "[B][COLOR=red]WARNING[/COLOR][/B]: Deleting this list will remove {item_count} existing items. This action cannot be undone."
-msgstr ""
-"[B][COLOR=red]ACHTUNG[/COLOR][/B]: Löschen der Liste will remov\n"
-"\n"
-" \n"
-" [B][COLOR=red]ACHTUNG[/COLOR][/B]: Löschen dieser Liste wird {item_count} Einträge entfernen. Aktion kann nicht rückgängig gemacht werden."
+msgstr "[B][COLOR=red]ACHTUNG[/COLOR][/B]: Löschen dieser Liste wird {item_count} Einträge entfernen. Aktion kann nicht rückgängig gemacht werden."
 
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32089"
