@@ -123,12 +123,26 @@ class ListGetSkinUser(Container):
             li.setProperty('code', code) if code else None
             li.setArt({'thumb': icon, 'icon': icon}) if icon else None
 
-            li.addContextMenuItems([
-                ('Rename', f'RunPlugin({path}&func=rename)'),
-                ('Delete', f'RunPlugin({path}&func=delete)')
-            ]) if menu else None
+            def _get_contentmenuitems():
+                if not menu:
+                    return []
+                if slug == 'default':
+                    return [_get_contextmenu_item_toggle_default_user()]
+                return [
+                    ('Rename', f'RunPlugin({path}&func=rename)'),
+                    ('Delete', f'RunPlugin({path}&func=delete)')]
+
+            li.addContextMenuItems(_get_contentmenuitems())
 
             return (path, li, False)
+
+        def _get_contextmenu_item_toggle_default_user():
+            path = f'{BASEPLUGIN}?info=get_skin_user&skinid={skinid}&slug=default'
+            path = f'{path}&folder={folder}' if folder else path
+            path = f'RunPlugin({path}&func=toggle)'
+            if xbmc.getCondVisibility('Skin.HasSetting(SkinVariables.SkinUsers.DisableDefaultUser)'):
+                return ('Enable default user', path)
+            return ('Disable default user', path)
 
         def _join_item():
             if not boolean(allow_new):
@@ -137,6 +151,7 @@ class ListGetSkinUser(Container):
             path = f'{BASEPLUGIN}?info=add_skin_user&skinid={skinid}'
             path = f'{path}&folder={folder}' if folder else path
             li = ListItem(label=name, path=path)
+            li.addContextMenuItems([_get_contextmenu_item_toggle_default_user()])
             return [(path, li, False)]
 
         def _open_directory():
@@ -147,6 +162,10 @@ class ListGetSkinUser(Container):
             plugin_category = ''
             container_content = ''
             self.add_items(items, container_content=container_content, plugin_category=plugin_category)
+
+        def _toggle_default_user():
+            xbmc.executebuiltin('Skin.ToggleSetting(SkinVariables.SkinUsers.DisableDefaultUser)')
+            reload_shortcut_dir()
 
         def _delete_user():
             x, user = next((x, i) for x, i in enumerate(meta) if slug == i.get('slug'))
@@ -179,6 +198,7 @@ class ListGetSkinUser(Container):
             return
 
         route = {
+            'toggle': _toggle_default_user,
             'delete': _delete_user,
             'rename': _rename_user
         }
