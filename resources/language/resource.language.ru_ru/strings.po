@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: XBMC-Addons\n"
 "Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
 "POT-Creation-Date: 2014-10-26 17:05+0000\n"
-"PO-Revision-Date: 2024-02-17 16:56+0300\n"
+"PO-Revision-Date: 2024-02-17 19:11+0300\n"
 "Last-Translator: alexeichikad <alexeichikad@gmail.com>\n"
 "Language-Team: LANGUAGE\n"
 "Language: ru\n"
@@ -404,17 +404,17 @@ msgstr "Добавить сюда"
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32072"
 msgid "Overwrite {filename} with {content}?"
-msgstr "Перезаписать {filename} с {content}?"
+msgstr "Перезаписать {filename} {content}?"
 
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32073"
 msgid "your {skin} menu files"
-msgstr "вашими {skin} файлами меню"
+msgstr "ваши {skin} файлы меню"
 
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32074"
 msgid "the menu files from the [B]{folder}[/B] folder"
-msgstr "файлы меню из папки [B]{folder}[/B]"
+msgstr "файлами меню из папки [B]{folder}[/B]"
 
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32075"
