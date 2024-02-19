@@ -24,7 +24,7 @@ msgstr "Створюємо перемінні..."
 #: /resources/lib/script.py
 msgctxt "#32001"
 msgid "Skin Variables"
-msgstr "Перемінні обкладинки"
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32002"
@@ -228,17 +228,17 @@ msgstr "Менше чим <"
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32037"
 msgid "Less than or equal <="
-msgstr "Менше чи рівне <="
+msgstr "Менше чи дорівнює <="
 
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32038"
 msgid "Equal =="
-msgstr "Рівне =="
+msgstr "Дорівнює =="
 
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32039"
 msgid "Not equal !="
-msgstr "Не рівне !="
+msgstr "Не дорівнює !="
 
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32040"
@@ -273,12 +273,12 @@ msgstr "Зміни буде втрачено без збереження."
 #: /resources/lib/shortcuts/template.py
 msgctxt "#32046"
 msgid "Generating globals"
-msgstr "Створюємо глобальні змінні"
+msgstr "Генеруємо глобальні перемінні"
 
 #: /resources/lib/shortcuts/template.py
 msgctxt "#32047"
 msgid "Generating content"
-msgstr "Створюємо контент"
+msgstr "Генеруємо контент"
 
 #: /resources/lib/shortcuts/template.py
 msgctxt "#32048"
@@ -408,7 +408,7 @@ msgstr "Перезаписати {filename} з {content}?"
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32073"
 msgid "your {skin} menu files"
-msgstr "меню файли обкладинки {skin}"
+msgstr "меню файлів {skin} обкладинки"
 
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32074"
