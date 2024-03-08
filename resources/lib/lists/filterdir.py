@@ -2,13 +2,12 @@
 # Module: default
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
-import operator
 from xbmcgui import ListItem, Dialog
 from infotagger.listitem import ListItemInfoTag
-from jurialmunkey.parser import split_items
 from jurialmunkey.litems import Container
 from jurialmunkey.window import set_to_windowprop, WindowProperty
 from resources.lib.kodiutils import kodi_log, get_localized
+from resources.lib.filters import get_filters, is_excluded
 import jurialmunkey.thread as jurialmunkey_thread
 
 
@@ -118,51 +117,6 @@ INFOPROPERTY_MAP = {
     "setid": "set.dbid",
     "songvideourl": "songvideourl",
 }
-
-
-def is_excluded(item, filter_key=None, filter_value=None, filter_operator=None, exclude_key=None, exclude_value=None, exclude_operator=None):
-    """ Checks if item should be excluded based on filter/exclude values
-    Values can optional be a dict which contains module, method, and kwargs
-    """
-    def is_filtered(d, k, v, exclude=False, operator_type=None):
-        comp = getattr(operator, operator_type or 'contains')
-        boolean = False if exclude else True  # Flip values if we want to exclude instead of include
-        if k and v and k in d and comp(str(d[k]).lower(), str(v).lower()):
-            boolean = exclude
-        return boolean
-
-    if not item:
-        return
-
-    il, ip = item.get('infolabels', {}), item.get('infoproperties', {})
-
-    if filter_key and filter_value:
-        _exclude = True
-        for fv in split_items(filter_value):
-            _exclude = True
-            if filter_key in il:
-                _exclude = False
-                if is_filtered(il, filter_key, fv, operator_type=filter_operator):
-                    _exclude = True
-                    continue
-            if filter_key in ip:
-                _exclude = False
-                if is_filtered(ip, filter_key, fv, operator_type=filter_operator):
-                    _exclude = True
-                    continue
-            if not _exclude:
-                break
-        if _exclude:
-            return True
-
-    if exclude_key and exclude_value:
-        for ev in split_items(exclude_value):
-            if exclude_key in il:
-                if is_filtered(il, exclude_key, ev, True, operator_type=exclude_operator):
-                    return True
-            if exclude_key in ip:
-                if is_filtered(ip, exclude_key, ev, True, operator_type=exclude_operator):
-                    return True
 
 
 class MetaItemJSONRPC():
@@ -675,24 +629,9 @@ class ListGetFilterDir(Container):
 
         update_global_property_versions()  # Add in any properties added in later JSON-RPC versions
 
-        def _get_filters(filters):
-            all_filters = {}
-            filter_name = ['filter_key', 'filter_value', 'filter_operator', 'exclude_key', 'exclude_value', 'exclude_operator']
-
-            for k, v in filters.items():
-                key, num = k, '0'
-                if '__' in k:
-                    key, num = k.split('__', 1)
-                if key not in filter_name:
-                    continue
-                dic = all_filters.setdefault(num, {})
-                dic[key] = v
-
-            return all_filters
-
         mediatypes = {}
         added_items = []
-        all_filters = _get_filters(kwargs)
+        all_filters = get_filters(**kwargs)
         directory_properties = DIRECTORY_PROPERTIES_BASIC
         directory_properties += {
             'video': DIRECTORY_PROPERTIES_VIDEO,
