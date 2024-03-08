@@ -744,7 +744,7 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
             submenu = i.pop('submenu', [])
             widgets = i.pop('widgets', [])
 
-            if not _is_filtered(i):
+            if not blank and not _is_filtered(i):
                 return
 
             target = i.get('target', '')
