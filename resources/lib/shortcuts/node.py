@@ -821,6 +821,8 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
             items = self.get_directory_items(blank=blank, filters=get_filters(**kwargs))
             if func == 'list':
                 return items
+            if not items and self.edit:  # If we didn't get any items from filter and we're in edit mode then get blank
+                items = self.get_directory_items(blank=True)
             return self.add_items(items, update_listing=self.update_listing)
 
         item_func = getattr(self, func)
