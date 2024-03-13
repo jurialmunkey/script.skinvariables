@@ -3,10 +3,12 @@
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import operator
-from jurialmunkey.parser import split_items
+from jurialmunkey.parser import split_items, boolean
 
 
-FILTER_KEYNAMES = ('filter_key', 'filter_value', 'filter_operator', 'exclude_key', 'exclude_value', 'exclude_operator', )
+FILTER_KEYNAMES = (
+    'filter_key', 'filter_value', 'filter_operator', 'filter_empty',
+    'exclude_key', 'exclude_value', 'exclude_operator', )
 
 
 def get_filters(**kwargs):
@@ -24,16 +26,19 @@ def get_filters(**kwargs):
     return all_filters
 
 
-def is_excluded(item, filter_key=None, filter_value=None, filter_operator=None, exclude_key=None, exclude_value=None, exclude_operator=None):
+def is_excluded(
+        item,
+        filter_key=None, filter_value=None, filter_operator=None, filter_empty=None,
+        exclude_key=None, exclude_value=None, exclude_operator=None
+):
     """ Checks if item should be excluded based on filter/exclude values
-    Values can optional be a dict which contains module, method, and kwargs
     """
     def is_filtered(d, k, v, exclude=False, operator_type=None):
         comp = getattr(operator, operator_type or 'contains')
-        boolean = False if exclude else True  # Flip values if we want to exclude instead of include
+        cond = False if exclude else True  # Flip values if we want to exclude instead of include
         if k and v and k in d and comp(str(d[k]).lower(), str(v).lower()):
-            boolean = exclude
-        return boolean
+            cond = exclude
+        return cond
 
     if not item:
         return
@@ -43,16 +48,16 @@ def is_excluded(item, filter_key=None, filter_value=None, filter_operator=None, 
     if filter_key and filter_value:
         _exclude = True
         for fv in split_items(filter_value):
-            _exclude = True
+            _exclude = False if boolean(filter_empty) else True
             if filter_key in il:
                 _exclude = False
                 if is_filtered(il, filter_key, fv, operator_type=filter_operator):
-                    _exclude = True
+                    _exclude = False if boolean(filter_empty) and il.get(filter_key) in [None, ''] else True
                     continue
             if filter_key in ip:
                 _exclude = False
                 if is_filtered(ip, filter_key, fv, operator_type=filter_operator):
-                    _exclude = True
+                    _exclude = False if boolean(filter_empty) and ip.get(filter_key) in [None, ''] else True
                     continue
             if not _exclude:
                 break

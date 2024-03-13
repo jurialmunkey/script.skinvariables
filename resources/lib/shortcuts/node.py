@@ -659,12 +659,22 @@ class NodeMethods():
             prefix=prefix, grouping=grouping, create_new=True, use_rawpath=use_rawpath,
             refocus=refocus, window_prop=window_prop, window_id=window_id, **kwargs)
 
-    def do_move(self, move=0, refocus=None, window_prop=None, window_id=None):
+    def do_move(self, move=0, refocus=None, window_prop=None, window_id=None, offset=None):
         x = int(self.item)
+        y = int(move)
         nodeitem = self.menunode.pop(x)
         nodesize = len(self.menunode)
 
-        x = x + int(move)
+        def _get_offset_x():
+            if offset is None:
+                return x + y
+            if y < 0:
+                return int(offset) + 1 + y
+            if y > 0:
+                return int(offset) - 1 + y
+            return int(offset)
+
+        x = _get_offset_x()
         x = x if x <= nodesize else 0  # Loop back to top
         x = x if x >= 0 else nodesize + 1  # Loop back to bottom
 
