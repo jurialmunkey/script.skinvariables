@@ -13,88 +13,88 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: nl\n"
+"Language: pt-br\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #: /resources/lib/script.py
 msgctxt "#32000"
 msgid "Constructing Variables..."
-msgstr "Variabelen maken..."
+msgstr ""
 
 #: /resources/lib/script.py
 msgctxt "#32001"
 msgid "Skin Variables"
-msgstr "Skin variabelen"
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32002"
 msgid "Skin Viewtypes"
-msgstr "Skin weergavetypes"
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32003"
 msgid "Constructing Viewtypes..."
-msgstr "Weergavetypen maken..."
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32004"
 msgid "Choose viewtype"
-msgstr "Kies weergavetype"
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32005"
 msgid "Building default rules for"
-msgstr "Standaardregels maken voor"
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32006"
 msgid "Building definitions for view IDs..."
-msgstr "Definities maken voor weergave-ID's..."
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32007"
 msgid "Building visibility expressions..."
-msgstr "Zichtbaarheidsuitdrukkingen maken..."
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32008"
 msgid "Building XML..."
-msgstr "XML bouwen..."
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32009"
 msgid "Choose plugin to customise"
-msgstr "Kies plugin om aan te passen"
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32010"
 msgid "Choose content to customise"
-msgstr "Kies inhoud om aan te passen"
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32011"
 msgid "Reset all {} views..."
-msgstr "Alle {} weergaven resetten..."
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32012"
 msgid "Add plugin view..."
-msgstr "Plugin weergave toevoegen..."
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32013"
 msgid "Customise viewtypes"
-msgstr "Weergavetypen aanpassen"
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32014"
 msgid "Reset {} Views"
-msgstr "Reset {} weergaven"
+msgstr ""
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32015"
 msgid "Do you wish to reset all {} views to default"
-msgstr "Wilt u alle {} weergaven terugzetten naar standaard"
+msgstr ""
 
 #: /resources/lib/skinshortcuts.menu.py
 msgctxt "#32016"
