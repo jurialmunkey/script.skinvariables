@@ -62,5 +62,5 @@ target/
 
 *.zip
 
-*.submlime-project
-*.submlime-workspace
+*.sublime-project
+*.sublime-workspace
