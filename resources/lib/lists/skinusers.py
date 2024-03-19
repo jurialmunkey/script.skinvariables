@@ -141,13 +141,13 @@ class ListGetSkinUser(Container):
             path = f'{path}&folder={folder}' if folder else path
             path = f'RunPlugin({path}&func=toggle)'
             if xbmc.getCondVisibility('Skin.HasSetting(SkinVariables.SkinUsers.DisableDefaultUser)'):
-                return ('Enable default user', path)
-            return ('Disable default user', path)
+                return (get_localized(32097), path)
+            return (get_localized(32098), path)
 
         def _join_item():
             if not boolean(allow_new):
                 return []
-            name = 'Add new user...'
+            name = f'{get_localized(32096)}...'
             path = f'{BASEPLUGIN}?info=add_skin_user&skinid={skinid}'
             path = f'{path}&folder={folder}' if folder else path
             li = ListItem(label=name, path=path)
