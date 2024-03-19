@@ -61,3 +61,6 @@ target/
 .idea/
 
 *.zip
+
+*.submlime-project
+*.submlime-workspace
