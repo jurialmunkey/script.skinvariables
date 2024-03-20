@@ -790,7 +790,7 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
         node_name = get_nodename(self.node)
 
         if blank:
-            return [_make_item(0, {'label': get_localized(32078)})]
+            return [_make_item(0, {'label': get_localized(32078), 'blank': 'True'})]
 
         return [j for j in (_make_item(x, i) for x, i in enumerate(self.menunode or [])) if j]
 
