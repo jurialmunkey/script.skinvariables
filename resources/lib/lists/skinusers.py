@@ -85,6 +85,8 @@ class ListGetSkinUser(Container):
                 Dialog().ok(get_localized(32063), get_localized(32060))
                 return
 
+            xbmc.executebuiltin('SetProperty(SkinVariables.SkinUser.LoggingIn,True,Home)')
+
             filename = 'script-skinvariables-skinusers.xml'
             content = load_filecontent(f'special://skin/shortcuts/skinvariables-skinusers.xmltemplate')
             content = content.format(slug=slug if slug != 'default' else '', **kwargs)
