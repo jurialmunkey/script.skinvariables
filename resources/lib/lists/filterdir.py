@@ -438,7 +438,7 @@ class MetaFilterDir():
                 pass
 
     def add_new_filter_operator(self, prefix='filter', suffix=''):
-        choices = [(k, get_localized(v)) for k, v in STANDARD_OPERATORS.items()]
+        choices = [(k, get_localized(v)) for k, v in STANDARD_OPERATORS]
         x = Dialog().select('[CAPITALIZE]{}[/CAPITALIZE] operator'.format(prefix), [i for _, i in choices])
         if x == -1:
             return
