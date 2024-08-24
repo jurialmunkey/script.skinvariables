@@ -134,7 +134,7 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
         from jurialmunkey.futils import load_filecontent
         return str(load_filecontent(string))
 
-    def _get_preselected_items(string):
+    def _get_preselected_item(string):
         if not string:
             return -1
         try:
@@ -151,6 +151,28 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
         if string not in items:
             return -1
         return items.index(string)
+
+    def _get_preselected_items(string):
+        if not string:
+            return [-1]
+        try:
+            return [int(string)]
+        except TypeError:
+            return [-1]
+        except ValueError:
+            pass
+        items = _split_items(kwargs.get('preselect') or '')
+        if not items:
+            return [-1]
+        if len(items) == 0:
+            return [-1]
+        selected = []
+        for i in items:
+            try:
+                selected.append(int(i))
+            except ValueError:
+                pass
+        return selected
 
     dialog = xbmcgui.Dialog()
 
@@ -217,14 +239,14 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
             'params': (
                 ('heading', str, ''),
                 ('list', _split_items, ''),
-                ('autoclose', int, 0), ('preselect', _get_preselected_items, -1), ('useDetails', boolean, False), )
+                ('autoclose', int, 0), ('preselect', _get_preselected_item, -1), ('useDetails', boolean, False), )
         },
         'multiselect': {
-            'func': dialog.select,
+            'func': dialog.multiselect,
             'params': (
                 ('heading', str, ''),
-                ('list', _split_items, ''),
-                ('autoclose', int, 0), ('preselect', _get_preselected_items, -1), ('useDetails', boolean, False), )
+                ('options', _split_items, ''),
+                ('autoclose', int, 0), ('preselect', _get_preselected_items, [-1]), ('useDetails', boolean, False), )
         },
     }
 
