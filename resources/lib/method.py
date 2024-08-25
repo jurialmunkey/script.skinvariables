@@ -122,6 +122,54 @@ def run_progressdialog(run_progressdialog, background=False, heading='', message
     del monitor
 
 
+class DialogSelectPreselectedItems():
+
+    empty = -1
+
+    def __init__(self, preselected_values, list_items):
+        self.preselected_values = preselected_values
+        self.list_items = list_items
+
+    def get_preselected_value(self, value):
+        try:
+            return int(value)
+        except TypeError:
+            return
+        except ValueError:
+            pass
+
+        from contextlib import suppress
+        with suppress(ValueError):
+            return self.list_items.index(value)
+
+    def get_preselected_output(self):
+        preselected_index = self.get_preselected_value(self.preselected_values)
+        if preselected_index is None:
+            return self.empty
+        return preselected_index
+
+    @property
+    def preselected_items(self):
+        if not self.preselected_values:  # Skinner has not specified a preselected value
+            return self.empty
+
+        if not self.list_items or len(self.list_items) == 0:  # List has no list_items so we dont preselect anything
+            return self.empty
+
+        return self.get_preselected_output()
+
+
+class DialogMultiSelectPreselectedItems(DialogSelectPreselectedItems):
+
+    empty = (-1, )
+
+    def get_preselected_output(self):
+        preselected_indicies = [j for j in (self.get_preselected_value(i) for i in self.preselected_values) if j is not None]
+        if not preselected_indicies:
+            return self.empty
+        return preselected_indicies
+
+
 def run_dialog(run_dialog, separator=' / ', **kwargs):
     import xbmcgui
 
@@ -134,45 +182,15 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
         from jurialmunkey.futils import load_filecontent
         return str(load_filecontent(string))
 
-    def _get_preselected_item(string):
-        if not string:
-            return -1
-        try:
-            return int(string)
-        except TypeError:
-            return -1
-        except ValueError:
-            pass
-        items = _split_items(kwargs.get('list') or '')
-        if not items:
-            return -1
-        if len(items) == 0:
-            return -1
-        if string not in items:
-            return -1
-        return items.index(string)
+    def _get_dialog_select_preselected_items(string):
+        list_items = _split_items(kwargs.get('list') or '')
+        preselected_values = _split_items(string or '')
+        return DialogSelectPreselectedItems(preselected_values, list_items).preselected_items
 
-    def _get_preselected_items(string):
-        if not string:
-            return [-1]
-        try:
-            return [int(string)]
-        except TypeError:
-            return [-1]
-        except ValueError:
-            pass
-        items = _split_items(kwargs.get('preselect') or '')
-        if not items:
-            return [-1]
-        if len(items) == 0:
-            return [-1]
-        selected = []
-        for i in items:
-            try:
-                selected.append(int(i))
-            except ValueError:
-                pass
-        return selected
+    def _get_dialog_multiselect_preselected_items(string):
+        list_items = _split_items(kwargs.get('options') or '')
+        preselected_values = _split_items(string or '')
+        return DialogMultiSelectPreselectedItems(preselected_values, list_items).preselected_items
 
     dialog = xbmcgui.Dialog()
 
@@ -239,14 +257,14 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
             'params': (
                 ('heading', str, ''),
                 ('list', _split_items, ''),
-                ('autoclose', int, 0), ('preselect', _get_preselected_item, -1), ('useDetails', boolean, False), )
+                ('autoclose', int, 0), ('preselect', _get_dialog_select_preselected_items, -1), ('useDetails', boolean, False), )
         },
         'multiselect': {
             'func': dialog.multiselect,
             'params': (
                 ('heading', str, ''),
                 ('options', _split_items, ''),
-                ('autoclose', int, 0), ('preselect', _get_preselected_items, [-1]), ('useDetails', boolean, False), )
+                ('autoclose', int, 0), ('preselect', _get_dialog_multiselect_preselected_items, None), ('useDetails', boolean, False), )
         },
     }
 
