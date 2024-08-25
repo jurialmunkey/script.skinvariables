@@ -270,7 +270,11 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
 
     route = dialog_standard_routes[run_dialog]
     params = {k: func(kwargs.get(k) or fallback) for k, func, fallback in route['params']}
-    executebuiltin(index=route['func'](**params), values=params.get('list'), **kwargs)
+    output = route['func'](**params)
+    if not isinstance(output, (tuple, list)):
+        output = (output, )
+    for x in output:
+        executebuiltin(index=x, values=params.get('list'), **kwargs)
 
 
 def set_player_subtitle(set_player_subtitle, reload_property='UID', **kwargs):
