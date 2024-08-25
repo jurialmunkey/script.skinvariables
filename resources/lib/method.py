@@ -257,24 +257,27 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
             'params': (
                 ('heading', str, ''),
                 ('list', _split_items, ''),
-                ('autoclose', int, 0), ('preselect', _get_dialog_select_preselected_items, -1), ('useDetails', boolean, False), )
+                ('autoclose', int, 0), ('preselect', _get_dialog_select_preselected_items, -1), ('useDetails', boolean, False), ),
+            'values': 'list'
         },
         'multiselect': {
             'func': dialog.multiselect,
             'params': (
                 ('heading', str, ''),
                 ('options', _split_items, ''),
-                ('autoclose', int, 0), ('preselect', _get_dialog_multiselect_preselected_items, None), ('useDetails', boolean, False), )
+                ('autoclose', int, 0), ('preselect', _get_dialog_multiselect_preselected_items, None), ('useDetails', boolean, False), ),
+            'values': 'options'
         },
     }
 
     route = dialog_standard_routes[run_dialog]
     params = {k: func(kwargs.get(k) or fallback) for k, func, fallback in route['params']}
     output = route['func'](**params)
+    values = params.get(route.get('values'))
     if not isinstance(output, (tuple, list)):
         output = (output, )
     for x in output:
-        executebuiltin(index=x, values=params.get('list'), **kwargs)
+        executebuiltin(index=x, values=values, **kwargs)
 
 
 def set_player_subtitle(set_player_subtitle, reload_property='UID', **kwargs):
