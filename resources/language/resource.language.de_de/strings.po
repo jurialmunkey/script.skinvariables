@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: XBMC-Addons\n"
 "Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
 "POT-Creation-Date: 2014-10-26 17:05+0000\n"
-"PO-Revision-Date: 2024-01-21 16:12+0100\n"
+"PO-Revision-Date: 2024-10-07 16:55+0200\n"
 "Last-Translator: \n"
 "Language-Team: LANGUAGE\n"
 "Language: de\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.4.2\n"
+"X-Generator: Poedit 3.5\n"
 
 #: /resources/lib/script.py
 msgctxt "#32000"
@@ -520,3 +520,18 @@ msgstr "Editiere Filter"
 msgctxt "#32095"
 msgid "Add new"
 msgstr "Neu hinzufügen"
+
+#: /resources/lib/lists/skinusers.py
+msgctxt "#32096"
+msgid "Add new user"
+msgstr "Neuen Benutzer hinzufügen"
+
+#: /resources/lib/lists/skinusers.py
+msgctxt "#32097"
+msgid "Enable default user"
+msgstr "Standardbenutzer aktivieren"
+
+#: /resources/lib/lists/skinusers.py
+msgctxt "#32098"
+msgid "Disable default user"
+msgstr "Standardbenutzer deaktivieren"
