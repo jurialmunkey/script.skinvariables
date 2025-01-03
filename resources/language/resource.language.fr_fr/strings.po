@@ -390,7 +390,7 @@ msgstr "Vos fichiers menu de {skin}"
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32074"
 msgid "the menu files from the [B]{folder}[/B] folder"
-msgstr "les fichiers de menu du dossier [B]{dossier}[/B]."
+msgstr "les fichiers de menu du dossier [B]{folder}[/B]."
 
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32075"
