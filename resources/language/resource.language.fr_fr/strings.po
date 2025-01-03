@@ -450,7 +450,7 @@ msgstr "Pas de nouveaux éléments à ajouter !"
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32086"
 msgid "This list contains {item_count} items. The current max item limit is {item_limit}. This list will not be added."
-msgstr "Cette liste contient {item_count} éléments. La limite maximale actuelle est de {limite_article}. Cette liste ne sera pas ajoutée."
+msgstr "Cette liste contient {item_count} éléments. La limite maximale actuelle est de {item_limit}. Cette liste ne sera pas ajoutée."
 
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32087"
