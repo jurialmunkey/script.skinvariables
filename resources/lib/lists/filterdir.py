@@ -71,6 +71,7 @@ INFOLABEL_MAP = {
     "album": "album",
     "track": "tracknumber",
     "duration": "duration",
+    "runtime": "duration",
     "playcount": "playcount",
     "director": "director",
     "trailer": "trailer",
