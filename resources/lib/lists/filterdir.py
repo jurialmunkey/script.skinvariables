@@ -633,7 +633,12 @@ class ListSetFilterDir(Container):
 
 
 class ListGetFilterDir(Container):
-    def get_directory(self, paths=None, library=None, no_label_dupes=False, dbtype=None, sort_by=None, sort_how=None, randomise=False, fallback=False, names=None, **kwargs):
+    def get_directory(
+            self, paths=None, library=None, no_label_dupes=False, dbtype=None,
+            sort_by=None, sort_how=None, randomise=False, fallback=False, names=None,
+            window_prop=None, window_id=None,
+            **kwargs
+    ):
         if not paths:
             return
 
@@ -645,10 +650,13 @@ class ListGetFilterDir(Container):
         mediatypes = {}
         added_items = []
         all_filters = get_filters(**kwargs)
+        all_statistics_filters = get_filters(filter_prefix='stats_', **kwargs)
         directory_properties = DIRECTORY_PROPERTIES_BASIC
         directory_properties += {
             'video': DIRECTORY_PROPERTIES_VIDEO,
             'music': DIRECTORY_PROPERTIES_MUSIC}.get(library) or []
+
+        statistics = {}
 
         def _make_item(i, path_name=None):
             if not i:
@@ -658,9 +666,14 @@ class ListGetFilterDir(Container):
             listitem_jsonrpc.infolabels['title'] = listitem_jsonrpc.label
             listitem_jsonrpc.infoproperties['widget'] = path_name or listitem_jsonrpc.infoproperties.get('widget') or ''
 
-            for _, filters in all_filters.items():
+            for fname, filters in all_filters.items():
                 if is_excluded({'infolabels': listitem_jsonrpc.infolabels, 'infoproperties': listitem_jsonrpc.infoproperties}, **filters):
                     return
+
+            for fname, filters in all_statistics_filters.items():
+                if not is_excluded({'infolabels': listitem_jsonrpc.infolabels, 'infoproperties': listitem_jsonrpc.infoproperties}, **filters):
+                    statistics.setdefault(fname, 0)
+                    statistics[fname] += 1
 
             if listitem_jsonrpc.mediatype:
                 mediatypes[listitem_jsonrpc.mediatype] = mediatypes.get(listitem_jsonrpc.mediatype, 0) + 1
@@ -739,6 +752,14 @@ class ListGetFilterDir(Container):
         plugin_category = ''
         container_content = f'{max(mediatypes, key=lambda key: mediatypes[key])}s' if mediatypes else ''
         self.add_items(items, container_content=container_content, plugin_category=plugin_category)
+
+        if not statistics:
+            return
+
+        window_prop = window_prop or 'Statistics'
+
+        for k, v in statistics.items():
+            set_to_windowprop(v, k, window_prop, window_id)
 
 
 class ListGetContainerLabels(Container):

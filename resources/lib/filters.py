@@ -11,13 +11,17 @@ FILTER_KEYNAMES = (
     'exclude_key', 'exclude_value', 'exclude_operator', )
 
 
-def get_filters(**kwargs):
+def get_filters(filter_prefix=None, **kwargs):
     all_filters = {}
 
     for k, v in kwargs.items():
         key, num = k, '0'
         if '__' in k:
             key, num = k.split('__', 1)
+        if filter_prefix:
+            if not key.startswith(filter_prefix):
+                continue
+            key = key[len(filter_prefix):]
         if key not in FILTER_KEYNAMES:
             continue
         dic = all_filters.setdefault(num, {})
