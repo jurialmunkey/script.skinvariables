@@ -24,7 +24,7 @@ DIRECTORY_PROPERTIES_BASIC = ["title", "art", "file", "fanart"]
 DIRECTORY_PROPERTIES_VIDEO = [
     "genre", "year", "rating", "playcount", "director", "trailer", "tagline", "plot", "plotoutline", "originaltitle", "lastplayed", "writer",
     "studio", "mpaa", "country", "premiered", "runtime", "set", "streamdetails", "top250", "votes", "firstaired", "season", "episode", "showtitle",
-    "tvshowid", "setid", "sorttitle", "thumbnail", "uniqueid", "dateadded", "customproperties"]
+    "tvshowid", "setid", "sorttitle", "thumbnail", "uniqueid", "dateadded", "resume", "customproperties"]
 
 DIRECTORY_PROPERTIES_MUSIC = [
     "artist", "albumartist", "genre", "year", "rating", "album", "track", "duration", "lastplayed", "studio", "mpaa",
@@ -154,6 +154,17 @@ class MetaItemJSONRPC():
     def infoproperties(self):
         infoproperties = {INFOPROPERTY_MAP[k]: str(v) for k, v in self.meta.items() if v and k in INFOPROPERTY_MAP and v != -1}
         infoproperties.update({k: str(v) for k, v in (self.meta.get('customproperties') or {}).items()})
+        infoproperties.update(self.resume)
+        return infoproperties
+
+    @property
+    def resume(self):
+        resume = self.meta.get('resume') or {}
+        infoproperties = {}
+        if resume.get('total'):
+            infoproperties['resumetime'] = resume.get('position') or 0
+            infoproperties['totaltime'] = resume.get('total')
+            infoproperties['percentplayed'] = int(infoproperties['resumetime'] / infoproperties['totaltime'] * 100)
         return infoproperties
 
     @property
@@ -281,6 +292,7 @@ class ListItemJSONRPC():
         if self.library == 'video':
             self._info_tag.set_unique_ids(self.uniqueids)
             self._info_tag.set_stream_details(self.streamdetails)
+            self._info_tag.set_resume_point(self.infoproperties, resume_key='resumetime', total_key='totaltime')
 
         self._listitem.setProperties(self.infoproperties)
         return self._listitem
