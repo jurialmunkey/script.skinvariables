@@ -26,6 +26,8 @@ class Script(object):
     routing_table = {
         'set_animation':
             lambda **kwargs: importmodule('resources.lib.method', 'set_animation')(**kwargs),
+        'set_slider':
+            lambda **kwargs: importmodule('resources.lib.method', 'set_slider')(**kwargs),
         'run_executebuiltin':
             lambda **kwargs: importmodule('resources.lib.method', 'run_executebuiltin')(**kwargs),
         'run_dialog':

@@ -76,6 +76,61 @@ class ListGetJSONRPC(Container):
         return result
 
 
+class ListGetARGBColors(Container):
+
+    @clear_windowprops_decorator
+    def get_directory(self, colorhex=None, window_prop=None, window_id=None, slider_window_id=None, **kwargs):
+        if not colorhex:
+            return
+
+        from xbmcgui import Window
+
+        start_positions = {'alpha': 0, 'red': 2, 'green': 4, 'blue': 6}
+
+        def get_argb_int(hx):
+            return int(hx, 16)
+
+        def get_argb_percent(ix):
+            return int((ix / 255) * 100)
+
+        def get_argb_hex(colorhex, color):
+            a = start_positions[color]
+            b = a + 2
+            return colorhex[a:b]
+
+        items = []
+        infoproperties = {}
+        for color in start_positions.keys():
+            hx = get_argb_hex(colorhex, color)
+            ix = get_argb_int(hx)
+            pc = get_argb_percent(ix)
+            infoproperties[f'{color}.hex'] = hx
+            infoproperties[f'{color}.int'] = ix
+            infoproperties[f'{color}.pct'] = pc
+            if not slider_window_id:
+                continue
+            if not kwargs.get(f'slider_{color}_id'):
+                continue
+            try:
+                win = Window(int(slider_window_id))
+                con = win.getControl(int(kwargs[f'slider_{color}_id']))
+                con.setPercent(pc)
+            except Exception:
+                pass
+
+        item = self.get_list_item(colorhex)
+        item[1].setProperties(infoproperties)
+        items.append(item)
+
+        keys = []
+        for key, value in infoproperties.items():
+            set_to_windowprop(value, key, window_prop, window_id)
+            keys.append(key)
+
+        store_windowprops(keys, window_prop, window_id)
+        self.add_items(items)
+
+
 class ListGetSplitString(Container):
 
     @clear_windowprops_decorator

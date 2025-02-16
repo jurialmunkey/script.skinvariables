@@ -32,6 +32,13 @@ def set_animation(set_animation, **kwargs):
     ])
 
 
+def set_slider(window_id, control_id, value):
+    import xbmcgui
+    win = xbmcgui.Window(int(window_id))
+    con = win.getControl(int(control_id))
+    con.setPercent(int(value))
+
+
 def run_executebuiltin_list(builtins):
     import xbmc
     for builtin in builtins:
