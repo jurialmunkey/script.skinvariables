@@ -66,6 +66,8 @@ class ListGetItemDetails(Container):
         artwork.setdefault('fanart', i.pop('fanart', ''))
         artwork.setdefault('thumb', i.pop('thumbnail', ''))
 
+        base_collector = {}
+
         def _fmt_key_value(k, v):
             if isinstance(v, float):
                 return (
@@ -79,20 +81,30 @@ class ListGetItemDetails(Container):
         def _iter_dict(d, prefix='', sub_lookups=False):
             ip = {}
             for k, v in d.items():
+
                 if isinstance(v, dict):
                     ip.update(_iter_dict(v, prefix=f'{prefix}{k}.', sub_lookups=sub_lookups))
                     continue
+
                 if isinstance(v, list):
                     ip[f'{prefix}{k}.count'] = f'{len(v)}'
+                    collector = {}
                     for x, j in enumerate(v):
                         if isinstance(j, dict):
                             ip.update(_iter_dict(j, prefix=f'{prefix}{k}.{x}.', sub_lookups=sub_lookups))
                             continue
                         for key, value in _fmt_key_value(k, j):
                             ip[f'{prefix}{key}.{x}'] = f'{value}'
+                            collector.setdefault(f'{prefix}{key}', set()).add(f'{value}')
+                            base_collector.setdefault(f'{key}', set()).add(f'{value}')
+                    for key, value in collector.items():
+                        ip[f'{key}.collection'] = ' / '.join(sorted(value))
+                        ip[f'{key}.collection.count'] = f'{len(value)}'
                     continue
+
                 for key, value in _fmt_key_value(k, v):
                     ip[f'{prefix}{key}'] = f'{value}'
+                    base_collector.setdefault(f'{key}', set()).add(f'{value}')
 
                 if not sub_lookups or k not in sub_lookups or k not in JSON_RPC_LOOKUPS:
                     continue
@@ -112,6 +124,10 @@ class ListGetItemDetails(Container):
         infoproperties = {}
         infoproperties.update(_iter_dict(i, sub_lookups=sub_lookups))
         infoproperties['isfolder'] = 'false'
+
+        for key, value in base_collector.items():
+            infoproperties[f'{key}.collection'] = ' / '.join(sorted(value))
+            infoproperties[f'{key}.collection.count'] = f'{len(value)}'
 
         # kodi_log(f'ip {infoproperties}', 1)
 
