@@ -26,15 +26,15 @@ JSON_RPC_LOOKUPS = {
         'method': "VideoLibrary.GetMovieDetails",
         'properties': [
             "title", "plot", "playcount", "year", "trailer", "tagline", "originaltitle", "mpaa", "runtime", "set", "setid", "premiered", "dateadded",
-            "genre", "director", "writer", "studio", "cast", "country", "tag",
-            "fanart", "thumbnail", "art", "ratings"],
+            "genre", "director", "writer", "studio", "cast", "country",
+            "fanart", "thumbnail", "art", "ratings", "streamdetails"],
         'key': "moviedetails",
     },
     'tvshowid': {
         'method': "VideoLibrary.GetTVShowDetails",
         'properties': [
             "title", "plot", "playcount", "year", "lastplayed", "premiered", "file", "originaltitle", "watchedepisodes", "dateadded",
-            "genre", "studio", "cast", "tag",
+            "genre", "studio", "cast",
             "fanart", "thumbnail", "art", "ratings"],
         'key': "tvshowdetails",
     },
@@ -52,7 +52,7 @@ JSON_RPC_LOOKUPS = {
             "title", "plot", "playcount", "firstaired", "runtime", "productioncode", "lastplayed", "dateadded",
             "tvshowid", "seasonid",
             "writer", "director", "cast",
-            "fanart", "thumbnail", "art", "ratings"],
+            "fanart", "thumbnail", "art", "ratings", "streamdetails"],
         'key': "episodedetails",
     },
 }
@@ -144,6 +144,7 @@ class ListGetItemDetails(Container):
             infoproperties[f'{key}.collection'] = ' / '.join(sorted(value))
             infoproperties[f'{key}.collection.count'] = f'{len(value)}'
 
+        # from resources.lib.kodiutils import kodi_log
         # kodi_log(f'ip {infoproperties}', 1)
 
         listitem = ListItem(label=label, label2=label2, path=path, offscreen=True)
