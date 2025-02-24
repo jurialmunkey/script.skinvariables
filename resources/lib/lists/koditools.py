@@ -194,6 +194,87 @@ class ListGetFileExists(Container):
         self.add_items(items)
 
 
+class ListGetDottedProperties(Container):
+    def get_directory(
+            self, source='Container.ListItem', string='', infoproperties='', label='', thumb=None, fanart=None,
+            separator='/', xmax='10', ymax=None, no_label_dupes=False,
+            **kwargs
+    ):
+        import xbmc
+
+        """
+
+        $INFO[Container(ID).ListItem.Property(movies.X.item.cast.Y.name)]
+        $INFO[Container(ID).ListItem.Property(movies.X.item.cast.Y.role)]
+        $INFO[Container(ID).ListItem.Property(movies.X.item.cast.Y.thumbnail)]
+
+        source=Container(ID).ListItem
+        string=movies.{x}.item.cast.{y}.
+
+        label=name
+        thumb=thumbnail
+        infoproperties=name|role|thumbnail
+
+        plugin://script.skinvariables/?info=get_dotted_properties&source=Container(ID).ListItem&string=movies.{x}.item.cast.{y}.
+        &infoproperties=name/role/thumbnail&label=name&thumb=thumbnail&xmax=10&ymax=10
+
+
+        """
+
+        if not source or not string or not xmax:
+            return
+
+        _fstr = f'{source}.Property({string}{{k}})'
+
+        infoproperties = infoproperties.split(separator) or ['']
+
+        xmax = int(xmax or 1)
+        ymax = int(ymax or 0)
+        ymax = ymax or 1
+
+        items = []
+        added_items = []
+        for x in range(0, xmax):
+            for y in range(0, ymax):
+
+                i_label = ''
+                i_infoproperties = {}
+                i_art = {}
+
+                for k in infoproperties:
+
+                    v = xbmc.getInfoLabel(_fstr.format(x=x, y=y, k=k))
+                    if not v:
+                        continue
+
+                    i_infoproperties[k] = v
+
+                    if k == label:
+                        i_label = v
+                    if k == thumb:
+                        i_art['thumb'] = i_art['icon'] = v
+                    if k == fanart:
+                        i_art['fanart'] = v
+
+                if not i_infoproperties:
+                    continue
+
+                if no_label_dupes and i_label in added_items:
+                    continue
+
+                added_items.append(i_label)
+
+                i_infoproperties['xpos'] = f'{x}'
+                i_infoproperties['ypos'] = f'{y}'
+
+                item = self.get_list_item(i_label)
+                item[1].setProperties(i_infoproperties)
+                item[1].setArt(i_art)
+                items.append(item)
+
+        self.add_items(items)
+
+
 class ListGetSelectedItem(Container):
     def get_directory(
             self, container, infolabels='', artwork='', separator='/', listitem='ListItem(0)',

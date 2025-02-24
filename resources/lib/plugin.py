@@ -50,6 +50,9 @@ class Plugin():
         'get_selected_item': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListGetSelectedItem'},
+        'get_dotted_properties': {
+            'module_name': 'resources.lib.lists.koditools',
+            'import_attr': 'ListGetDottedProperties'},
         'run_executebuiltin': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListRunExecuteBuiltin'},
