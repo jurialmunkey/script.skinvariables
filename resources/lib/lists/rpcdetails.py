@@ -17,27 +17,42 @@ JSON_RPC_LOOKUPS = {
     },
     'setid': {
         'method': "VideoLibrary.GetMovieSetDetails",
-        'properties': ["title", "plot", "playcount", "fanart", "thumbnail", "art"],
+        'properties': [
+            "title", "plot", "playcount",
+            "fanart", "thumbnail", "art"],
         'key': "setdetails",
     },
     'movieid': {
         'method': "VideoLibrary.GetMovieDetails",
-        'properties': ["title", "plot", "genre", "director", "writer", "studio", "cast", "country", "fanart", "thumbnail", "tag", "art", "ratings"],
+        'properties': [
+            "title", "plot", "playcount", "year", "trailer", "tagline", "originaltitle", "mpaa", "runtime", "set", "setid", "premiered", "dateadded",
+            "genre", "director", "writer", "studio", "cast", "country", "tag",
+            "fanart", "thumbnail", "art", "ratings"],
         'key': "moviedetails",
     },
     'tvshowid': {
         'method': "VideoLibrary.GetTVShowDetails",
-        'properties': ["title", "plot", "genre", "studio", "cast", "fanart", "thumbnail", "tag", "art", "ratings", "runtime"],
+        'properties': [
+            "title", "plot", "playcount", "year", "lastplayed", "premiered", "file", "originaltitle", "watchedepisodes", "dateadded",
+            "genre", "studio", "cast", "tag",
+            "fanart", "thumbnail", "art", "ratings"],
         'key': "tvshowdetails",
     },
     'seasonid': {
         'method': "VideoLibrary.GetSeasonDetails",
-        'properties': ["title", "plot", "fanart", "thumbnail", "tvshowid", "art"],
+        'properties': [
+            "title", "plot", "playcount",
+            "tvshowid",
+            "fanart", "thumbnail", "art"],
         'key': "seasondetails",
     },
     'episodeid': {
         'method': "VideoLibrary.GetEpisodeDetails",
-        'properties': ["title", "plot", "writer", "director", "cast", "fanart", "thumbnail", "tvshowid", "art", "seasonid", "ratings"],
+        'properties': [
+            "title", "plot", "playcount", "firstaired", "runtime", "productioncode", "lastplayed", "dateadded",
+            "tvshowid", "seasonid",
+            "writer", "director", "cast",
+            "fanart", "thumbnail", "art", "ratings"],
         'key': "episodedetails",
     },
 }
