@@ -4,7 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem, Dialog
 from infotagger.listitem import ListItemInfoTag
-from jurialmunkey.litems import Container
+from jurialmunkey.litems import Container, INFOLABEL_MAP
 from jurialmunkey.window import set_to_windowprop, WindowProperty
 from resources.lib.kodiutils import kodi_log, get_localized
 from resources.lib.filters import get_filters, is_excluded
@@ -45,60 +45,6 @@ STANDARD_OPERATORS = (
     ('gt', 32041))
 
 
-def update_global_property_versions():
-    """ Add additional properties from newer versions of JSON RPC """
-
-    from jurialmunkey.jsnrpc import get_jsonrpc
-
-    response = get_jsonrpc("JSONRPC.Version")
-    version = (
-        response['result']['version']['major'],
-        response['result']['version']['minor'],
-        response['result']['version']['patch'],
-    )
-
-    if version >= (13, 3, 0):
-        DIRECTORY_PROPERTIES_MUSIC.append('songvideourl')  # Added in 13.3.0 of JSON RPC
-
-
-INFOLABEL_MAP = {
-    "title": "title",
-    "artist": "artist",
-    "albumartist": "albumartist",
-    "genre": "genre",
-    "year": "year",
-    "rating": "rating",
-    "album": "album",
-    "track": "tracknumber",
-    "duration": "duration",
-    "runtime": "duration",
-    "playcount": "playcount",
-    "director": "director",
-    "trailer": "trailer",
-    "tagline": "tagline",
-    "plot": "plot",
-    "plotoutline": "plotoutline",
-    "originaltitle": "originaltitle",
-    "lastplayed": "lastplayed",
-    "writer": "writer",
-    "studio": "studio",
-    "mpaa": "mpaa",
-    "country": "country",
-    "premiered": "premiered",
-    "set": "set",
-    "top250": "top250",
-    "votes": "votes",
-    "firstaired": "aired",
-    "season": "season",
-    "episode": "episode",
-    "showtitle": "tvshowtitle",
-    "sorttitle": "sorttitle",
-    "episodeguide": "episodeguide",
-    "dateadded": "date",
-    "id": "dbid",
-    "songvideourl": "songvideourl",
-}
-
 INFOPROPERTY_MAP = {
     "disctitle": "disctitle",
     "releasedate": "releasedate",
@@ -118,6 +64,22 @@ INFOPROPERTY_MAP = {
     "setid": "set.dbid",
     "songvideourl": "songvideourl",
 }
+
+
+def update_global_property_versions():
+    """ Add additional properties from newer versions of JSON RPC """
+
+    from jurialmunkey.jsnrpc import get_jsonrpc
+
+    response = get_jsonrpc("JSONRPC.Version")
+    version = (
+        response['result']['version']['major'],
+        response['result']['version']['minor'],
+        response['result']['version']['patch'],
+    )
+
+    if version >= (13, 3, 0):
+        DIRECTORY_PROPERTIES_MUSIC.append('songvideourl')  # Added in 13.3.0 of JSON RPC
 
 
 class MetaItemJSONRPC():
