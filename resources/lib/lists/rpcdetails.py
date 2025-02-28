@@ -26,7 +26,7 @@ JSON_RPC_LOOKUPS = {
     'movieid': {
         'method': "VideoLibrary.GetMovieDetails",
         'properties': [
-            "file", "title", "plot", "playcount", "year", "trailer", "tagline", "originaltitle", "mpaa", "runtime", "set", "setid", "premiered", "dateadded",
+            "file", "title", "plot", "playcount", "year", "trailer", "tagline", "originaltitle", "mpaa", "runtime", "set", "setid", "premiered", "dateadded", "userrating", "rating", "votes",
             "genre", "director", "writer", "studio", "cast", "country",
             "fanart", "thumbnail", "art", "ratings", "uniqueid", "streamdetails"],
         'key': "moviedetails",
@@ -34,7 +34,7 @@ JSON_RPC_LOOKUPS = {
     'tvshowid': {
         'method': "VideoLibrary.GetTVShowDetails",
         'properties': [
-            "file", "title", "plot", "playcount", "year", "lastplayed", "premiered", "originaltitle", "watchedepisodes", "dateadded",
+            "file", "title", "plot", "playcount", "year", "lastplayed", "premiered", "originaltitle", "watchedepisodes", "dateadded", "userrating", "rating", "votes",
             "genre", "studio", "cast",
             "fanart", "thumbnail", "art", "ratings", "uniqueid"],
         'key': "tvshowdetails",
@@ -50,7 +50,7 @@ JSON_RPC_LOOKUPS = {
     'episodeid': {
         'method': "VideoLibrary.GetEpisodeDetails",
         'properties': [
-            "file", "showtitle", "title", "plot", "playcount", "firstaired", "runtime", "productioncode", "lastplayed", "dateadded", "season", "episode", "originaltitle",
+            "file", "showtitle", "title", "plot", "playcount", "firstaired", "runtime", "productioncode", "lastplayed", "dateadded", "season", "episode", "originaltitle", "userrating", "rating", "votes",
             "tvshowid", "seasonid",
             "writer", "director", "cast",
             "fanart", "thumbnail", "art", "ratings", "uniqueid", "streamdetails"],
