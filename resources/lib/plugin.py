@@ -12,22 +12,22 @@ class Plugin():
             'module_name': 'resources.lib.lists.playerstreams',
             'import_attr': 'ListSetPlayerStreams'},
         'get_dbitem_movieset_details': {
-            'module_name': 'resources.lib.lists.rpcdetails',
+            'module_name': 'jurialmunkey.jrpcid',
             'import_attr': 'ListGetMovieSetDetails'},
         'get_dbitem_movie_details': {
-            'module_name': 'resources.lib.lists.rpcdetails',
+            'module_name': 'jurialmunkey.jrpcid',
             'import_attr': 'ListGetMovieDetails'},
         'get_dbitem_tvshow_details': {
-            'module_name': 'resources.lib.lists.rpcdetails',
+            'module_name': 'jurialmunkey.jrpcid',
             'import_attr': 'ListGetTVShowDetails'},
         'get_dbitem_season_details': {
-            'module_name': 'resources.lib.lists.rpcdetails',
+            'module_name': 'jurialmunkey.jrpcid',
             'import_attr': 'ListGetSeasonDetails'},
         'get_dbitem_episode_details': {
-            'module_name': 'resources.lib.lists.rpcdetails',
+            'module_name': 'jurialmunkey.jrpcid',
             'import_attr': 'ListGetEpisodeDetails'},
         'get_dbitem_addon_details': {
-            'module_name': 'resources.lib.lists.rpcdetails',
+            'module_name': 'jurialmunkey.jrpcid',
             'import_attr': 'ListGetAddonDetails'},
         'get_number_sum': {
             'module_name': 'resources.lib.lists.koditools',
