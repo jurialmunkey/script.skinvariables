@@ -2,7 +2,7 @@
 # Module: default
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
-from jurialmunkey.window import set_to_windowprop, clear_windowprops
+from jurialmunkey.window import set_to_windowprop, clear_windowprops, get_property
 from jurialmunkey.litems import Container
 
 
@@ -22,6 +22,22 @@ def clear_windowprops_decorator(func):
         clear_windowprops(window_prop=kwargs.get('window_prop'), window_id=kwargs.get('window_id'), keys_prop=KEYS_PROP)
         return func(*args, **kwargs)
     return wrapper
+
+
+class ListGetRefreshCounter(Container):
+
+    @clear_windowprops_decorator
+    def get_directory(self, uid, window_prop=None, window_id=None, **kwargs):
+
+        affix = 'SkinVariables'
+        value = int(get_property(uid, prefix=affix) or 0) + 1
+        get_property(uid, prefix=affix, set_property=str(value))
+
+        label = f'{value}'
+        items = [self.get_list_item(label)]
+        set_to_windowprop(label, 0, window_prop, window_id)
+
+        self.add_items(items)
 
 
 class ListGetNumberSum(Container):
