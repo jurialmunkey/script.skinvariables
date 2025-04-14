@@ -4,7 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem, Dialog
 from infotagger.listitem import ListItemInfoTag
-from jurialmunkey.litems import Container, INFOLABEL_MAP
+from jurialmunkey.litems import ContainerDirectory, INFOLABEL_MAP
 from jurialmunkey.window import set_to_windowprop, WindowProperty
 from resources.lib.kodiutils import kodi_log, get_localized
 from resources.lib.filters import get_filters, is_excluded
@@ -260,7 +260,7 @@ class ListItemJSONRPC():
         return self._listitem
 
 
-class ListGetFilterFiles(Container):
+class ListGetFilterFiles(ContainerDirectory):
     def get_directory(self, filepath=None, **kwargs):
         from resources.lib.shortcuts.futils import get_files_in_folder
 
@@ -487,7 +487,7 @@ class MetaFilterDir():
             dump(self.meta, file, indent=4)
 
 
-class ListSetFilterDir(Container):
+class ListSetFilterDir(ContainerDirectory):
     def get_directory(self, library='video', filename=None, filepath=None, **kwargs):
         meta_filter_dir = MetaFilterDir(library=library, filepath=filepath)
 
@@ -606,7 +606,7 @@ class ListSetFilterDir(Container):
         get_new() if not filepath else do_edit()
 
 
-class ListGetFilterDir(Container):
+class ListGetFilterDir(ContainerDirectory):
     def get_directory(
             self, paths=None, library=None, no_label_dupes=False, dbtype=None,
             sort_by=None, sort_how=None, randomise=False, randomise_prop=None, randomise_time=None, fallback=False, names=None,
@@ -769,7 +769,7 @@ class ListGetFilterDir(Container):
             set_to_windowprop(v, k, window_prop, window_id)
 
 
-class ListGetContainerLabels(Container):
+class ListGetContainerLabels(ContainerDirectory):
     def get_directory(
             self, containers, infolabel, numitems=None, thumb=None, label2=None, separator=' / ',
             filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None,

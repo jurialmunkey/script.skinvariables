@@ -5,7 +5,7 @@
 import random
 import resources.lib.shortcuts.futils as shortcutfutils
 from xbmcgui import ListItem, Dialog, INPUT_NUMERIC
-from jurialmunkey.litems import Container
+from jurialmunkey.litems import ContainerDirectory
 from jurialmunkey.parser import boolean, parse_localize
 from resources.lib.kodiutils import get_localized
 from resources.lib.filters import get_filters, is_excluded
@@ -776,7 +776,7 @@ class NodeMethods():
         xbmc.executebuiltin(f'SetFocus({refocus},{x},absolute)')
 
 
-class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMethods):
+class ListGetShortcutsNode(ContainerDirectory, NodeProperties, NodeMethods, NodeSubmenuMethods):
     refresh = False
     update_listing = False
 
