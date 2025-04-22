@@ -4,7 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem, Dialog
 from infotagger.listitem import ListItemInfoTag
-from jurialmunkey.litems import Container, INFOLABEL_MAP
+from jurialmunkey.litems import ContainerDirectory, INFOLABEL_MAP
 from jurialmunkey.window import set_to_windowprop, WindowProperty
 from resources.lib.kodiutils import kodi_log, get_localized
 from resources.lib.filters import get_filters, is_excluded
@@ -260,7 +260,7 @@ class ListItemJSONRPC():
         return self._listitem
 
 
-class ListGetFilterFiles(Container):
+class ListGetFilterFiles(ContainerDirectory):
     def get_directory(self, filepath=None, **kwargs):
         from resources.lib.shortcuts.futils import get_files_in_folder
 
@@ -487,7 +487,7 @@ class MetaFilterDir():
             dump(self.meta, file, indent=4)
 
 
-class ListSetFilterDir(Container):
+class ListSetFilterDir(ContainerDirectory):
     def get_directory(self, library='video', filename=None, filepath=None, **kwargs):
         meta_filter_dir = MetaFilterDir(library=library, filepath=filepath)
 
@@ -606,10 +606,10 @@ class ListSetFilterDir(Container):
         get_new() if not filepath else do_edit()
 
 
-class ListGetFilterDir(Container):
+class ListGetFilterDir(ContainerDirectory):
     def get_directory(
             self, paths=None, library=None, no_label_dupes=False, dbtype=None,
-            sort_by=None, sort_how=None, randomise=False, fallback=False, names=None,
+            sort_by=None, sort_how=None, randomise=False, randomise_prop=None, randomise_time=None, fallback=False, names=None,
             window_prop=None, window_id=None,
             **kwargs
     ):
@@ -684,9 +684,42 @@ class ListGetFilterDir(Container):
                 seed_names = None
             return (seed_paths, seed_names)
 
+        def _get_stored_random_path():
+            # Dont randomise if only one path to choose
+            total_x = len(paths)
+            if total_x == 1:
+                return 0
+
+            # Dont check randomise prop if none selected
+            if not randomise_prop:
+                return
+
+            prefix = 'SkinVariables.RandomisationTimer'
+
+            # Default to ten minute refresh time if nont selected
+            time_limit = int(randomise_time or 600)
+
+            # Check expiry of previous stored value
+            from jurialmunkey.window import get_property
+            from jurialmunkey.tmdate import get_timestamp, set_timestamp
+            expiry = get_property(f'{randomise_prop}.expiry', prefix=prefix)
+
+            # Get a new random seed value if expired (and make sure we dont get previous value again)
+            if not get_timestamp(expiry, set_int=True):
+                import random
+                previous_x = get_property(f'{randomise_prop}', prefix=prefix)
+                previous_x = int(previous_x) if previous_x else -1
+                x = random.choice([x for x in range(len(paths)) if x != previous_x])
+                get_property(f'{randomise_prop}.expiry', set_property=f'{set_timestamp(time_limit, set_int=True)}', prefix=prefix)
+                get_property(f'{randomise_prop}', set_property=f'{x}', prefix=prefix)
+                return x
+
+            return int(get_property(f'{randomise_prop}', prefix=prefix))
+
         def _get_random_path():
             import random
-            x = random.choice(range(len(paths)))
+            x = _get_stored_random_path()
+            x = random.choice(range(len(paths))) if x is None else x
             return _get_indexed_path(x)
 
         def _get_paths_names_tuple():
@@ -736,7 +769,7 @@ class ListGetFilterDir(Container):
             set_to_windowprop(v, k, window_prop, window_id)
 
 
-class ListGetContainerLabels(Container):
+class ListGetContainerLabels(ContainerDirectory):
     def get_directory(
             self, containers, infolabel, numitems=None, thumb=None, label2=None, separator=' / ',
             filter_value=None, filter_operator=None, exclude_value=None, exclude_operator=None,

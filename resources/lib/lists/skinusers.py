@@ -3,7 +3,7 @@
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem, Dialog, INPUT_NUMERIC
-from jurialmunkey.litems import Container
+from jurialmunkey.litems import ContainerDirectory
 from resources.lib.kodiutils import get_localized
 import jurialmunkey.futils as jmfutils
 
@@ -17,7 +17,7 @@ class FileUtils(jmfutils.FileUtils):
     addondata = BASEFOLDER   # Override module addon_data with plugin addon_data
 
 
-class ListAddSkinUser(Container):
+class ListAddSkinUser(ContainerDirectory):
     def get_directory(self, skinid, **kwargs):
         import re
         import random
@@ -63,7 +63,7 @@ class ListAddSkinUser(Container):
         reload_shortcut_dir()
 
 
-class ListGetSkinUser(Container):
+class ListGetSkinUser(ContainerDirectory):
     def get_directory(self, skinid, folder, slug=None, allow_new=False, func=None, **kwargs):
         import xbmc
         from jurialmunkey.parser import boolean
