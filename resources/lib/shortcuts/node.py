@@ -5,9 +5,10 @@
 import random
 import resources.lib.shortcuts.futils as shortcutfutils
 from xbmcgui import ListItem, Dialog, INPUT_NUMERIC
-from jurialmunkey.litems import Container
+from jurialmunkey.litems import ContainerDirectory
 from jurialmunkey.parser import boolean, parse_localize
 from resources.lib.kodiutils import get_localized
+from resources.lib.filters import get_filters, is_excluded
 
 FILE_PREFIX = shortcutfutils.FILE_PREFIX
 
@@ -189,6 +190,45 @@ def cache_meta_from_file(filepath, fileprop, refresh=False):
     return meta
 
 
+def get_menunode_lookup(lookup, skin, menu, item=None, node=None, mode=None, guid=None, **kwargs):
+    node_obj = ListGetShortcutsNode(None, None)
+    node_obj.refresh = True  # Refresh mem cache because we want to build from the file
+    node_obj.skin = skin
+    node_obj.menu = menu
+    node_obj.item = item
+    node_obj.node = node
+    node_obj.mode = mode
+    node_obj.guid = guid
+    node_obj.edit = False
+
+    if not node_obj.menunode:
+        return ''
+
+    key_filters = {k[7:]: v for k, v in kwargs.items() if k.startswith('filter_')}
+
+    def _is_filtered(i):
+        for k, v in key_filters.items():
+            if k not in i:
+                return
+            if i[k] != v:
+                return
+        return i
+
+    item = None
+
+    for x, i in enumerate(node_obj.menunode):
+        if not isinstance(i, dict):
+            i = {'value': i}
+        item = _is_filtered(i)
+        if item:
+            break
+
+    if not item:
+        return ''
+
+    return item.get(lookup) or ''
+
+
 class GetDirectoryItems():
     def __init__(self, grouping=GROUPING_DEFAULT, use_rawpath=False, folder_name=None):
         self.grouping = grouping
@@ -312,6 +352,41 @@ class NodeProperties():
         except AttributeError:
             self._nodename = get_nodename(self.node)
             return self._nodename
+
+    @property
+    def node(self):
+        return self._node
+
+    @node.setter
+    def node(self, value):
+        try:
+            self._node = tuple([int(i) for i in value.split('.') if i])
+        except (TypeError, AttributeError):
+            self._node = tuple()
+
+    @property
+    def mode(self):
+        try:
+            return self._mode or 'submenu'
+        except AttributeError:
+            self._mode = 'submenu'
+            return self._mode
+
+    @mode.setter
+    def mode(self, value):
+        self._mode = value
+
+    @property
+    def edit(self):
+        try:
+            return self._edit
+        except AttributeError:
+            self._edit = False
+            return self._edit
+
+    @edit.setter
+    def edit(self, value):
+        self._edit = boolean(value)
 
 
 class NodeSubmenuMethods():
@@ -556,11 +631,25 @@ class NodeMethods():
         menunode_item.update(item)
         self.write_meta_to_file()
 
-    def do_list_del(self, grouping=GROUPING_DEFAULT, use_rawpath=False):
+    def do_list_del(self, grouping=GROUPING_DEFAULT, use_rawpath=False, **kwargs):
         directory_item_getter = GetDirectoryItems(grouping=grouping, use_rawpath=use_rawpath, folder_name='Delete list...')
         items = directory_item_getter.items or []
         paths = [i['path'] for i in items if i and i.get('path')]
-        index = [x for x, i in enumerate(self.menunode) if i and i.get('path') in paths]
+
+        def _is_included(i):
+            if not i:
+                return
+            if i.get('path') not in paths:
+                return
+            for k, v in kwargs.items():
+                if k not in i:
+                    return
+                if i[k] != v:
+                    return
+            return i
+
+        index = [x for x, i in enumerate(self.menunode) if _is_included(i)]
+
         if not index:
             Dialog().ok(get_localized(32087), get_localized(32089))
             return
@@ -570,9 +659,10 @@ class NodeMethods():
             del self.menunode[x]
         self.write_meta_to_file()
 
-    def do_list_add(self, grouping=GROUPING_DEFAULT, use_rawpath=False, item_limit=30):
+    def do_list_add(self, grouping=GROUPING_DEFAULT, use_rawpath=False, item_limit=30, **kwargs):
         """
         Choose a list to add multiple items automatically
+        Specific kwargs as additional properties to add to items
         """
         x = int(self.item)
         item_limit = int(item_limit)
@@ -584,8 +674,12 @@ class NodeMethods():
             return
         directory_jsonrpc_items = directory_item_getter.directory_jsonrpc.items
 
+        def _update_item(i):
+            i.update(kwargs)
+            return i
+
         paths = [i['path'] for i in self.menunode if i and i.get('path')]
-        items = [i for i in items if i and i['path'] not in paths]
+        items = [_update_item(i) for i in items if i and i['path'] not in paths]
 
         if len(items) < 1:
             Dialog().ok(get_localized(32083), get_localized(32085))
@@ -605,11 +699,12 @@ class NodeMethods():
 
         self.write_meta_to_file()
 
-    def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT, create_new=False, use_rawpath=False, refocus=None, window_prop=None, window_id=None):
+    def do_choose(self, prefix=None, grouping=GROUPING_DEFAULT, create_new=False, use_rawpath=False, refocus=None, window_prop=None, window_id=None, **kwargs):
         """
         Wrapper for do_action which also sets icon and label
         Specify prefix to set a specific property e.g. prefix=myshortcut updates myshortcut_path myshortcut_target myshortcut_icon myshortcut_label
         Specify create_new boolean to insert in place, otherwise updates item
+        Specify additional kwargs to add default properties to item
         """
         x = int(self.item)
         from resources.lib.shortcuts.browser import GetDirectoryBrowser
@@ -618,6 +713,7 @@ class NodeMethods():
             item = GetDirectoryBrowser(use_rawpath=boolean(use_rawpath)).get_directory(path=grouping)
         if not item:
             return
+        item.update(kwargs)  # Allow adding in additional forced properties
         item = {f'{prefix}_{k}': v for k, v in item.items()} if prefix else item
         if boolean(create_new):
             x = x + 1
@@ -629,20 +725,30 @@ class NodeMethods():
         self.do_windowprop(window_prop, x, window_id)
         self.do_refocus(refocus, x)
 
-    def do_new(self, prefix=None, grouping=GROUPING_DEFAULT, use_rawpath=False, refocus=None, window_prop=None, window_id=None):
+    def do_new(self, prefix=None, grouping=GROUPING_DEFAULT, use_rawpath=False, refocus=None, window_prop=None, window_id=None, **kwargs):
         """
         Wrapper for do_choose that forces create_new=True
         """
         self.do_choose(
             prefix=prefix, grouping=grouping, create_new=True, use_rawpath=use_rawpath,
-            refocus=refocus, window_prop=window_prop, window_id=window_id)
+            refocus=refocus, window_prop=window_prop, window_id=window_id, **kwargs)
 
-    def do_move(self, move=0, refocus=None, window_prop=None, window_id=None):
+    def do_move(self, move=0, refocus=None, window_prop=None, window_id=None, offset=None):
         x = int(self.item)
+        y = int(move)
         nodeitem = self.menunode.pop(x)
         nodesize = len(self.menunode)
 
-        x = x + int(move)
+        def _get_offset_x():
+            if offset is None:
+                return x + y
+            if y < 0:
+                return int(offset) + 1 + y
+            if y > 0:
+                return int(offset) - 1 + y
+            return int(offset)
+
+        x = _get_offset_x()
         x = x if x <= nodesize else 0  # Loop back to top
         x = x if x >= 0 else nodesize + 1  # Loop back to bottom
 
@@ -670,7 +776,7 @@ class NodeMethods():
         xbmc.executebuiltin(f'SetFocus({refocus},{x},absolute)')
 
 
-class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMethods):
+class ListGetShortcutsNode(ContainerDirectory, NodeProperties, NodeMethods, NodeSubmenuMethods):
     refresh = False
     update_listing = False
 
@@ -692,9 +798,17 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
     def write_meta_to_file(self, reload=True):
         shortcutfutils.write_meta_to_file(assign_guid(self.meta), folder=self.skin, filename=self.filename, fileprop=self.fileprop, reload=reload)
 
-    def get_directory_items(self, blank=False):
+    def get_directory_items(self, blank=False, filters=None):
 
         contextmenu = get_contextmenu_config()
+
+        def _is_filtered(i):
+            if not filters:
+                return i
+            for _, f in filters.items():
+                if is_excluded({'infolabels': i}, **f):
+                    return
+            return i
 
         def _make_item(x, i):
             if (not i or boolean(i.get('disabled'))) and not blank and not self.edit:
@@ -713,6 +827,9 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
 
             submenu = i.pop('submenu', [])
             widgets = i.pop('widgets', [])
+
+            if not blank and not _is_filtered(i):
+                return
 
             target = i.get('target', '')
             name = parse_localize(i.pop('label', ''))
@@ -745,8 +862,11 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
             return item
 
         node_name = get_nodename(self.node)
-        items = [_make_item(0, {'label': get_localized(32078)})] if blank else [j for j in (_make_item(x, i) for x, i in enumerate(self.menunode or [])) if j]
-        return items
+
+        if blank:
+            return [_make_item(0, {'label': get_localized(32078), 'blank': 'True'})]
+
+        return [j for j in (_make_item(x, i) for x, i in enumerate(self.menunode or [])) if j]
 
     def get_directory(
             self,
@@ -763,26 +883,23 @@ class ListGetShortcutsNode(Container, NodeProperties, NodeMethods, NodeSubmenuMe
 
         self.menu = menu
         self.skin = skin
-        self.mode = mode or 'submenu'
+        self.mode = mode
         self.guid = guid
-        self.edit = boolean(edit)
-
-        try:
-            self.node = tuple([int(i) for i in node.split('.') if i])
-        except (TypeError, AttributeError):
-            self.node = tuple()
-
-        try:
-            self.item = item
-        except TypeError:
-            self.item = None
+        self.node = node
+        self.item = item
+        self.edit = edit
 
         if func == 'node':
             return self.menunode
 
         if (self.item is None or not self.meta) and func in [None, 'list']:  # If no item is specified then we show the whole directory
-            items = self.get_directory_items(blank=True if not self.menunode and self.edit else False)  # If we're in edit mode and have no items show a blank one
-            return items if func == 'list' else self.add_items(items, update_listing=self.update_listing)
+            blank = True if not self.menunode and self.edit else False   # If we're in edit mode and have no items show a blank one
+            items = self.get_directory_items(blank=blank, filters=get_filters(**kwargs))
+            if func == 'list':
+                return items
+            if not items and self.edit:  # If we didn't get any items from filter and we're in edit mode then get blank
+                items = self.get_directory_items(blank=True)
+            return self.add_items(items, update_listing=self.update_listing)
 
         item_func = getattr(self, func)
 

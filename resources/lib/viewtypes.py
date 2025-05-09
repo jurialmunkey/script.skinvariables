@@ -21,6 +21,8 @@ def join_conditions(org='', new='', operator=' | '):
 
 
 def _get_localized(text):
+    if not text:
+        return ''
     if text.startswith('$LOCALIZE'):
         text = text.strip('$LOCALIZE[]')
     if try_int(text):
@@ -141,11 +143,15 @@ class ViewTypes(object):
         p_dialog.update(25, message=ADDON.getLocalizedString(32006))
         for base_k, base_v in self.addon_meta.items():
             for contentid, viewid in base_v.items():
+                try:
+                    viewtypes_viewid = viewtypes[viewid]
+                except KeyError:
+                    continue
                 if base_k == 'library':
-                    viewtypes[viewid].setdefault(contentid, {}).setdefault('library', True)
+                    viewtypes_viewid.setdefault(contentid, {}).setdefault('library', True)
                     continue
                 if base_k == 'plugins':
-                    viewtypes[viewid].setdefault(contentid, {}).setdefault('plugins', True)
+                    viewtypes_viewid.setdefault(contentid, {}).setdefault('plugins', True)
                     continue
                 for i in viewtypes:
                     listtype = 'whitelist' if i == viewid else 'blacklist'

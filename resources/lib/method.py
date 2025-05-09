@@ -32,6 +32,13 @@ def set_animation(set_animation, **kwargs):
     ])
 
 
+def set_slider(window_id, control_id, value):
+    import xbmcgui
+    win = xbmcgui.Window(int(window_id))
+    con = win.getControl(int(control_id))
+    con.setPercent(int(value))
+
+
 def run_executebuiltin_list(builtins):
     import xbmc
     for builtin in builtins:
@@ -122,6 +129,54 @@ def run_progressdialog(run_progressdialog, background=False, heading='', message
     del monitor
 
 
+class DialogSelectPreselectedItems():
+
+    empty = -1
+
+    def __init__(self, preselected_values, list_items):
+        self.preselected_values = preselected_values
+        self.list_items = list_items
+
+    def get_preselected_value(self, value):
+        try:
+            return int(value)
+        except TypeError:
+            return
+        except ValueError:
+            pass
+
+        from contextlib import suppress
+        with suppress(ValueError):
+            return self.list_items.index(value)
+
+    def get_preselected_output(self):
+        preselected_index = self.get_preselected_value(self.preselected_values[0])
+        if preselected_index is None:
+            return self.empty
+        return preselected_index
+
+    @property
+    def preselected_items(self):
+        if not self.preselected_values:  # Skinner has not specified a preselected value
+            return self.empty
+
+        if not self.list_items or len(self.list_items) == 0:  # List has no list_items so we dont preselect anything
+            return self.empty
+
+        return self.get_preselected_output()
+
+
+class DialogMultiSelectPreselectedItems(DialogSelectPreselectedItems):
+
+    empty = (-1, )
+
+    def get_preselected_output(self):
+        preselected_indicies = [j for j in (self.get_preselected_value(i) for i in self.preselected_values) if j is not None]
+        if not preselected_indicies:
+            return self.empty
+        return preselected_indicies
+
+
 def run_dialog(run_dialog, separator=' / ', **kwargs):
     import xbmcgui
 
@@ -134,23 +189,15 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
         from jurialmunkey.futils import load_filecontent
         return str(load_filecontent(string))
 
-    def _get_preselected_items(string):
-        if not string:
-            return -1
-        try:
-            return int(string)
-        except TypeError:
-            return -1
-        except ValueError:
-            pass
-        items = _split_items(kwargs.get('list') or '')
-        if not items:
-            return -1
-        if len(items) == 0:
-            return -1
-        if string not in items:
-            return -1
-        return items.index(string)
+    def _get_dialog_select_preselected_items(string):
+        list_items = _split_items(kwargs.get('list') or '')
+        preselected_values = _split_items(string or '')
+        return DialogSelectPreselectedItems(preselected_values, list_items).preselected_items
+
+    def _get_dialog_multiselect_preselected_items(string):
+        list_items = _split_items(kwargs.get('options') or '')
+        preselected_values = _split_items(string or '')
+        return DialogMultiSelectPreselectedItems(preselected_values, list_items).preselected_items
 
     dialog = xbmcgui.Dialog()
 
@@ -217,20 +264,27 @@ def run_dialog(run_dialog, separator=' / ', **kwargs):
             'params': (
                 ('heading', str, ''),
                 ('list', _split_items, ''),
-                ('autoclose', int, 0), ('preselect', _get_preselected_items, -1), ('useDetails', boolean, False), )
+                ('autoclose', int, 0), ('preselect', _get_dialog_select_preselected_items, None), ('useDetails', boolean, False), ),
+            'values': 'list'
         },
         'multiselect': {
-            'func': dialog.select,
+            'func': dialog.multiselect,
             'params': (
                 ('heading', str, ''),
-                ('list', _split_items, ''),
-                ('autoclose', int, 0), ('preselect', _get_preselected_items, -1), ('useDetails', boolean, False), )
+                ('options', _split_items, ''),
+                ('autoclose', int, 0), ('preselect', _get_dialog_multiselect_preselected_items, None), ('useDetails', boolean, False), ),
+            'values': 'options'
         },
     }
 
     route = dialog_standard_routes[run_dialog]
     params = {k: func(kwargs.get(k) or fallback) for k, func, fallback in route['params']}
-    executebuiltin(index=route['func'](**params), values=params.get('list'), **kwargs)
+    output = route['func'](**params)
+    values = params.get(route.get('values'))
+    if not isinstance(output, (tuple, list)):
+        output = (output, )
+    for x in output:
+        executebuiltin(index=x, values=values, **kwargs)
 
 
 def set_player_subtitle(set_player_subtitle, reload_property='UID', **kwargs):

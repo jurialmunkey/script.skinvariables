@@ -39,8 +39,6 @@ class GetDirectoryJSONRPC(GetDirectoryCommon):
 
         return self._directory
 
-
-
     def get_items(self):
 
         from resources.lib.lists.filterdir import ListItemJSONRPC

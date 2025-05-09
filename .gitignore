@@ -61,3 +61,6 @@ target/
 .idea/
 
 *.zip
+
+*.sublime-project
+*.sublime-workspace

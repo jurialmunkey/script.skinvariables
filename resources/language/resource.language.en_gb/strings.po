@@ -507,3 +507,18 @@ msgstr ""
 msgctxt "#32095"
 msgid "Add new"
 msgstr ""
+
+#: /resources/lib/lists/skinusers.py
+msgctxt "#32096"
+msgid "Add new user"
+msgstr ""
+
+#: /resources/lib/lists/skinusers.py
+msgctxt "#32097"
+msgid "Enable default user"
+msgstr ""
+
+#: /resources/lib/lists/skinusers.py
+msgctxt "#32098"
+msgid "Disable default user"
+msgstr ""

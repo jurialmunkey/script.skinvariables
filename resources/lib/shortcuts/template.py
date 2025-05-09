@@ -7,11 +7,11 @@ import xbmc
 import xbmcaddon
 from json import loads
 from jurialmunkey.logger import TimerFunc
-from jurialmunkey.parser import parse_math
+from jurialmunkey.parser import parse_math, boolean, parse_paramstring
 from jurialmunkey.futils import load_filecontent, write_skinfile, make_hash
 from resources.lib.kodiutils import ProgressDialog, get_localized
 from resources.lib.operations import RuleOperations, check_condition
-from resources.lib.shortcuts.node import ListGetShortcutsNode
+from resources.lib.shortcuts.node import ListGetShortcutsNode, get_menunode_lookup
 from resources.lib.shortcuts.xmltojson import xml_to_json
 from xml.dom import minidom
 from copy import deepcopy
@@ -59,9 +59,22 @@ class TemplatePart():
         conditions = conditions if isinstance(conditions, list) else [conditions]
         return all([check_condition(self.get_formatted(condition)) for condition in conditions])
 
+    def parse_lookup(self, string):
+        """ $LOOKUP[lookup_key?menu=sidemenu&filter_guid=xyz] """
+        LOOKUP_REGEX = r'\$LOOKUP\[(.*?)\]'
+        match = re.search(LOOKUP_REGEX, string)
+        if not match:
+            return string
+        lookup, paramstring = match.group(1).split('?', 1)
+        params = parse_paramstring(paramstring)
+        output = get_menunode_lookup(lookup, skin=self.skinid, **params)
+        string = string.replace(match.group(0), output)
+        return self.parse_lookup(string)
+
     def get_formatted(self, string, params=None):
         string = string.format_map(params or self.params)
         string = parse_math(string)
+        string = self.parse_lookup(string)
         return string
 
     def get_conditional_value(self, items):
@@ -267,7 +280,7 @@ class ShortcutsTemplate(object):
         content = pretty_xmlcontent(content)
         return content
 
-    def update_xml(self, force=False, no_reload=False, genxml='', **kwargs):
+    def update_xml(self, force=False, no_reload=False, genxml='', background=True, **kwargs):
         if not self.meta:
             return
 
@@ -299,7 +312,11 @@ class ShortcutsTemplate(object):
             return
 
         with TimerFunc('script.skinvariables - update_xml: ', log_threshold=0.001, inline=True):
-            with ProgressDialog(ADDON.getLocalizedString(32001), f'{get_localized(32049)}...', logging=2, total=4) as self.p_dialog:
+            with ProgressDialog(
+                    ADDON.getLocalizedString(32001),
+                    f'{get_localized(32049)}...',
+                    logging=2, total=4, background=boolean(background)
+            ) as self.p_dialog:
                 self.meta['genxml'] += [{k: v for j in i.split('|') for k, v in (j.split('='), )} for i in genxml.split('||')] if genxml else []
                 self.meta['getnfo'] = {k: xbmc.getInfoLabel(v) for k, v in self.meta['getnfo'].items()} if 'getnfo' in self.meta else {}
                 self.meta['getnfo'].update(kwargs)

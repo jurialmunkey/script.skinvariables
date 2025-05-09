@@ -116,7 +116,7 @@ class GetDirectoryBrowser():
             DirectoryClass = GetDirectoryJSONRPC
 
         directory = DirectoryClass(path, definitions=self.definitions, target=item[1].getProperty('nodetype') if item else None)
-        if not directory.items:
+        if not directory.items and not add_item:
             return
 
         if not item:

@@ -4,7 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem
 from jurialmunkey.jsnrpc import get_jsonrpc
-from jurialmunkey.litems import Container
+from jurialmunkey.litems import ContainerDirectory
 
 
 PLAYERSTREAMS = {
@@ -13,7 +13,7 @@ PLAYERSTREAMS = {
 }
 
 
-class ListGetPlayerStreams(Container):
+class ListGetPlayerStreams(ContainerDirectory):
     def get_directory(self, stream_type=None, **kwargs):
 
         def _get_items(stream_type):
@@ -54,7 +54,7 @@ class ListGetPlayerStreams(Container):
         self.add_items(items)
 
 
-class ListSetPlayerStreams(Container):
+class ListSetPlayerStreams(ContainerDirectory):
     def get_directory(self, stream_type=None, stream_index=None, **kwargs):
         if not stream_type or stream_index is None:
             return
