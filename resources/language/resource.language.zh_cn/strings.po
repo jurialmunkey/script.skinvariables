@@ -8,7 +8,7 @@ msgstr ""
 "Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
 "POT-Creation-Date: 2014-10-26 17:05+0000\n"
 "PO-Revision-Date: 2024-12-25 14:39+0800\n"
-"Last-Translator: \n"
+"Last-Translator: wabisabi926\n"
 "Language-Team: LANGUAGE\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
@@ -464,7 +464,7 @@ msgstr "添加列表"
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32084"
 msgid "[B][COLOR=red]WARNING[/COLOR][/B]: Adding this list will add {item_count} new items (skipping {skip_count} existing items previously added). This action cannot be undone."
-msgstr "[B][COLOR=red]WARNING[/COLOR][/B]：添加此列表将添加 {item_count} 新项目（跳过之前添加的 {skip_count} 现有项目）。此操作无法撤销。"
+msgstr "[B][COLOR=red]警告[/COLOR][/B]：添加此列表将添加 {item_count} 新项目（跳过之前添加的 {skip_count} 现有项目）。此操作无法撤销。"
 
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32085"
@@ -484,7 +484,7 @@ msgstr "删除列表"
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32088"
 msgid "[B][COLOR=red]WARNING[/COLOR][/B]: Deleting this list will remove {item_count} existing items. This action cannot be undone."
-msgstr "[B][COLOR=red]WARNING[/COLOR][/B]：删除此列表将删除 {item_count} 现有项目。此操作无法撤销。"
+msgstr "[B][COLOR=red]警告[/COLOR][/B]：删除此列表将删除 {item_count} 现有项目。此操作无法撤销。"
 
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32089"
