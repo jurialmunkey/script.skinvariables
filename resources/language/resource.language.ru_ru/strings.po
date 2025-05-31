@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.4.2\n"
+"X-Generator: Poedit 3.6\n"
 
 #: /resources/lib/script.py
 msgctxt "#32000"
@@ -542,3 +542,18 @@ msgstr "Редактировать фильтры"
 msgctxt "#32095"
 msgid "Add new"
 msgstr "Добавить новый"
+
+#: /resources/lib/lists/skinusers.py
+msgctxt "#32096"
+msgid "Add new user"
+msgstr "Добавить нового пользователя"
+
+#: /resources/lib/lists/skinusers.py
+msgctxt "#32097"
+msgid "Enable default user"
+msgstr "Включить пользователя по умолчанию"
+
+#: /resources/lib/lists/skinusers.py
+msgctxt "#32098"
+msgid "Disable default user"
+msgstr "Отключить пользователя по умолчанию"
