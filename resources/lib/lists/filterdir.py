@@ -758,24 +758,34 @@ class ListGetFilterDir(ContainerDirectory):
             for k, v in properties.items():
                 set_to_windowprop(v, k, window_prop, window_id)
 
-        def _get_infolabels(items):
+        def _del_infolabels(string):
+            import xbmc
+            window_id_affix = f',{window_id}' if window_id else ''
+            for x in range(0, 10):
+                for il in string.split():
+                    xbmc.executebuiltin(f'ClearProperty({window_prop}.{x}.{il}{window_id_affix})')
+
+        def _set_infolabels(items):
             import itertools
+
             if not items:
                 return
-            data = {}
+
             if infolabel:
-                data.update({
+                _del_infolabels(infolabel)
+                _set_properties({
                     f'{x}.{il}': i.infolabels.get(il)
                     for il in infolabel.split()
                     for x, i in enumerate(itertools.islice(items, 10))
                 })
+
             if infoproperty:
-                data.update({
+                _del_infolabels(infoproperty)
+                _set_properties({
                     f'{x}.{il}': i.infoproperties.get(il)
                     for il in infoproperty.split()
                     for x, i in enumerate(itertools.islice(items, 10))
                 })
-            return data
 
         items = _get_items_from_paths()
         items = sorted(items, key=_get_sorting, reverse=sort_how == 'desc') if sort_by else items
@@ -785,7 +795,7 @@ class ListGetFilterDir(ContainerDirectory):
         container_content = f'{max(mediatypes, key=lambda key: mediatypes[key])}s' if mediatypes else ''
         self.add_items(directory_items, container_content=container_content, plugin_category=plugin_category)
         _set_properties(statistics)
-        _set_properties(_get_infolabels(items))
+        _set_infolabels(items)
 
 
 class ListGetContainerLabels(ContainerDirectory):
