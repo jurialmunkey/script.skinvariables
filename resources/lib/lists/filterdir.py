@@ -759,6 +759,7 @@ class ListGetFilterDir(ContainerDirectory):
                 set_to_windowprop(v, k, window_prop, window_id)
 
         def _get_infolabels(items):
+            import itertools
             if not items:
                 return
             data = {}
@@ -766,13 +767,13 @@ class ListGetFilterDir(ContainerDirectory):
                 data.update({
                     f'{x}.{il}': i.infolabels.get(il)
                     for il in infolabel.split()
-                    for x, i in enumerate(items)
+                    for x, i in enumerate(itertools.islice(items, 10))
                 })
             if infoproperty:
                 data.update({
                     f'{x}.{il}': i.infoproperties.get(il)
                     for il in infoproperty.split()
-                    for x, i in enumerate(items)
+                    for x, i in enumerate(itertools.islice(items, 10))
                 })
             return data
 
