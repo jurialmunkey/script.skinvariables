@@ -29,6 +29,15 @@ class Plugin():
         'get_dbitem_addon_details': {
             'module_name': 'jurialmunkey.jrpcid',
             'import_attr': 'ListGetAddonDetails'},
+        'get_dbitem_movie_cast': {
+            'module_name': 'jurialmunkey.jrpcid',
+            'import_attr': 'ListGetMovieCast'},
+        'get_dbitem_tvshow_cast': {
+            'module_name': 'jurialmunkey.jrpcid',
+            'import_attr': 'ListGetTVShowCast'},
+        'get_dbitem_episode_cast': {
+            'module_name': 'jurialmunkey.jrpcid',
+            'import_attr': 'ListGetEpisodeCast'},
         'get_number_sum': {
             'module_name': 'resources.lib.lists.koditools',
             'import_attr': 'ListGetNumberSum'},
