@@ -159,7 +159,7 @@ Each cast member in the container has the following properties:
 <!-- Show cast list only when container has items -->
 <control type="group">
     <visible>Integer.IsGreater(Container(50).NumItems,0)</visible>
-    <control type="label>
+    <control type="label">
         <label>Cast</label>
     </control>
     <control type="list" id="50">
