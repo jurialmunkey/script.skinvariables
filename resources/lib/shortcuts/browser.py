@@ -57,11 +57,21 @@ class GetDirectoryBrowser():
             return (f'StartAndroidActivity({path})', '')
         return (f'PlayMedia({path})', '')
 
+    @staticmethod
+    def get_decoded_reload(path):
+        import re
+        from urllib.parse import unquote_plus
+        try:
+            subs = re.search('&reload=(.*?)(&|$)', path)
+            return path.replace(subs.group(0), unquote_plus(subs.group(0)))
+        except AttributeError:
+            return path
+
     def get_formatted_item(self, name, path, icon, node=None, link=True):
         if node == 'link':
             link = True
             node = ''
-        path, target = self.get_formatted_path(path, node, link) if not self.use_rawpath else (path, node)
+        path, target = self.get_formatted_path(path, node, link) if not self.use_rawpath else (self.get_decoded_reload(path), node)
         item = {"label": name or '', "path": path or '', "icon": icon or '', "target": target or ''}
         # from resources.lib.shortcuts.futils import dumps_log_to_file
         # dumps_log_to_file({'name': name, 'path': path, 'icon': icon, 'node': node, 'item': item}, filename=f'{name}.json')
