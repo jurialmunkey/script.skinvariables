@@ -610,6 +610,7 @@ class ListGetFilterDir(ContainerDirectory):
     def get_directory(
             self, paths=None, library=None, no_label_dupes=False, dbtype=None,
             sort_by=None, sort_how=None, randomise=False, randomise_prop=None, randomise_time=None, fallback=False, names=None,
+            infolabel=None, infoproperty=None,
             window_prop=None, window_id=None,
             **kwargs
     ):
@@ -629,7 +630,7 @@ class ListGetFilterDir(ContainerDirectory):
         directory_properties += {
             'video': DIRECTORY_PROPERTIES_VIDEO,
             'music': DIRECTORY_PROPERTIES_MUSIC}.get(library) or []
-
+        window_prop = window_prop or 'Statistics'
         statistics = {}
 
         def _make_item(i, path_name=None):
@@ -751,22 +752,50 @@ class ListGetFilterDir(ContainerDirectory):
 
             return items
 
-        items = _get_items_from_paths()
+        def _set_properties(properties):
+            if not properties:
+                return
+            for k, v in properties.items():
+                set_to_windowprop(v, k, window_prop, window_id)
 
+        def _del_infolabels(string):
+            import xbmc
+            window_id_affix = f',{window_id}' if window_id else ''
+            for x in range(0, 10):
+                for il in string.split():
+                    xbmc.executebuiltin(f'ClearProperty({window_prop}.{x}.{il}{window_id_affix})')
+
+        def _set_infolabels(items):
+            import itertools
+
+            if not items:
+                return
+
+            if infolabel:
+                _del_infolabels(infolabel)
+                _set_properties({
+                    f'{x}.{il}': i.infolabels.get(il)
+                    for il in infolabel.split()
+                    for x, i in enumerate(itertools.islice(items, 10))
+                })
+
+            if infoproperty:
+                _del_infolabels(infoproperty)
+                _set_properties({
+                    f'{x}.{il}': i.infoproperties.get(il)
+                    for il in infoproperty.split()
+                    for x, i in enumerate(itertools.islice(items, 10))
+                })
+
+        items = _get_items_from_paths()
         items = sorted(items, key=_get_sorting, reverse=sort_how == 'desc') if sort_by else items
-        items = [(i.path, i.listitem, i.is_folder, ) for i in items if i]
+        directory_items = [(i.path, i.listitem, i.is_folder, ) for i in items if i]
 
         plugin_category = ''
         container_content = f'{max(mediatypes, key=lambda key: mediatypes[key])}s' if mediatypes else ''
-        self.add_items(items, container_content=container_content, plugin_category=plugin_category)
-
-        if not statistics:
-            return
-
-        window_prop = window_prop or 'Statistics'
-
-        for k, v in statistics.items():
-            set_to_windowprop(v, k, window_prop, window_id)
+        self.add_items(directory_items, container_content=container_content, plugin_category=plugin_category)
+        _set_properties(statistics)
+        _set_infolabels(items)
 
 
 class ListGetContainerLabels(ContainerDirectory):
