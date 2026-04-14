@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: XBMC-Addons\n"
 "Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
 "POT-Creation-Date: 2014-10-26 17:05+0000\n"
-"PO-Revision-Date: 2026-01-10 08:39+0800\n"
+"PO-Revision-Date: 2026-04-14 10:44+0800\n"
 "Last-Translator: wabisabi926\n"
 "Language-Team: LANGUAGE\n"
 "Language: zh_CN\n"
@@ -116,9 +116,9 @@ msgid ""
 "[B]{}[/B]"
 msgstr ""
 "成功添加\n"
-"[B]{}[B]\n"
+"[B]{}[/B]\n"
 "到\n"
-"[B]{}[B]"
+"[B]{}[/B]"
 
 #: /resources/lib/skinshortcuts.menu.py
 msgctxt "#32019"
@@ -159,9 +159,9 @@ msgid ""
 "[B]{}[/B]"
 msgstr ""
 "成功添加\n"
-"[B]{}[B]\n"
+"[B]{}[/B]\n"
 "为\n"
-"[B]{}[B]"
+"[B]{}[/B]"
 
 #: /resources/lib/skinshortcuts.menu.py
 msgctxt "#32026"
@@ -182,9 +182,9 @@ msgid ""
 "[B]{}[/B]"
 msgstr ""
 "成功导入\n"
-"[B]{}[B]\n"
+"[B]{}[/B]\n"
 "到\n"
-"[B]{}[B]"
+"[B]{}[/B]"
 
 #: /resources/lib/skinshortcuts.menu.py
 msgctxt "#32029"
@@ -204,7 +204,7 @@ msgstr "为过滤器添加额外路径。"
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32032"
 msgid "[CAPITALIZE]{}[/CAPITALIZE] method"
-msgstr "[CAPITALIZE]{}[/CAPITALIZE]方法"
+msgstr "[CAPITALIZE]{}[/CAPITALIZE] 方法"
 
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32033"
@@ -239,7 +239,7 @@ msgstr "等于 ="
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32039"
 msgid "Not equal !="
-msgstr "不等于 ！="
+msgstr "不等于 !="
 
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32040"
@@ -404,7 +404,7 @@ msgstr "在此处添加"
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32072"
 msgid "Overwrite {filename} with {content}?"
-msgstr "用 {filename} 覆盖{content}？"
+msgstr "用 {content} 覆盖 {filename}？"
 
 #: /resources/lib/shortcuts/method.py
 msgctxt "#32073"
