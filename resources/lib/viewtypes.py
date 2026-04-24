@@ -10,6 +10,7 @@ from json import loads, dumps
 from jurialmunkey.parser import try_int
 from jurialmunkey.futils import check_hash, make_hash, write_skinfile, write_file, load_filecontent
 from jurialmunkey.jsnrpc import get_jsonrpc
+from jurialmunkey.ftools import cached_property
 
 
 ADDON = xbmcaddon.Addon()
@@ -35,77 +36,40 @@ class ViewTypes(object):
         if not xbmcvfs.exists(ADDON_DATA):
             xbmcvfs.mkdir(ADDON_DATA)
 
-    @property
+    @cached_property
     def content(self):
-        try:
-            return self._content
-        except AttributeError:
-            self._content = load_filecontent('special://skin/shortcuts/skinviewtypes.json')
-            return self._content
+        return load_filecontent('special://skin/shortcuts/skinviewtypes.json')
 
-    @property
+    @cached_property
     def meta(self):
-        try:
-            return self._meta
-        except AttributeError:
-            self._meta = loads(self.content) or {}
-            return self._meta
+        return loads(self.content) or {}
 
-    @property
+    @cached_property
     def addon_datafile(self):
-        try:
-            return self._addon_datafile
-        except AttributeError:
-            self._addon_datafile = f'{ADDON_DATA}{xbmc.getSkinDir()}-viewtypes.json'
-            return self._addon_datafile
+        return f'{ADDON_DATA}{xbmc.getSkinDir()}-viewtypes.json'
 
-    @property
+    @cached_property
     def addon_content(self):
-        try:
-            return self._addon_content
-        except AttributeError:
-            self._addon_content = load_filecontent(self.addon_datafile)
-            return self._addon_content
+        return load_filecontent(self.addon_datafile)
 
-    @property
+    @cached_property
     def addon_meta(self):
-        try:
-            return self._addon_meta
-        except AttributeError:
-            if not self.addon_content:
-                self._addon_meta = {}
-                return self._addon_meta
-            self._addon_meta = loads(self.addon_content) or {}
-            return self._addon_meta
+        if not self.addon_content:
+            return {}
+        return loads(self.addon_content) or {}
 
-    @addon_meta.setter
-    def addon_meta(self, value):
-        self._addon_meta = value
-
-    @property
+    @cached_property
     def prefix(self):
-        try:
-            return self._prefix
-        except AttributeError:
-            self._prefix = self.meta.get('prefix', 'Exp_View') + '_'
-            return self._prefix
+        return self.meta.get('prefix', 'Exp_View') + '_'
 
-    @property
+    @cached_property
     def skinfolders(self):
-        try:
-            return self._skinfolders
-        except AttributeError:
-            from resources.lib.xmlhelper import get_skinfolders
-            self._skinfolders = get_skinfolders()
-            return self._skinfolders
+        from resources.lib.xmlhelper import get_skinfolders
+        return get_skinfolders()
 
-    @property
+    @cached_property
     def icons(self):
-        try:
-            return self._icons
-        except AttributeError:
-            self._icons = self.meta.get('icons') or {}
-            return self._icons
+        return self.meta.get('icons') or {}
 
     def make_defaultjson(self, overwrite=False):
         p_dialog = xbmcgui.DialogProgressBG()
