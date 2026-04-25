@@ -60,6 +60,21 @@ class ViewTypesPluginView():
         self.pluginname = pluginname
 
     @cached_property
+    def current_viewid(self):
+        try:
+            return self.viewtypes_obj.addon_meta[self.pluginname][self.contentid]
+        except (KeyError, TypeError):
+            return
+
+    @cached_property
+    def preselect(self):
+        if not self.current_viewid:
+            return
+        if self.current_viewid not in self.viewtypes:
+            return
+        return self.viewtypes.index(self.current_viewid)
+
+    @cached_property
     def content(self):
         return self.viewtypes_obj.rules.get(self.contentid)
 
@@ -92,7 +107,8 @@ class ViewTypesPluginView():
         x = xbmcgui.Dialog().select(
             self.header,
             [i.item for i in self.items],
-            useDetails=bool(self.viewtypes_obj.icons)
+            useDetails=bool(self.viewtypes_obj.icons),
+            preselect=self.preselect
         )
         if x == -1:
             return
