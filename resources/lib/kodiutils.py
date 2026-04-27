@@ -25,12 +25,13 @@ busy_decorator = jurialmunkey_dialog.busy_decorator
 
 
 @contextmanager
-def isactive_winprop(name, value='True', windowid=10000):
-    xbmcgui.Window(windowid).setProperty(name, value)
+def isactive_winprop(name, value='True', windowid=10000, reverse=False):
+    win = xbmcgui.Window(windowid)
+    win.setProperty(name, value) if not reverse else win.clearProperty(name)
     try:
         yield
     finally:
-        xbmcgui.Window(windowid).clearProperty(name)
+        win.setProperty(name, value) if reverse else win.clearProperty(name)
 
 
 class ProgressDialog(jurialmunkey_dialog.ProgressDialog):
