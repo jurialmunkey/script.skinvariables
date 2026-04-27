@@ -32,19 +32,20 @@ def _get_localized(text):
 
 
 class ViewTypesItem():
-    def __init__(self, viewtypes_obj, view_id=None):
-        self.viewtypes_obj = viewtypes_obj  # ViewTypes class instance
+    def __init__(self, viewtypes, view_id, icons=None):
+        self.viewtypes = viewtypes
         self.view_id = view_id
+        self.icons = icons
 
     @cached_property
     def name(self):
-        return _get_localized(self.viewtypes_obj.viewtypes.get(self.view_id))
+        return _get_localized(self.viewtypes.get(self.view_id))
 
     @cached_property
     def icon(self):
-        if not self.viewtypes_obj.icons:
+        if not self.icons:
             return ''
-        return self.viewtypes_obj.icons.get(self.view_id)
+        return self.icons.get(self.view_id)
 
     @cached_property
     def item(self):
@@ -53,8 +54,67 @@ class ViewTypesItem():
         return item
 
 
+class ViewTypesGroup():
+    def __init__(self, key, items, icon=None):
+        self.key = key
+        self.items = items
+        self.icon = icon or ''
+
+    @cached_property
+    def name(self):
+        return _get_localized(self.key)
+
+    @cached_property
+    def item(self):
+        item = xbmcgui.ListItem(label=self.name)
+        item.setArt({'thumb': self.icon, 'icon': self.icon})
+        return item
+
+
+class ViewTypesPluginGroup():
+    def __init__(self, items, groups=None, header=None):
+        self.items = items
+        self.groups = groups
+        self.header = header or ''
+
+    def get_valid_viewtypes(self, group):
+        return tuple((
+            i for i in self.items
+            if i.view_id in group['viewtypes']
+        ))
+
+    @cached_property
+    def configured_groups(self):
+        configured_groups = tuple((
+            ViewTypesGroup(
+                key=key,
+                items=self.get_valid_viewtypes(group),
+                icon=group.get('icon')
+            )
+            for key, group in self.groups.items()
+        ))
+        return tuple((i for i in configured_groups if i.items))  # Filter out empty groups for current plugin/content
+
+    @cached_property
+    def choice(self):
+        from resources.lib.kodiutils import isactive_winprop
+        with isactive_winprop('SkinViewtypes.DialogIsActive', reverse=True):
+            choice = self.select()
+        return choice
+
+    def select(self):
+        x = xbmcgui.Dialog().select(
+            self.header,
+            [i.item for i in self.configured_groups],
+            useDetails=True,
+        )
+        if x == -1:
+            return
+        return self.configured_groups[x]
+
+
 class ViewTypesPluginView():
-    def __init__(self, viewtypes_obj, contentid=None, pluginname=None):
+    def __init__(self, viewtypes_obj, contentid, pluginname):
         self.viewtypes_obj = viewtypes_obj  # ViewTypes class instance
         self.contentid = contentid
         self.pluginname = pluginname
@@ -70,28 +130,38 @@ class ViewTypesPluginView():
     def preselect(self):
         if not self.current_viewid:
             return
-        if self.current_viewid not in self.viewtypes:
+        if self.current_viewid not in self.viewtype_ids:
             return
-        return self.viewtypes.index(self.current_viewid)
+        return self.viewtype_ids.index(self.current_viewid)
 
     @cached_property
     def content(self):
         return self.viewtypes_obj.rules.get(self.contentid)
 
     @cached_property
-    def viewtypes(self):
-        viewtypes = self.content.get('viewtypes') or []
+    def content_viewtypes(self):
+        return self.content.get('viewtypes') or []
+
+    @cached_property
+    def viewtype_ids(self):
         return [
             i for i in self.viewtypes_obj.viewtypes.keys()  # Resort according to base definition order of viewtypes
-            if i in viewtypes  # Only include viewtype IDs that are actually defined
+            if i in self.content_viewtypes  # Only include viewtype IDs that are actually defined
         ]
 
     @cached_property
     def items(self):
-        return tuple((
-            ViewTypesItem(self.viewtypes_obj, view_id)
-            for view_id in self.viewtypes
+        items = tuple((
+            self.get_viewtypes_item(view_id)
+            for view_id in self.viewtype_ids
         ))
+        if not self.viewtypes_obj.groups:
+            return items
+        choice = ViewTypesPluginGroup(items, self.viewtypes_obj.groups, header=self.header).choice
+        return choice.items if choice else None
+
+    def get_viewtypes_item(self, view_id):
+        return ViewTypesItem(self.viewtypes_obj.viewtypes, view_id, self.viewtypes_obj.icons)
 
     @cached_property
     def header(self):
@@ -104,15 +174,19 @@ class ViewTypesPluginView():
             return self.select()
 
     def select(self):
+        if not self.items:
+            return
         x = xbmcgui.Dialog().select(
             self.header,
             [i.item for i in self.items],
             useDetails=bool(self.viewtypes_obj.icons),
             preselect=self.preselect
         )
-        if x == -1:
+        if x != -1:
+            return self.items[x]
+        if not self.viewtypes_obj.groups:
             return
-        return self.items[x]
+        return ViewTypesPluginView(self.viewtypes_obj, self.contentid, self.pluginname).select()
 
     @cached_property
     def view_id(self):
@@ -151,6 +225,10 @@ class ViewTypes(object):
     @cached_property
     def viewtypes(self):
         return self.meta.get('viewtypes') or {}
+
+    @cached_property
+    def groups(self):
+        return self.meta.get('groups') or {}
 
     @cached_property
     def addon_datafile(self):
