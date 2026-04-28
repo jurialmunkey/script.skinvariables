@@ -176,12 +176,9 @@ class ViewTypesPluginView():
     def select(self):
         if not self.items:
             return
-        x = xbmcgui.Dialog().select(
-            self.header,
-            [i.item for i in self.items],
-            useDetails=bool(self.viewtypes_obj.icons),
-            preselect=self.preselect
-        )
+        kwgs = dict(useDetails=bool(self.viewtypes_obj.icons), preselect=self.preselect)
+        kwgs = {k: v for k, v in kwgs.items() if v is not None}
+        x = xbmcgui.Dialog().select(self.header, [i.item for i in self.items], **kwgs)
         if x != -1:
             return self.items[x]
         if not self.viewtypes_obj.groups:
