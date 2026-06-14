@@ -70,6 +70,7 @@ class RuleOperations():
             return self._routes
         except AttributeError:
             self._routes = {
+                'localize': self.set_localize,
                 'capitalize': self.set_capitalize,
                 'infolabels': self.set_infolabels,
                 'regex': self.set_regex,
@@ -82,6 +83,12 @@ class RuleOperations():
                 'upper': self.set_upper,
             }
             return self._routes
+
+    def set_localize(self, d):
+        for k, v in d.items():
+            k = k.format_map(self.params)
+            v = v.format_map(self.params)
+            self.params[k] = xbmc.getLocalizedString(v)
 
     def set_infolabels(self, d):
         for k, v in d.items():
