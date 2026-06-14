@@ -91,7 +91,10 @@ class RuleOperations():
             self.params[k] = function(v)
 
     def get_localize(self, v):
-        return xbmc.getLocalizedString(v)
+        try:
+            return xbmc.getLocalizedString(int(v))
+        except ValueError:
+            return ''
 
     def get_infolabels(self, v):
         return xbmc.getInfoLabel(v)
