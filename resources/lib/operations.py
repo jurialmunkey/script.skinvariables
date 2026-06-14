@@ -58,7 +58,7 @@ class RuleOperations():
     def run_operations(self):
         for i in self.operations:
             for k, v in i.items():
-                self.routes[k](v)
+                self.set_itemloop(v, **self.routes[k])
 
     @property
     def operations(self):
@@ -70,82 +70,61 @@ class RuleOperations():
             return self._routes
         except AttributeError:
             self._routes = {
-                'localize': self.set_localize,
-                'capitalize': self.set_capitalize,
-                'infolabels': self.set_infolabels,
-                'regex': self.set_regex,
-                'values': self.set_values,
-                'sums': self.set_sums,
-                'decode': self.set_decode,
-                'encode': self.set_encode,
-                'escape': self.set_escape,
-                'lower': self.set_lower,
-                'upper': self.set_upper,
+                'localize': {'function': self.get_localize},
+                'capitalize': {'function': self.get_capitalize},
+                'infolabels': {'function': self.get_infolabels},
+                'regex': {'function': self.get_regex, 'format_v': False},
+                'values': {'function': self.get_values, 'format_v': False},
+                'sums': {'function': self.get_sums, 'format_v': False},
+                'decode': {'function': self.get_decode},
+                'encode': {'function': self.get_encode},
+                'escape': {'function': self.get_escape},
+                'lower': {'function': self.get_lower},
+                'upper': {'function': self.get_upper},
             }
             return self._routes
 
-    def set_localize(self, d):
+    def set_itemloop(self, d, function, format_k=True, format_v=True):
         for k, v in d.items():
-            k = k.format_map(self.params)
-            v = v.format_map(self.params)
-            self.params[k] = xbmc.getLocalizedString(v)
+            k = k.format_map(self.params) if format_k else k
+            v = v.format_map(self.params) if format_v else v
+            self.params[k] = function(v)
 
-    def set_infolabels(self, d):
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            v = v.format_map(self.params)
-            self.params[k] = xbmc.getInfoLabel(v)
+    def get_localize(self, v):
+        return xbmc.getLocalizedString(v)
 
-    def set_regex(self, d):
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            self.params[k] = re.sub(v['regex'].format_map(self.params), v['value'].format_map(self.params), v['input'].format_map(self.params))
+    def get_infolabels(self, v):
+        return xbmc.getInfoLabel(v)
 
-    def set_values(self, d):
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            self.params[k] = self.get_actions_list(v)[0]
+    def get_regex(self, v):
+        return re.sub(v['regex'].format_map(self.params), v['value'].format_map(self.params), v['input'].format_map(self.params))
 
-    def set_sums(self, d):
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            self.params[k] = sum([int(i.format_map(self.params)) for i in v])
+    def get_values(self, v):
+        return self.get_actions_list(v)[0]
 
-    def set_decode(self, d):
+    def get_sums(self, v):
+        return sum([int(i.format_map(self.params)) for i in v])
+
+    def get_decode(self, v):
         from urllib.parse import unquote_plus
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            v = v.format_map(self.params)
-            self.params[k] = unquote_plus(v)
+        return unquote_plus(v)
 
-    def set_encode(self, d):
+    def get_encode(self, v):
         from urllib.parse import quote_plus
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            v = v.format_map(self.params)
-            self.params[k] = quote_plus(v)
+        return quote_plus(v)
 
-    def set_escape(self, d):
+    def get_escape(self, v):
         from xml.sax.saxutils import escape
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            v = v.format_map(self.params)
-            self.params[k] = escape(v)
+        return escape(v)
 
-    def set_lower(self, d):
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            self.params[k] = v.format_map(self.params).lower()
+    def get_lower(self, v):
+        return v.lower()
 
-    def set_upper(self, d):
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            self.params[k] = v.format_map(self.params).upper()
+    def get_upper(self, v):
+        return v.upper()
 
-    def set_capitalize(self, d):
-        for k, v in d.items():
-            k = k.format_map(self.params)
-            self.params[k] = v.format_map(self.params).capitalize()
+    def get_capitalize(self, v):
+        return v.capitalize()
 
     def check_rules(self, rules):
         for rule in rules:
