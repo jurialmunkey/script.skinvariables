@@ -22,6 +22,7 @@ class GetDirectoryJSONRPC(GetDirectoryCommon):
         from contextlib import suppress
         from jurialmunkey.jsnrpc import get_jsonrpc
         response = get_jsonrpc("Files.GetSources", {"media": DIRECTORY_SOURCES[self.path]})
+        result = None
         with suppress(KeyError):
             result = response['result']['sources']
         return result or [{}]
