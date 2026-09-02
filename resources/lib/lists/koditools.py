@@ -209,6 +209,46 @@ class ListGetFileExists(ContainerDirectory):
         store_windowprops_counter(x + 1, window_prop, window_id)
         self.add_items(items)
 
+class ListGetFileSize(ContainerDirectory):
+
+    @staticmethod
+    def get_stat_size(path):
+        import xbmcvfs
+
+        if not xbmcvfs.exists(path):
+            return
+        return xbmcvfs.Stat(path).st_size()
+
+    def set_size_properties(self, li, size, x, window_prop, window_id):
+        keys = []
+        if size is None:
+            return keys
+
+        for y, unit in enumerate(('B', 'KB', 'MB', 'GB')):
+            label = f'{size / pow(1024, y):.2f} {unit}'
+            key = f'{x}.{unit}'
+            li.setProperty(f'FileSize.{unit}', label)
+            set_to_windowprop(label, key, window_prop, window_id)
+            keys.append(key)
+
+        return keys
+
+    @clear_windowprops_decorator
+    def get_directory(self, paths, window_prop=None, window_id=None, **kwargs):
+        if not paths:
+            return
+
+        items = []
+        keys = []
+        for x, path in enumerate(paths):
+            item = self.get_list_item(path)
+            li = item[1]
+            size = self.get_stat_size(path)
+            keys += self.set_size_properties(li, size, x, window_prop, window_id)
+            items.append(item)
+
+        store_windowprops(keys, window_prop, window_id)
+        self.add_items(items)
 
 class ListGetDottedProperties(ContainerDirectory):
     def get_directory(
