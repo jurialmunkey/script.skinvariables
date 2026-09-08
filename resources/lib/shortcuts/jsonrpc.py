@@ -9,7 +9,7 @@ DIRECTORY_SOURCES = {
     "sources://pictures/": "pictures",
     "sources://programs/": "programs",
     "sources://files/": "files",
-    "sources://games/": "game",
+    "sources://games/": "games",
 }
 
 
