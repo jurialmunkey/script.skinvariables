@@ -239,7 +239,38 @@ class ViewTypes(object):
     def addon_meta(self):
         if not self.addon_content:
             return {}
-        return loads(self.addon_content) or {}
+        return self.validate_addon_meta(loads(self.addon_content) or {})
+
+    def validate_addon_meta(self, meta):
+        validate_addon_meta = {
+            location: self.validate_addon_meta_rules(location, rules)
+            for location, rules in meta.items()
+        }
+        from jurialmunkey.parser import merge_dicts
+        return merge_dicts(self.addon_meta_defaultjson, validate_addon_meta)
+
+    def validate_addon_meta_rules(self, location, rules):
+        return {
+            contentid: viewid
+            for contentid, viewid in rules.items()
+            if self.is_valid_rule(contentid, viewid)
+        }
+
+    def is_valid_rule(self, contentid, viewid):
+        if not contentid or not viewid:
+            return False
+        try:
+            return viewid in self.rules[contentid]['viewtypes']
+        except KeyError:
+            return False
+
+    @cached_property
+    def addon_meta_defaultjson(self):
+        return self.make_defaultjson()
+
+    @property
+    def addon_meta_content(self):
+        return dumps(self.validate_addon_meta(self.addon_meta))
 
     @cached_property
     def prefix(self):
@@ -373,7 +404,7 @@ class ViewTypes(object):
                 checksum='script-skinviewtypes-checksum',
                 hashname='script-skinviewtypes-hash', hashvalue=hashvalue)
 
-        write_file(filepath=self.addon_datafile, content=dumps(self.addon_meta))
+        write_file(filepath=self.addon_datafile, content=self.addon_meta_content)
 
     def add_newplugin(self):
         """
@@ -461,11 +492,11 @@ class ViewTypes(object):
                 ADDON.getLocalizedString(32015).format(usr_pluginname))
 
             if choice and usr_pluginname == 'plugins':  # Reset all plugins views to default (both generic and specific)
-                self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})  # Rebuild default views for generic plugins
+                self.addon_meta[usr_pluginname] = self.addon_meta_defaultjson.get(usr_pluginname, {})  # Rebuild default views for generic plugins
                 for i in self.addon_meta.copy():  # Also remove any specific plugin entries
                     self.addon_meta.pop(i) if i not in ['library', 'plugins'] else None  # Don't remove library views or the generic plugin views we just built
             elif choice and usr_pluginname == 'library':  # Reset all library views to default
-                self.addon_meta[usr_pluginname] = self.make_defaultjson().get(usr_pluginname, {})
+                self.addon_meta[usr_pluginname] = self.addon_meta_defaultjson.get(usr_pluginname, {})
             elif choice and usr_pluginname:  # Reset a specific plugin to defaults
                 self.addon_meta.pop(usr_pluginname)  # Pop the plugin entry to remove
 
@@ -494,23 +525,19 @@ class ViewTypes(object):
         if not self.meta:
             return
 
-        makexml = force
-
         # Make these strings for simplicity
         contentid = contentid or ''
         pluginname = pluginname or ''
 
         # Simple hash value based on character size of file
         hashvalue = make_hash(self.content)
-
-        if not makexml:
-            makexml = check_hash('script-skinviewtypes-hash', hashvalue)
+        makexml = force or check_hash('script-skinviewtypes-hash', hashvalue)
 
         if not self.addon_meta:
             self.addon_meta = self.make_defaultjson(overwrite=True)
         elif makexml:
             from jurialmunkey.parser import merge_dicts
-            self.addon_meta = merge_dicts(self.make_defaultjson(), self.addon_meta)
+            self.addon_meta = merge_dicts(self.addon_meta_defaultjson, self.addon_meta)
 
         if configure:  # Configure kwparam so open gui
             makexml = self.dialog_configure(contentid=contentid.lower(), pluginname=pluginname.lower(), viewid=viewid)
