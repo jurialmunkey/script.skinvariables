@@ -366,3 +366,21 @@ def get_jsonrpc(get_jsonrpc, textviewer=False, filewrite=True, **kwargs):
         filename = '_'.join([f'{k}-{v}' for k, v in kwargs.items()])
         filename = jurialmunkey.futils.validify_filename(f'{get_jsonrpc}_{filename}.json')
         FileUtils().dumps_to_file({'method': get_jsonrpc, 'params': kwargs, 'result': result}, 'log_request', filename)
+
+
+def run_selectfocusdialog(run_selectfocusdialog, preselect_executebuiltin=None, header='', **kwargs):
+    import xbmc
+    import xbmcgui
+    container = f'Container({run_selectfocusdialog}).'
+    options = [
+        xbmc.getInfoLabel(f'{container}ListItemAbsolute({x}).Label')
+        for x in range(int(xbmc.getInfoLabel(f'{container}NumItems') or 0))
+    ]
+    preselect = int(xbmc.getInfoLabel(f'{container}CurrentItem')) - 1
+    x = xbmcgui.Dialog().select(header, options, preselect=preselect)
+    if x == -1:
+        return
+    if preselect_executebuiltin and x == preselect:
+        run_executebuiltin(preselect_executebuiltin)
+        return
+    xbmc.executebuiltin(f'SetFocus({run_selectfocusdialog},{x},absolute)')

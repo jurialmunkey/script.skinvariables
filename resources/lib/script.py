@@ -34,6 +34,8 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.method', 'run_dialog')(**kwargs),
         'run_progressdialog':
             lambda **kwargs: importmodule('resources.lib.method', 'run_progressdialog')(**kwargs),
+        'run_selectfocusdialog':
+            lambda **kwargs: importmodule('resources.lib.method', 'run_selectfocusdialog')(**kwargs),
         'set_player_subtitle':
             lambda **kwargs: importmodule('resources.lib.method', 'set_player_subtitle')(**kwargs),
         'set_player_audiostream':
