@@ -281,21 +281,11 @@ class ViewTypes(object):
         from resources.lib.xmlhelper import get_skinfolders
         return get_skinfolders()
 
-    def make_defaultjson(self, overwrite=False):
-        p_dialog = xbmcgui.DialogProgressBG()
-        p_dialog.create(ADDON.getLocalizedString(32002), ADDON.getLocalizedString(32003))
-        p_total = len(self.meta.get('rules', {}))
-
+    def make_defaultjson(self):
         addon_meta = {'library': {}, 'plugins': {}}
         for p_count, (k, v) in enumerate(self.meta.get('rules', {}).items()):
-            p_dialog.update((p_count * 100) // p_total, message=u'{} {}'.format(ADDON.getLocalizedString(32005), k))
-            # TODO: Add checks that file is properly configured and warn user otherwise
             addon_meta['library'][k] = v.get('library')
             addon_meta['plugins'][k] = v.get('plugins') or v.get('library')
-        if overwrite:
-            write_file(filepath=self.addon_datafile, content=dumps(addon_meta))
-
-        p_dialog.close()
         return addon_meta
 
     def make_xmltree(self):
@@ -534,7 +524,8 @@ class ViewTypes(object):
         makexml = force or check_hash('script-skinviewtypes-hash', hashvalue)
 
         if not self.addon_meta:
-            self.addon_meta = self.make_defaultjson(overwrite=True)
+            self.addon_meta = self.make_defaultjson()
+            write_file(filepath=self.addon_datafile, content=dumps(self.addon_meta))
         elif makexml:
             from jurialmunkey.parser import merge_dicts
             self.addon_meta = merge_dicts(self.addon_meta_defaultjson, self.addon_meta)
