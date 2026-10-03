@@ -864,3 +864,56 @@ class ListGetContainerLabels(ContainerDirectory):
             set_to_windowprop(i, x, window_prop, window_id)
 
         xbmc.executebuiltin(f'SetProperty({window_prop},{" / ".join([i[0] for i in added_items])}{f",{window_id}" if window_id else ""})')
+
+
+class ListGetPanelLabels(ContainerDirectory):
+
+    def get_directory(
+            self, container, infoproperties, infolabel, length,
+            **kwargs):
+
+        length = int(length)
+
+        import xbmc
+
+        def get_infolabel(x, il):
+            return xbmc.getInfoLabel(f'Container({container}).ListItemAbsolute({x}).{il}')
+
+        def get_listitem(x):
+            listitem = ListItem(
+                label=get_infolabel(x, infolabel),
+                label2='',
+                path='',
+                offscreen=True
+            )
+            listitem.setProperties({
+                ip: get_infolabel(x, il)
+                for ip, il in (i.split('/') for i in infoproperties.split('//'))
+            })
+            return listitem
+
+        numitems = int(xbmc.getInfoLabel(f'Container({container}).NumItems') or 0)
+        allitems = [get_listitem(x) for x in range(numitems)]
+
+        if not allitems:
+            return
+
+        items = []
+        pre, pos = allitems[0], 0
+        for itm in allitems:
+
+            if length < pos:
+                pos = 1
+
+            if pre.getLabel() == itm.getLabel():
+                items.append(itm)
+                pos += 1
+                continue
+
+            for _ in range(length - pos):
+                items.append(ListItem(label='', label2='', path='', offscreen=True))
+
+            items.append(itm)
+            pre, pos = itm, 1
+
+        self.add_items([('', listitem, True, ) for listitem in items])
