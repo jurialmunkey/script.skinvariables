@@ -900,6 +900,8 @@ class ListGetPanelLabels(ContainerDirectory):
 
         items = []
         pre, pos = allitems[0], 0
+        pre.setProperty('group_start', 'True')
+
         for itm in allitems:
 
             if length < pos:
@@ -912,6 +914,8 @@ class ListGetPanelLabels(ContainerDirectory):
 
             for _ in range(length - pos):
                 items.append(ListItem(label='', label2='', path='', offscreen=True))
+
+            itm.setProperty('group_start', 'True')
 
             items.append(itm)
             pre, pos = itm, 1
