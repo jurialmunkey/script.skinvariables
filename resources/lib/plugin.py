@@ -77,6 +77,9 @@ class Plugin():
         'get_panel_labels': {
             'module_name': 'resources.lib.lists.padpanels',
             'import_attr': 'ListGetPanelLabels'},
+        'get_quick_stats': {
+            'module_name': 'resources.lib.lists.quickstats',
+            'import_attr': 'ListGetQuickStats'},
         'get_shortcuts_node': {
             'module_name': 'resources.lib.shortcuts.node',
             'import_attr': 'ListGetShortcutsNode'},
