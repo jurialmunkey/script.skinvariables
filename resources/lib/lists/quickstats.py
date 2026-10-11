@@ -96,12 +96,15 @@ class ListGetQuickStatsRangeItems(ListGetQuickStatsItems):
 
 class ListGetQuickStats(ContainerDirectory):
 
+    items_class = ListGetQuickStatsItems
+    range_items_class = ListGetQuickStatsRangeItems
+
     def get_directory(self, containers, infolabel, divisor=None, limit=None, remove_unknown=True, **kwargs):
         items = [
             listitem for container in containers.split()
             for listitem in ListGetListLabelsItems(container, infolabel).allitems
         ]
-        items = ListGetQuickStatsRangeItems(items, divisor) if divisor else ListGetQuickStatsItems(items)
+        items = self.range_items_class(items, divisor) if divisor else self.items_class(items)
         items.limit = int(limit) if limit else 0
         items.remove_unknown = boolean(remove_unknown)
         self.add_items([('', listitem, True, ) for listitem in items.allitems])

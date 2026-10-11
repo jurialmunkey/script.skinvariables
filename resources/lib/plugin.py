@@ -80,6 +80,9 @@ class Plugin():
         'get_quick_stats': {
             'module_name': 'resources.lib.lists.quickstats',
             'import_attr': 'ListGetQuickStats'},
+        'get_stacked_bar_stats': {
+            'module_name': 'resources.lib.lists.stackedbarstats',
+            'import_attr': 'ListGetStackedBarStats'},
         'get_shortcuts_node': {
             'module_name': 'resources.lib.shortcuts.node',
             'import_attr': 'ListGetShortcutsNode'},
