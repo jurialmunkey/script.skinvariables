@@ -88,12 +88,18 @@ class MetaItemJSONRPC():
         self.dbtype = dbtype
 
     @property
-    def label(self):
+    def title(self):
         if self.meta.get('title'):
             return self.meta['title']
         if self.meta.get('label'):
             return self.meta['label']
         return ''
+
+    @property
+    def label(self):
+        if self.path.startswith('plugin://') and self.meta.get('label'): # Prefer label for plugin items
+            return self.meta['label']
+        return self.title
 
     @property
     def path(self):
@@ -638,7 +644,7 @@ class ListGetFilterDir(ContainerDirectory):
                 return
 
             listitem_jsonrpc = ListItemJSONRPC(i, library=library, dbtype=dbtype)
-            listitem_jsonrpc.infolabels['title'] = listitem_jsonrpc.label
+            listitem_jsonrpc.infolabels['title'] = listitem_jsonrpc.meta.title
             listitem_jsonrpc.infoproperties['widget'] = path_name or listitem_jsonrpc.infoproperties.get('widget') or ''
 
             for fname, filters in all_filters.items():
