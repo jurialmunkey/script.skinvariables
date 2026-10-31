@@ -368,6 +368,29 @@ def get_jsonrpc(get_jsonrpc, textviewer=False, filewrite=True, **kwargs):
         FileUtils().dumps_to_file({'method': get_jsonrpc, 'params': kwargs, 'result': result}, 'log_request', filename)
 
 
+def set_kodisetting(set_kodisetting, value=None, **kwargs):
+    """ Set a Kodi setting. The value is cast to the type of the current value. Use value=toggle to flip a boolean. """
+    from jurialmunkey.jsnrpc import get_jsonrpc as _get_jsonrpc
+    if value is None:
+        return
+
+    current = _get_jsonrpc('Settings.GetSettingValue', {'setting': set_kodisetting}).get('result', {}).get('value')
+    if current is None:
+        return
+
+    try:
+        if isinstance(current, bool):  # Check bool before int because bool is a subclass of int
+            value = not current if value == 'toggle' else boolean(value)
+        elif isinstance(current, int):
+            value = int(value)
+        elif isinstance(current, float):
+            value = float(value)
+    except ValueError:
+        return
+
+    _get_jsonrpc('Settings.SetSettingValue', {'setting': set_kodisetting, 'value': value})
+
+
 def run_selectfocusdialog(run_selectfocusdialog, preselect_executebuiltin=None, header='', **kwargs):
     import xbmc
     import xbmcgui

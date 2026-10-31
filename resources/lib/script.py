@@ -46,6 +46,8 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.method', 'set_dbid_tag')(**kwargs),
         'get_jsonrpc':
             lambda **kwargs: importmodule('resources.lib.method', 'get_jsonrpc')(**kwargs),
+        'set_kodisetting':
+            lambda **kwargs: importmodule('resources.lib.method', 'set_kodisetting')(**kwargs),
         'add_skinstring_history':
             lambda **kwargs: importmodule('resources.lib.method', 'add_skinstring_history')(**kwargs),
         'set_shortcut':
