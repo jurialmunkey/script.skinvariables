@@ -834,6 +834,7 @@ class ListGetShortcutsNode(ContainerDirectory, NodeProperties, NodeMethods, Node
             target = i.get('target', '')
             name = parse_localize(i.pop('label', ''))
             path = i.get('path', '')  # if target else f'{url}&func=do_open'
+            guid = i.get('guid', '')
             icon = i.pop('icon', '')
 
             listitem = ListItem(label=name, label2='', path=path, offscreen=True)
@@ -858,7 +859,10 @@ class ListGetShortcutsNode(ContainerDirectory, NodeProperties, NodeMethods, Node
                 for cm_label, cm_action, cm_params in contextitems]
 
             listitem.addContextMenuItems(listitem_contextmenu)
-            item = (path, listitem, listitem_isfolder, )
+            # Edit mode: a unique path per item (from its guid) so the container refocuses the same item after the menu is rewritten
+            # Kodi matches the previously focused item by path, so items with empty or duplicate paths otherwise lose focus when moved
+            item_path = f'{path}#guid={guid}' if self.edit and guid else path
+            item = (item_path, listitem, listitem_isfolder, )
             return item
 
         node_name = get_nodename(self.node)
