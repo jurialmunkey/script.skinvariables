@@ -733,7 +733,7 @@ class NodeMethods():
             prefix=prefix, grouping=grouping, create_new=True, use_rawpath=use_rawpath,
             refocus=refocus, window_prop=window_prop, window_id=window_id, **kwargs)
 
-    def do_move(self, move=0, refocus=None, window_prop=None, window_id=None, offset=None):
+    def do_move(self, move=0, refocus=None, window_prop=None, window_id=None, offset=None, boundary=None):
         x = int(self.item)
         y = int(move)
         nodeitem = self.menunode.pop(x)
@@ -748,7 +748,32 @@ class NodeMethods():
                 return int(offset) - 1 + y
             return int(offset)
 
-        x = _get_offset_x()
+        def _is_disabled(i):
+            return boolean(self.menunode[i].get('disabled'))
+
+        def _get_boundary_x(offset_x):
+            """
+            Boundary is the index splitting the menu into two groups (e.g. the left and right sides of a menu)
+            A move crosses it when only disabled items are between the item and the boundary in the direction of the move.
+            The item goes to the near end of the other group without moving other enabled items between groups:
+            a disabled item from the other group crosses back to make room, or the neighbour across the boundary swaps when there is none
+            """
+            if boundary is None:
+                return offset_x
+            b = int(boundary)
+            if y < 0 and x >= b and all(_is_disabled(i) for i in range(b, x)):  # Up into the lower group: its last disabled item moves to the start of the upper group
+                swap = next((i for i in range(b - 1, -1, -1) if _is_disabled(i)), b - 1)
+                self.menunode.insert(b - 1, self.menunode.pop(swap))
+                return b - 1
+            if y > 0 and x < b and all(_is_disabled(i) for i in range(x, b - 1)):  # Down into the upper group: its first disabled item moves to the end of the lower group
+                if b - 1 >= nodesize:
+                    return nodesize
+                swap = next((i for i in range(b - 1, nodesize) if _is_disabled(i)), b - 1)
+                self.menunode.insert(b - 1, self.menunode.pop(swap))
+                return b
+            return offset_x
+
+        x = _get_boundary_x(_get_offset_x())
         x = x if x <= nodesize else 0  # Loop back to top
         x = x if x >= 0 else nodesize + 1  # Loop back to bottom
 
@@ -882,6 +907,7 @@ class ListGetShortcutsNode(ContainerDirectory, NodeProperties, NodeMethods, Node
             func=None,  # The method to run
             guid=None,  # Unique identifier for group
             edit=None,  # Edit mode if on all items are shown even if disabled
+            noblank=None,  # Edit mode shows no blank item when there are no items (e.g. a filtered part of a menu that can be empty)
             **kwargs
     ):
 
@@ -897,11 +923,12 @@ class ListGetShortcutsNode(ContainerDirectory, NodeProperties, NodeMethods, Node
             return self.menunode
 
         if (self.item is None or not self.meta) and func in [None, 'list']:  # If no item is specified then we show the whole directory
-            blank = True if not self.menunode and self.edit else False   # If we're in edit mode and have no items show a blank one
+            use_blank = self.edit and not boolean(noblank)
+            blank = True if not self.menunode and use_blank else False   # If we're in edit mode and have no items show a blank one
             items = self.get_directory_items(blank=blank, filters=get_filters(**kwargs))
             if func == 'list':
                 return items
-            if not items and self.edit:  # If we didn't get any items from filter and we're in edit mode then get blank
+            if not items and use_blank:  # If we didn't get any items from filter and we're in edit mode then get blank
                 items = self.get_directory_items(blank=True)
             return self.add_items(items, update_listing=self.update_listing)
 
