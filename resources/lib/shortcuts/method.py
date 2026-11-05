@@ -118,7 +118,12 @@ def set_shortcut(set_shortcut, use_rawpath=False):
         xbmc.executebuiltin(f'Skin.SetString({k},{v})')
 
 
-def copy_menufolder(copy_menufolder, skin):
+def copy_menufolder(copy_menufolder, skin, force=False):
+    """
+    Copy every menu file in a folder over the skin's menu files
+    force = skip the overwrite confirmation, e.g. when the skin has already asked the user
+    """
+    from jurialmunkey.parser import boolean
     from resources.lib.shortcuts.futils import read_meta_from_file, get_files_in_folder
 
     files = get_files_in_folder(copy_menufolder, r'.*\.json')
@@ -126,15 +131,16 @@ def copy_menufolder(copy_menufolder, skin):
         xbmcgui.Dialog().ok(get_localized(32076), f'copy_menufolder={copy_menufolder}\nskin={skin}')
         return
 
-    msg = get_localized(32072).format(
-        filename=get_localized(32073).format(skin=skin),
-        content=get_localized(32074).format(folder=copy_menufolder))
-    msg = f'{msg}\n{get_localized(32043)}'
+    if not boolean(force):
+        msg = get_localized(32072).format(
+            filename=get_localized(32073).format(skin=skin),
+            content=get_localized(32074).format(folder=copy_menufolder))
+        msg = f'{msg}\n{get_localized(32043)}'
 
-    x = xbmcgui.Dialog().yesno(get_localized(32075), msg)
+        x = xbmcgui.Dialog().yesno(get_localized(32075), msg)
 
-    if not x or x == -1:
-        return
+        if not x or x == -1:
+            return
 
     from resources.lib.shortcuts.node import assign_guid
     from resources.lib.shortcuts.futils import write_meta_to_file
