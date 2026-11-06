@@ -40,12 +40,22 @@ class ContainerLabelItems:
         return (item for position in range(numitems) for item in self.get_position_labels(container, position))
 
     @cached_property
+    def unique_labels(self):
+        return self.get_unique_labels()
+
+    def get_unique_labels(self):
+        labels = (item for container in self.containers for item in self.get_container_labels(container))
+        return tuple(dict.fromkeys(labels))
+
+    @cached_property
     def labels(self):
         return self.get_labels()
 
     def get_labels(self):
-        labels = dict.fromkeys(item for container in self.containers for item in self.get_container_labels(container))
-        return tuple(item for item in labels if not is_excluded({'infolabels': {'title': item[0]}}, **self.filters))
+        return tuple(item for item in self.unique_labels if not self.get_is_excluded(item[0]))
+
+    def get_is_excluded(self, title):
+        return is_excluded({'infolabels': {'title': title}}, **self.filters)
 
     def get_listitem(self, title, image, label):
         listitem = ListItem(label=title, label2=label or '', path='', offscreen=True)

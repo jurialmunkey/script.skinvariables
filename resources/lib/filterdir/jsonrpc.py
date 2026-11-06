@@ -150,7 +150,11 @@ class MetaItemJSONRPC:
         return self.get_infolabels()
 
     def get_infolabels(self):
-        return {INFOLABEL_MAP[k]: v for k, v in self.meta.items() if v and k in INFOLABEL_MAP and v != -1}
+        return {
+            INFOLABEL_MAP[key]: value
+            for key, value in self.meta.items()
+            if value and key in INFOLABEL_MAP and value != -1
+        }
 
     @property
     def infoproperties(self):
@@ -162,7 +166,7 @@ class MetaItemJSONRPC:
             for key, value in self.meta.items()
             if value and key in INFOPROPERTY_MAP and value != -1
         }
-        infoproperties.update({k: str(v) for k, v in (self.meta.get('customproperties') or {}).items()})
+        infoproperties.update({key: str(value) for key, value in (self.meta.get('customproperties') or {}).items()})
         infoproperties.update(self.resume)
         return infoproperties
 
@@ -241,10 +245,10 @@ class ListItemJSONRPC:
         # Fix some incompatible type returns from JSON RPC to info_tag in music library
         if self.library != 'music':
             return
-        for a in ('artist', 'albumartist', 'album'):
-            if not isinstance(self.infolabels.get(a), list):
+        for key in ('artist', 'albumartist', 'album'):
+            if not isinstance(self.infolabels.get(key), list):
                 continue
-            self.infolabels[a] = ' / '.join(self.infolabels[a])
+            self.infolabels[key] = ' / '.join(self.infolabels[key])
 
     @property
     def artwork(self):

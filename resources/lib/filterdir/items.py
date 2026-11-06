@@ -19,6 +19,23 @@ class ParallelThread(BaseParallelThread):
         kodi_log(msg, level)
 
 
+class FilterDirItem(ListItemJSONRPC):
+    def __init__(self, meta, path_name='', library=None, dbtype=None):
+        super().__init__(meta, library=library, dbtype=dbtype)
+        self.infolabels['title'] = self.meta.title
+        self.infoproperties['widget'] = path_name or self.infoproperties.get('widget') or ''
+        # Infotagger consumes resume properties during rendering; filtering uses the original metadata.
+        self.filter_infolabels = dict(self.infolabels)
+        self.filter_infoproperties = dict(self.infoproperties)
+
+    @cached_property
+    def filter_data(self):
+        return self.get_filter_data()
+
+    def get_filter_data(self):
+        return {'infolabels': self.filter_infolabels, 'infoproperties': self.filter_infoproperties}
+
+
 class FilterDirItems:
     """Build and cache directory results for one configured source."""
 
@@ -48,18 +65,11 @@ class FilterDirItems:
     def get_directory_properties(self):
         return get_directory_properties(self.library)
 
-    @staticmethod
-    def get_filter_data(item):
-        return {'infolabels': item.infolabels, 'infoproperties': item.infoproperties}
-
     def get_item(self, meta, path_name=''):
         if not meta:
             return
-        item = ListItemJSONRPC(meta, library=self.library, dbtype=self.dbtype)
-        item.infolabels['title'] = item.meta.title
-        item.infoproperties['widget'] = path_name or item.infoproperties.get('widget') or ''
-        data = self.get_filter_data(item)
-        if any(is_excluded(data, **filters) for filters in self.filters.values()):
+        item = FilterDirItem(meta, path_name, library=self.library, dbtype=self.dbtype)
+        if any(is_excluded(item.filter_data, **filters) for filters in self.filters.values()):
             return
         return item
 
@@ -103,10 +113,10 @@ class FilterDirItems:
         return items
 
     def get_unique_items(self):
-        items = {}
+        unique_items = {}
         for item in self.filtered_items:
-            items.setdefault(item.infolabels['title'], item)
-        return list(items.values())
+            unique_items.setdefault(item.infolabels['title'], item)
+        return list(unique_items.values())
 
     @cached_property
     def directory_items(self):
@@ -121,19 +131,22 @@ class FilterDirItems:
 
     def get_statistics(self):
         # Count accepted items before deduplication, matching the directory's statistics contract.
-        counts = {
-            name: sum(
-                not is_excluded(self.get_filter_data(item), **filters)
-                for item in self.filtered_items
-            )
-            for name, filters in self.statistics_filters.items()
-        }
+        counts = {name: self.get_statistic_count(filters) for name, filters in self.statistics_filters.items()}
         return {name: count for name, count in counts.items() if count}
+
+    def get_statistic_count(self, filters):
+        return sum(not is_excluded(item.filter_data, **filters) for item in self.filtered_items)
+
+    @cached_property
+    def mediatypes(self):
+        return self.get_mediatypes()
+
+    def get_mediatypes(self):
+        return Counter(item.mediatype for item in self.filtered_items if item.mediatype)
 
     @cached_property
     def container_content(self):
         return self.get_container_content()
 
     def get_container_content(self):
-        mediatypes = Counter(item.mediatype for item in self.filtered_items if item.mediatype)
-        return f'{max(mediatypes, key=mediatypes.get)}s' if mediatypes else ''
+        return f'{max(self.mediatypes, key=self.mediatypes.get)}s' if self.mediatypes else ''

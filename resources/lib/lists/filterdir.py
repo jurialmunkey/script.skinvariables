@@ -77,10 +77,9 @@ class ListGetFilterDir(ContainerDirectory):
             sort_how=sort_how,
             **kwargs,
         )
-        statistics = items.statistics  # Infotagger consumes resume properties when creating listitems.
         self.add_items(items.directory_items, container_content=items.container_content)
         window_prop = window_prop or 'Statistics'
-        self.set_properties(statistics, window_prop, window_id)
+        self.set_properties(items.statistics, window_prop, window_id)
         self.set_item_properties(items.items, infolabel, 'infolabels', window_prop, window_id)
         self.set_item_properties(items.items, infoproperty, 'infoproperties', window_prop, window_id)
 

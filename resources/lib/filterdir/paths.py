@@ -60,13 +60,16 @@ class RandomFilterDirPaths(FallbackFilterDirPaths):
             return previous
 
         index = random.choice([index for index in range(total) if index != previous])
+        self.set_stored_index(index)
+        return index
+
+    def set_stored_index(self, index):
         get_property(
             f'{self.randomise_prop}.expiry',
             set_property=str(set_timestamp(self.time_limit, set_int=True)),
             prefix=self.property_prefix,
         )
         get_property(self.randomise_prop, set_property=str(index), prefix=self.property_prefix)
-        return index
 
     def get_random_index(self, total):
         if total == 1:
