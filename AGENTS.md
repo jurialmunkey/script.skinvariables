@@ -19,8 +19,7 @@ when adding or extending functionality.
 - Use hanging indents only when the single-line form exceeds the applicable
   line-length limit. Leave the opening delimiter's line empty of arguments or
   entries, then put one argument, parameter, collection element, or dictionary
-  key-value pair per line. Use four-space continuation indents, with an extra
-  level for function parameters to distinguish them from the body. Put closing
+  key-value pair per line. Use four-space continuation indents. Put closing
   parentheses, brackets, and braces on separate lines aligned with the opening
   line's indentation. Use trailing commas where valid. Apply the same rules to
   nested collections that require wrapping.

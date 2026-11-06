@@ -42,7 +42,7 @@ class GetDirectoryJSONRPC(GetDirectoryCommon):
 
     def get_items(self):
 
-        from resources.lib.lists.filterdir import ListItemJSONRPC
+        from resources.lib.filterdir.jsonrpc import ListItemJSONRPC
 
         def _make_item(i):
             if not i:
