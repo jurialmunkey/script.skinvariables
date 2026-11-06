@@ -7,11 +7,13 @@ import xbmc
 import xbmcaddon
 from json import loads
 from jurialmunkey.logger import TimerFunc
+from jurialmunkey.ftools import cached_property
 from jurialmunkey.parser import parse_math, boolean, parse_paramstring
 from jurialmunkey.futils import load_filecontent, write_skinfile, make_hash
 from resources.lib.kodiutils import ProgressDialog, get_localized
 from resources.lib.operations import RuleOperations, check_condition
 from resources.lib.shortcuts.node import ListGetShortcutsNode, get_menunode_lookup
+from resources.lib.shortcuts.profile import PROFILE_SETTING, ProfileIncludes
 from resources.lib.shortcuts.xmltojson import xml_to_json
 from xml.dom import minidom
 from copy import deepcopy
@@ -204,7 +206,16 @@ class ShortcutsTemplate(object):
         self.contents = load_filecontent(f'{SKIN_BASEDIR}/{SHORTCUTS_FOLDER}/{self.template}.json')
         self.meta = loads(self.contents) or {}
         self.folder = self.meta.get('folder') or SHORTCUTS_FOLDER
+        self.profilename = xbmc.getInfoLabel('System.ProfileName')
         self.p_dialog = None
+
+    @cached_property
+    def output(self):
+        return self.get_output()
+
+    def get_output(self):
+        filename = self.meta['output'].format(skinuser=self.skinuser)
+        return ProfileIncludes(self.folder, filename, self.profilename)
 
     @property
     def skinuser(self):
@@ -225,7 +236,7 @@ class ShortcutsTemplate(object):
             return self.get_filepath()
 
     def get_filepath(self):
-        self._filepath = f'{SKIN_BASEDIR}/{self.folder}/{self.filename}'
+        self._filepath = self.output.filepath
         return self._filepath
 
     @property
@@ -236,7 +247,7 @@ class ShortcutsTemplate(object):
             return self.get_filename()
 
     def get_filename(self):
-        self._filename = self.meta['output'].format(skinuser=self.skinuser)
+        self._filename = self.output.profile_filename
         return self._filename
 
     @property
@@ -288,7 +299,7 @@ class ShortcutsTemplate(object):
             '_'.join([f'{k}.{v}' for k, v in kwargs.items()]),
             f'{genxml}',
             f'{self.contents}',
-            xbmc.getInfoLabel("System.ProfileName")
+            self.profilename
         ])
 
         def get_hashvalue():
@@ -308,7 +319,14 @@ class ShortcutsTemplate(object):
                 return
             return True
 
+        profile_changed = xbmc.getInfoLabel(f'Skin.String({PROFILE_SETTING})') != self.output.profilehash
+        if profile_changed:
+            xbmc.executebuiltin(f'Skin.SetString({PROFILE_SETTING},{self.output.profilehash})')
+
         if is_updated():
+            dispatcher_changed = self.output.update_dispatcher()
+            if not no_reload and (dispatcher_changed or profile_changed):
+                xbmc.executebuiltin('ReloadSkin()')
             return
 
         with TimerFunc('script.skinvariables - update_xml: ', log_threshold=0.001, inline=True):
@@ -321,11 +339,15 @@ class ShortcutsTemplate(object):
                 self.meta['getnfo'] = {k: xbmc.getInfoLabel(v) for k, v in self.meta['getnfo'].items()} if 'getnfo' in self.meta else {}
                 self.meta['getnfo'].update(kwargs)
                 self.meta['getnfo'].update(RuleOperations(self.meta['addnfo'], **self.meta['getnfo']).params) if 'addnfo' in self.meta else {}
-                write_skinfile(folders=[self.folder], filename=self.filename, content=self.create_xml(), hashvalue=hashvalue, hashname=self.hashname)
+                content = self.create_xml()
+                write_skinfile(folders=[self.folder], filename=self.filename, content=content)
+                if load_filecontent(self.filepath) != content:
+                    raise OSError(f'Failed to write generated includes: {self.filepath}')
+                self.output.update_dispatcher()
+                xbmc.executebuiltin('Skin.SetString({},{})'.format(self.hashname, get_hashvalue()))
 
         if no_reload:
             return
 
         xbmc.Monitor().waitForAbort(0.5)
-        xbmc.executebuiltin('Skin.SetString({},{})'.format(self.hashname, get_hashvalue()))  # Update hashvalue with new content to avoid loop
         xbmc.executebuiltin('ReloadSkin()')
