@@ -84,7 +84,7 @@ class Plugin():
             'module_name': 'resources.lib.lists.stackedbarstats',
             'import_attr': 'ListGetStackedBarStats'},
         'get_shortcuts_node': {
-            'module_name': 'resources.lib.shortcuts.node',
+            'module_name': 'resources.lib.shortcuts.node.controller',
             'import_attr': 'ListGetShortcutsNode'},
         'get_skin_user': {
             'module_name': 'resources.lib.lists.skinusers',

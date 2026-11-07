@@ -4,7 +4,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from xbmcgui import ListItem
 from jurialmunkey.ftools import cached_property
-from resources.lib.filters import is_excluded
+from resources.lib.filters.items import is_excluded
 from resources.lib.lists.labelgetter import ListInfoLabelGetter, ListItemAbsoluteInfoLabelGetter
 
 

@@ -6,8 +6,10 @@ from collections import Counter
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.jsnrpc import get_directory
 from jurialmunkey.thread import ParallelThread as BaseParallelThread
-from resources.lib.filters import get_filters, is_excluded
-from resources.lib.filterdir.jsonrpc import ListItemJSONRPC, get_directory_properties
+from resources.lib.filters.parameters import get_filters
+from resources.lib.filters.items import is_excluded
+from resources.lib.filterdir.jsonrpc.items import ListItemJSONRPC
+from resources.lib.filterdir.jsonrpc.properties import get_directory_properties
 from resources.lib.kodiutils import kodi_log
 
 

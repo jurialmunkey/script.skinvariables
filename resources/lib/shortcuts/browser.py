@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# Module: default
 # Author: jurialmunkey
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+from jurialmunkey.ftools import cached_property
 from xbmcgui import ListItem, Dialog
 from resources.lib.kodiutils import get_localized
 
@@ -32,14 +32,13 @@ class GetDirectoryBrowser():
         self.folder_name = folder_name or f'{get_localized(32052)}...'
         self.heading_str = ''
 
-    @property
+    @cached_property
     def definitions(self):
-        try:
-            return self._definitions
-        except AttributeError:
-            from resources.lib.shortcuts.futils import read_meta_from_file
-            self._definitions = read_meta_from_file(self.filepath)
-            return self._definitions
+        return self.get_definitions()
+
+    def get_definitions(self):
+        from resources.lib.shortcuts.futils import read_meta_from_file
+        return read_meta_from_file(self.filepath)
 
     @staticmethod
     def get_formatted_path(path, node=None, link=True):
@@ -47,7 +46,8 @@ class GetDirectoryBrowser():
             return ('', '')
         if node and not link and path.endswith(PLAYLIST_EXT) and _ask_is_playable(path):
             return (f'PlayMedia({path})', '')
-        if (not node) is not (not link):  # XOR: Links without nodes return raw path; Folders with nodes return raw path (+ node)
+        # Links without nodes and folders with nodes retain the raw path.
+        if (not node) is not (not link):
             return (path, node)
         if path.startswith('script://'):
             path = path.replace('script://', '')
@@ -71,10 +71,11 @@ class GetDirectoryBrowser():
         if node == 'link':
             link = True
             node = ''
-        path, target = self.get_formatted_path(path, node, link) if not self.use_rawpath else (self.get_decoded_reload(path), node)
+        path, target = self.get_formatted_path(path, node, link) if not self.use_rawpath else (
+            self.get_decoded_reload(path),
+            node,
+        )
         item = {"label": name or '', "path": path or '', "icon": icon or '', "target": target or ''}
-        # from resources.lib.shortcuts.futils import dumps_log_to_file
-        # dumps_log_to_file({'name': name, 'path': path, 'icon': icon, 'node': node, 'item': item}, filename=f'{name}.json')
         return item
 
     def get_new_item(self, item, allow_browsing=True):
@@ -92,29 +93,48 @@ class GetDirectoryBrowser():
         return self.get_formatted_item(name, path, icon, node, link)
 
     def get_items(self, directory, path, icon, name, item, add_item=False):
-        directory_items = [i for i in directory.items if self.allow_links or i[2]]  # All items if allow links otherwise filter for folders only
+        while True:
+            directory_items = self.get_choices(directory, path, icon, name, item, add_item)
+            self.heading_str = name or path
+            index = Dialog().select(
+                heading=self.heading_str,
+                list=[entry[1] for entry in directory_items if entry],
+                useDetails=self.use_details,
+            )
+            if index == -1:
+                try:
+                    directory, path, icon, name, item, add_item = self.history.pop()
+                except IndexError:
+                    return []
+                continue
+            item = directory_items[index]
+            if not item[2]:
+                return self.get_new_item(item, allow_browsing=False)
+            self.history.append((directory, path, icon, name, item, True))
+            child = item[1]
+            location = self.get_location(
+                item[0] or '',
+                child.getArt('thumb') or '',
+                child.getProperty('nodename') or child.getLabel() or '',
+                item,
+                True,
+            )
+            if location is None:
+                return
+            directory, path, icon, name, item, add_item = location
 
+    def get_choices(self, directory, path, icon, name, item, add_item):
+        choices = [entry for entry in directory.items if self.allow_links or entry[2]]
         if add_item and path and not path.startswith(NO_FOLDER_ITEM):
-            li = ListItem(label=self.folder_name, label2=path, path=path, offscreen=True)
-            li.setArt({'icon': icon, 'thumb': icon})
-            li.setProperty('isfolder', 'True')
-            li.setProperty('nodename', name)
-            li.setProperty('nodetype', item[1].getProperty('nodetype') or '')
-            directory_items.insert(0, (path, li, False, ))
+            listitem = ListItem(label=self.folder_name, label2=path, path=path, offscreen=True)
+            listitem.setArt({'icon': icon, 'thumb': icon})
+            listitem.setProperty('isfolder', 'True')
+            listitem.setProperty('nodename', name)
+            listitem.setProperty('nodetype', item[1].getProperty('nodetype') or '')
+            choices.insert(0, (path, listitem, False))
+        return choices
 
-        self.heading_str = name or path
-        items = [i[1] for i in directory_items if i]
-        x = Dialog().select(heading=self.heading_str, list=items, useDetails=self.use_details)
-        if x != -1:
-            item = directory_items[x]
-            self.history.append((directory, path, icon, name, item, True, )) if item[2] else None  # Add old values to history before updating
-            return self.get_new_item(item)
-        try:
-            return self.get_items(*self.history.pop())
-        except IndexError:
-            return []
-
-    def get_directory(self, path='grouping://shortcuts/', icon='', name='Shortcuts', item=None, add_item=False):
+    def get_location(self, path='grouping://shortcuts/', icon='', name='Shortcuts', item=None, add_item=False):
         if not path:
             return
 
@@ -125,7 +145,11 @@ class GetDirectoryBrowser():
             from resources.lib.shortcuts.jsonrpc import GetDirectoryJSONRPC
             DirectoryClass = GetDirectoryJSONRPC
 
-        directory = DirectoryClass(path, definitions=self.definitions, target=item[1].getProperty('nodetype') if item else None)
+        directory = DirectoryClass(
+            path,
+            definitions=self.definitions,
+            target=item[1].getProperty('nodetype') if item else None,
+        )
         if not directory.items and not add_item:
             return
 
@@ -135,4 +159,9 @@ class GetDirectoryBrowser():
             li.setProperty('nodename', name)
             item = (path, li, True, )
 
-        return self.get_items(directory, path, icon, name, item, add_item)
+        return directory, path, icon, name, item, add_item
+
+    def get_directory(self, path='grouping://shortcuts/', icon='', name='Shortcuts', item=None, add_item=False):
+        location = self.get_location(path, icon, name, item, add_item)
+        if location is not None:
+            return self.get_items(*location)

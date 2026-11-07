@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import jurialmunkey.futils as jmfutils
 
 
@@ -35,8 +37,10 @@ def reload_shortcut_dir():
 
 def write_meta_to_file(meta, folder, filename, indent=4, fileprop=None, reload=True):
     FILEUTILS.dumps_to_file(meta, folder=folder, filename=filename, indent=indent)
-    write_meta_to_prop(meta, fileprop) if fileprop else None
-    reload_shortcut_dir() if reload else None
+    if fileprop:
+        write_meta_to_prop(meta, fileprop)
+    if reload:
+        reload_shortcut_dir()
 
 
 def write_meta_to_prop(meta, fileprop):

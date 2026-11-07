@@ -5,7 +5,8 @@ import xbmcvfs
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.futils import check_hash, make_hash, write_skinfile, write_file, load_filecontent
 from resources.lib.viewtypes.common import ADDON_DATA
-from resources.lib.xmlhelper import make_xml_includes, get_skinfolders
+from resources.lib.xmlhelper.serializer import make_xml_includes
+from resources.lib.xmlhelper.skin import get_skinfolders
 
 
 class ViewTypesStorage:

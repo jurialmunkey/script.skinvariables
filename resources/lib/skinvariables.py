@@ -8,7 +8,8 @@ from json import loads
 from jurialmunkey.futils import load_filecontent, write_skinfile, make_hash
 from resources.lib.variables.generator import VariablesBuilder
 from resources.lib.variables.xml import XMLVariables
-from resources.lib.xmlhelper import make_xml_includes, get_skinfolders
+from resources.lib.xmlhelper.serializer import make_xml_includes
+from resources.lib.xmlhelper.skin import get_skinfolders
 
 
 ADDON = xbmcaddon.Addon()

@@ -55,3 +55,25 @@ class ItemFilter:
             return
         if self.include.excluded or self.exclude.excluded:
             return True
+
+
+def is_excluded(
+    item,
+    filter_key=None,
+    filter_value=None,
+    filter_operator=None,
+    filter_empty=None,
+    exclude_key=None,
+    exclude_value=None,
+    exclude_operator=None,
+):
+    return ItemFilter(
+        item,
+        filter_key,
+        filter_value,
+        filter_operator,
+        filter_empty,
+        exclude_key,
+        exclude_value,
+        exclude_operator,
+    ).excluded

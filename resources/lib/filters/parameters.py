@@ -41,3 +41,7 @@ class FilterParameters:
                 name, group = pair
                 groups.setdefault(group, {})[name] = value
         return groups
+
+
+def get_filters(filter_prefix=None, **kwargs):
+    return FilterParameters(kwargs, filter_prefix).groups
