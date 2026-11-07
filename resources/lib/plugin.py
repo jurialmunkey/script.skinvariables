@@ -30,37 +30,37 @@ class Plugin():
             'module_name': 'jurialmunkey.jrpcid',
             'import_attr': 'ListGetAddonDetails'},
         'get_number_sum': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.numbers',
             'import_attr': 'ListGetNumberSum'},
         'get_refresh_counter': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.numbers',
             'import_attr': 'ListGetRefreshCounter'},
         'get_split_string': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.strings',
             'import_attr': 'ListGetSplitString'},
         'get_argb_colors': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.colors',
             'import_attr': 'ListGetARGBColors'},
         'get_jsonrpc': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.jsonrpc',
             'import_attr': 'ListGetJSONRPC'},
         'get_encoded_string': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.strings',
             'import_attr': 'ListGetEncodedString'},
         'get_file_exists': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.files',
             'import_attr': 'ListGetFileExists'},
         'get_file_size': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.files',
             'import_attr': 'ListGetFileSize'},
         'get_selected_item': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.selected',
             'import_attr': 'ListGetSelectedItem'},
         'get_dotted_properties': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.dotted',
             'import_attr': 'ListGetDottedProperties'},
         'run_executebuiltin': {
-            'module_name': 'resources.lib.lists.koditools',
+            'module_name': 'resources.lib.lists.koditools.builtins',
             'import_attr': 'ListRunExecuteBuiltin'},
         'get_filter_files': {
             'module_name': 'resources.lib.lists.filterdir',
