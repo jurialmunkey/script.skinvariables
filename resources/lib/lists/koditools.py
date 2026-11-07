@@ -57,7 +57,7 @@ class ListGetNumberSum(ContainerDirectory):
 
 class ListRunExecuteBuiltin(ContainerDirectory):
     def get_directory(self, paths, **kwargs):
-        from resources.lib.method import run_executebuiltin
+        from resources.lib.methods.builtins import run_executebuiltin
 
         for path in paths:
             run_executebuiltin(path, use_rules=True, **kwargs)

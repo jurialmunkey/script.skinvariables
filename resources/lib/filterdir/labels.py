@@ -19,7 +19,7 @@ class ContainerLabelItems:
         contextmenu=None,
         **filters,
     ):
-        from resources.lib.method import get_paramstring_tuplepairs
+        from resources.lib.params import get_paramstring_tuplepairs
         self.containers = containers.split()
         self.infolabels = infolabel.split()
         self.thumb = thumb

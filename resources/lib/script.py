@@ -25,31 +25,31 @@ class Script(object):
 
     routing_table = {
         'set_animation':
-            lambda **kwargs: importmodule('resources.lib.method', 'set_animation')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.controls', 'set_animation')(**kwargs),
         'set_slider':
-            lambda **kwargs: importmodule('resources.lib.method', 'set_slider')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.controls', 'set_slider')(**kwargs),
         'run_executebuiltin':
-            lambda **kwargs: importmodule('resources.lib.method', 'run_executebuiltin')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.builtins', 'run_executebuiltin')(**kwargs),
         'run_dialog':
-            lambda **kwargs: importmodule('resources.lib.method', 'run_dialog')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.dialogs', 'run_dialog')(**kwargs),
         'run_progressdialog':
-            lambda **kwargs: importmodule('resources.lib.method', 'run_progressdialog')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.progress', 'run_progressdialog')(**kwargs),
         'run_selectfocusdialog':
-            lambda **kwargs: importmodule('resources.lib.method', 'run_selectfocusdialog')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.focus', 'run_selectfocusdialog')(**kwargs),
         'set_player_subtitle':
-            lambda **kwargs: importmodule('resources.lib.method', 'set_player_subtitle')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.player', 'set_player_subtitle')(**kwargs),
         'set_player_audiostream':
-            lambda **kwargs: importmodule('resources.lib.method', 'set_player_audiostream')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.player', 'set_player_audiostream')(**kwargs),
         'set_editcontrol':
-            lambda **kwargs: importmodule('resources.lib.method', 'set_editcontrol')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.controls', 'set_editcontrol')(**kwargs),
         'set_dbid_tag':
-            lambda **kwargs: importmodule('resources.lib.method', 'set_dbid_tag')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.library', 'set_dbid_tag')(**kwargs),
         'get_jsonrpc':
-            lambda **kwargs: importmodule('resources.lib.method', 'get_jsonrpc')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.jsonrpc', 'get_jsonrpc')(**kwargs),
         'set_kodisetting':
-            lambda **kwargs: importmodule('resources.lib.method', 'set_kodisetting')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.settings', 'set_kodisetting')(**kwargs),
         'add_skinstring_history':
-            lambda **kwargs: importmodule('resources.lib.method', 'add_skinstring_history')(**kwargs),
+            lambda **kwargs: importmodule('resources.lib.methods.history', 'add_skinstring_history')(**kwargs),
         'set_shortcut':
             lambda **kwargs: importmodule('resources.lib.shortcuts.method', 'set_shortcut')(**kwargs),
         'copy_menufile':

@@ -59,10 +59,10 @@ class ListSetPlayerStreams(ContainerDirectory):
         if not stream_type or stream_index is None:
             return
         if stream_type == 'audio':
-            from resources.lib.method import set_player_audiostream
+            from resources.lib.methods.player import set_player_audiostream
             set_player_audiostream(stream_index)
             return
         if stream_type == 'subtitle':
-            from resources.lib.method import set_player_subtitle
+            from resources.lib.methods.player import set_player_subtitle
             set_player_subtitle(stream_index)
             return

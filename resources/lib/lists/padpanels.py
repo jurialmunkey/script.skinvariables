@@ -48,7 +48,7 @@ class ListGetPanelLabels(ContainerDirectory):
 
     def get_directory(self, containers, infoproperties, infolabel, length, **kwargs):
 
-        from resources.lib.method import get_paramstring_tuplepairs
+        from resources.lib.params import get_paramstring_tuplepairs
         infoprops = dict(get_paramstring_tuplepairs(infoproperties))
 
         items = [
