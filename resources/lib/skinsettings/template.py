@@ -86,6 +86,7 @@ class SkinSettingsTemplate:
         'button': '7',
         'radiobutton': '8',
         'spincontrol': '9',
+        'edit': '12',
         'slider': '13',
     }
     # Kodi hides its default template controls in native settings windows so the script removes them.
@@ -130,15 +131,12 @@ class SkinSettingsTemplate:
         ]
         return {control.control_id: control for control in reversed(controls) if control.control_id}
 
-    @cached_property
-    def templates(self):
-        return self.get_templates()
-
-    def get_templates(self):
-        return {name: self.controls[control_id] for name, control_id in self.template_ids.items()}
+    def get_template(self, name):
+        # Looked up on use so skins only need the templates for the controls a definition uses.
+        return self.controls[self.template_ids[name]]
 
     def get_element(self, item):
-        return self.templates[item.template].clone().configure(item.control_id, item.overrides)
+        return self.get_template(item.template).clone().configure(item.control_id, item.overrides)
 
     @cached_property
     def category_elements(self):
