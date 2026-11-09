@@ -121,7 +121,7 @@ class SkinSettingsCategory(DefinitionItem):
         return super().get_overrides() + [('usealttexture', self.condition, {})]
 
     def onfocus(self, window):
-        window.setProperty(CATEGORY_PROPERTY, self.key)
+        window.set_category(self.key)
         super().onfocus(window)
 
 
@@ -141,12 +141,18 @@ class SettingsListItem(DefinitionItem):
         return f'{SEARCH_PROPERTY_PREFIX}.{self.control_id}'
 
     @cached_property
+    def match_condition(self):
+        return self.get_match_condition()
+
+    def get_match_condition(self):
+        return f'!String.IsEmpty(Window.Property({self.search_property}))'
+
+    @cached_property
     def shown_condition(self):
         return self.get_shown_condition()
 
     def get_shown_condition(self):
-        conditions = [self.category.condition] + self.search.get_result_conditions(self)
-        return ' | '.join(f'[{condition}]' for condition in conditions)
+        return self.search.get_shown_condition(self)
 
     @cached_property
     def visible(self):

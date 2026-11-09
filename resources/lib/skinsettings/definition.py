@@ -4,7 +4,7 @@ from json import loads
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.futils import load_filecontent
 from resources.lib.skinsettings.items import DefinitionEntries, SkinSettingsCategory, SkinSettingsGroup, SETTING_CLASSES
-from resources.lib.skinsettings.search import SearchCategory, SearchDisabled
+from resources.lib.skinsettings.search import SearchDisabled, get_search
 
 
 class SkinSettingsDefinition:
@@ -28,7 +28,7 @@ class SkinSettingsDefinition:
     def get_search(self):
         if 'search' not in self.meta:
             return SearchDisabled()
-        return SearchCategory(self.meta['search'])
+        return get_search(self.meta['search'])
 
     @cached_property
     def categories(self):

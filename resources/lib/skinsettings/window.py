@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import xbmcgui
-from resources.lib.skinsettings.items import DefinitionItem
+from resources.lib.skinsettings.items import DefinitionItem, CATEGORY_PROPERTY
 from resources.lib.skinsettings.search import SettingsSearch
 
 
@@ -36,8 +36,18 @@ class SkinSettingsWindow(xbmcgui.WindowXML):
     def set_description(self, text):
         self.getControl(DESCRIPTION_CONTROL_ID).setText(text)
 
+    def set_category(self, key):
+        # Returning focus to the selected category is not a change so it keeps the search text.
+        if self.getProperty(CATEGORY_PROPERTY) == key:
+            return
+        self.setProperty(CATEGORY_PROPERTY, key)
+        self.definition.search.onchangecategory(self)
+
     def get_text(self, control_id):
         return self.getControl(control_id).getText()
+
+    def set_text(self, control_id, text):
+        self.getControl(control_id).setText(text)
 
     def set_search(self, query):
         search = SettingsSearch(query, self.definition.groups, self.definition.settings)
