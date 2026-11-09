@@ -187,6 +187,14 @@ class SkinSetting(SettingsListItem):
         return ' '.join((self.label_text, self.group.label_text, self.description_text)).lower()
 
     @cached_property
+    def focusable_condition(self):
+        return self.get_focusable_condition()
+
+    def get_focusable_condition(self):
+        conditions = [self.visible] + ([self.meta['enabled']] if 'enabled' in self.meta else [])
+        return ' + '.join(f'[{condition}]' for condition in conditions)
+
+    @cached_property
     def optional_overrides(self):
         return self.get_optional_overrides()
 

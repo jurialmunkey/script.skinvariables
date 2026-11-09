@@ -1,16 +1,26 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+import xbmc
 from jurialmunkey.ftools import cached_property
-from resources.lib.skinsettings.items import DefinitionItem, SkinSettingsCategory, SEARCH_PROPERTY_PREFIX
+from resources.lib.skinsettings.items import (
+    DefinitionItem,
+    SkinSettingsCategory,
+    PROPERTY_PREFIX,
+    SEARCH_PROPERTY_PREFIX,
+)
 
 
 SEARCH_KEY = 'SkinVariables.Search'
 SEARCH_EDIT_ID = -300000
+# Global search keeps the skin's edit template control where the skin placed it, including its id.
+PLACED_EDIT_ID = 12
 QUERY_PROPERTY = f'{SEARCH_PROPERTY_PREFIX}.Query'
+TOP_CONTROL_PROPERTY = f'{PROPERTY_PREFIX}.TopControlID'
+BOTTOM_CONTROL_PROPERTY = f'{PROPERTY_PREFIX}.BottomControlID'
 
 
-class SearchDisabled:
-    """Stands in for the search when the definition does not enable it."""
+class SearchBase:
+    """Search hooks used by the definition, template and window. The defaults add no search behaviour."""
 
     @property
     def categories(self):
@@ -20,17 +30,29 @@ class SearchDisabled:
     def list_items(self):
         return []
 
+    @property
+    def placed_items(self):
+        return []
+
     def get_shown_condition(self, item):
         return item.category.condition
 
     def onchangecategory(self, window):
         pass
 
+    def onchangeview(self, window):
+        pass
 
-class SearchMode:
+
+class SearchDisabled(SearchBase):
+    """Stands in for the search when the definition does not enable it."""
+
+
+class SearchMode(SearchBase):
     """Shared behaviour of the search modes. Subclasses decide where the edit control and the results appear."""
 
     default_label = '$LOCALIZE[137]'
+    edit_control_id = SEARCH_EDIT_ID
 
     @property
     def label(self):
@@ -39,10 +61,6 @@ class SearchMode:
     @cached_property
     def edit(self):
         return SearchEdit(self)
-
-    @property
-    def categories(self):
-        return []
 
     @property
     def list_items(self):
@@ -54,9 +72,6 @@ class SearchMode:
 
     def get_shown_condition(self, item):
         raise NotImplementedError
-
-    def onchangecategory(self, window):
-        pass
 
 
 class SearchCategory(SearchMode, SkinSettingsCategory):
@@ -94,14 +109,30 @@ class LocalSearch(SearchMode):
 
 
 class GlobalSearch(LocalSearch):
-    """Edit control at the top of every category that searches the settings of all categories."""
+    """Edit control placed by the skin that searches the settings of all categories.
+
+    The first and last focusable settings in view are set as window properties so the skin can move focus between
+    its edit control and the settings list.
+    """
+
+    edit_control_id = PLACED_EDIT_ID
+
+    @property
+    def list_items(self):
+        return []
+
+    @property
+    def placed_items(self):
+        return [self.edit]
 
     def get_shown_condition(self, item):
         return f'[[{item.category.condition}] + [{self.inactive_condition}]] | [{item.match_condition}]'
 
+    def onchangeview(self, window):
+        window.set_view_bounds()
+
 
 class SearchEdit(DefinitionItem):
-    control_id_start = SEARCH_EDIT_ID
     template = 'edit'
 
     def __init__(self, search):
@@ -110,6 +141,10 @@ class SearchEdit(DefinitionItem):
     @property
     def search(self):
         return self.parent
+
+    @property
+    def control_id(self):
+        return self.search.edit_control_id
 
     @property
     def label(self):
@@ -124,19 +159,10 @@ class SearchEdit(DefinitionItem):
         window.set_search(window.get_text(self.control_id))
 
 
-INLINE_SEARCH_LEVELS = {
-    'local': LocalSearch,
-    'global': GlobalSearch,
-}
-
-
-def get_inline_search(meta):
-    return INLINE_SEARCH_LEVELS[meta.get('level', 'local')](meta)
-
-
 SEARCH_MODES = {
     'category': SearchCategory,
-    'inline': get_inline_search,
+    'local': LocalSearch,
+    'global': GlobalSearch,
 }
 
 
@@ -199,3 +225,29 @@ class SettingsSearch:
 
     def get_properties(self):
         return {QUERY_PROPERTY: ' '.join(self.terms), **self.match_properties}
+
+
+class SettingsViewBounds:
+    """Finds the first and last focusable settings in the current view. Evaluate after the view properties are set."""
+
+    def __init__(self, settings):
+        self.settings = settings
+
+    @cached_property
+    def focusable_ids(self):
+        return self.get_focusable_ids()
+
+    def get_focusable_ids(self):
+        return [
+            setting.control_id
+            for setting in self.settings
+            if xbmc.getCondVisibility(setting.focusable_condition)
+        ]
+
+    @cached_property
+    def properties(self):
+        return self.get_properties()
+
+    def get_properties(self):
+        bounds = [str(self.focusable_ids[0]), str(self.focusable_ids[-1])] if self.focusable_ids else ['', '']
+        return dict(zip((TOP_CONTROL_PROPERTY, BOTTOM_CONTROL_PROPERTY), bounds))

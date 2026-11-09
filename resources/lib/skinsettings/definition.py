@@ -79,9 +79,17 @@ class SkinSettingsDefinition:
         return self.search.list_items + sorted(self.groups + self.settings, key=lambda item: item.order)
 
     @cached_property
+    def ordered_settings(self):
+        """Settings in the order they appear in the settings list."""
+        return self.get_ordered_settings()
+
+    def get_ordered_settings(self):
+        return sorted(self.settings, key=lambda setting: setting.order)
+
+    @cached_property
     def controls(self):
         return self.get_controls()
 
     def get_controls(self):
-        items = self.categories + self.search.list_items + self.groups + self.settings
+        items = self.categories + self.search.list_items + self.search.placed_items + self.groups + self.settings
         return {item.control_id: item for item in items}

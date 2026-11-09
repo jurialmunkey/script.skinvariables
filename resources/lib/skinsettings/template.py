@@ -154,8 +154,24 @@ class SkinSettingsTemplate:
     def default_elements(self):
         return self.get_default_elements()
 
+    @cached_property
+    def placed_ids(self):
+        """Template controls that stay where the skin placed them and are configured in place."""
+        return self.get_placed_ids()
+
+    def get_placed_ids(self):
+        return {self.template_ids[item.template] for item in self.definition.search.placed_items}
+
     def get_default_elements(self):
-        return [self.controls[control_id].element for control_id in self.default_ids if control_id in self.controls]
+        return [
+            self.controls[control_id].element
+            for control_id in self.default_ids
+            if control_id in self.controls and control_id not in self.placed_ids
+        ]
+
+    def configure_placed_items(self):
+        for item in self.definition.search.placed_items:
+            self.get_template(item.template).configure(item.control_id, item.overrides)
 
     @cached_property
     def document(self):
@@ -165,6 +181,7 @@ class SkinSettingsTemplate:
         category_elements, settings_elements = self.category_elements, self.settings_elements
         for element in self.default_elements:
             self.parents[element].remove(element)
+        self.configure_placed_items()
         self.controls[self.category_list_id].element.extend(category_elements)
         self.controls[self.settings_list_id].element.extend(settings_elements)
         return self.root
