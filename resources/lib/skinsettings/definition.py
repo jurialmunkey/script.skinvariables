@@ -100,6 +100,10 @@ class SkinSettingsCategory(DefinitionItem):
     def get_order(self):
         return (self.rank,)
 
+    def get_overrides(self):
+        # Togglebutton templates show the selected category with their alt textures. Other control types ignore the tag.
+        return super().get_overrides() + [('usealttexture', self.condition, {})]
+
     def onfocus(self, window):
         window.setProperty(CATEGORY_PROPERTY, self.key)
         super().onfocus(window)
@@ -117,7 +121,8 @@ class SettingsListItem(DefinitionItem):
         return self.get_visible()
 
     def get_visible(self):
-        return self.category.condition
+        conditions = [self.category.condition] + ([self.meta['visible']] if 'visible' in self.meta else [])
+        return ' + '.join(f'[{condition}]' for condition in conditions)
 
     def get_overrides(self):
         return super().get_overrides() + [('visible', self.visible, {})]
@@ -144,10 +149,6 @@ class SkinSetting(SettingsListItem):
     @property
     def category(self):
         return self.group.category
-
-    def get_visible(self):
-        conditions = [super().get_visible()] + ([self.meta['visible']] if 'visible' in self.meta else [])
-        return ' + '.join(f'[{condition}]' for condition in conditions)
 
     @cached_property
     def optional_overrides(self):
