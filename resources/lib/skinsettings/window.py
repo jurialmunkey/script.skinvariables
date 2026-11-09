@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import xbmcgui
+from jurialmunkey.ftools import cached_property
 from resources.lib.skinsettings.items import DefinitionItem, CATEGORY_PROPERTY
 from resources.lib.skinsettings.search import SettingsSearch, SettingsViewBounds
 
@@ -53,11 +54,21 @@ class SkinSettingsWindow(xbmcgui.WindowXML):
     def set_search(self, query):
         self.set_properties(SettingsSearch(query, self.definition.groups, self.definition.settings).properties)
 
+    @cached_property
+    def window_id(self):
+        """Id of this window. Read on first use when this window is active, which dialogs over it do not change."""
+        return self.get_window_id()
+
+    def get_window_id(self):
+        return xbmcgui.getCurrentWindowId()
+
     def set_view_bounds(self):
-        self.set_properties(SettingsViewBounds(self.definition.ordered_settings).properties)
+        self.set_properties(SettingsViewBounds(self.definition.ordered_settings, self.window_id).properties)
 
     def onFocus(self, control_id):
+        # Settings can change while a dialog opened by a click is shown so moving focus also refreshes the view.
         self.get_item(control_id).onfocus(self)
+        self.definition.search.onchangeview(self)
 
     def onClick(self, control_id):
         # Clicks change the search text or skin settings that the settings visibility can depend on.

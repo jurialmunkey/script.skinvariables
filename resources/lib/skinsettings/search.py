@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+import re
 import xbmc
 from jurialmunkey.ftools import cached_property
 from resources.lib.skinsettings.items import (
@@ -17,6 +18,7 @@ PLACED_EDIT_ID = 12
 QUERY_PROPERTY = f'{SEARCH_PROPERTY_PREFIX}.Query'
 TOP_CONTROL_PROPERTY = f'{PROPERTY_PREFIX}.TopControlID'
 BOTTOM_CONTROL_PROPERTY = f'{PROPERTY_PREFIX}.BottomControlID'
+WINDOW_PROPERTY_REGEX = re.compile(r'\bWindow\.Property\(', re.IGNORECASE)
 
 
 class SearchBase:
@@ -229,8 +231,13 @@ class SettingsSearch:
 class SettingsViewBounds:
     """Finds the first and last focusable settings in the current view. Evaluate after the view properties are set."""
 
-    def __init__(self, settings):
+    def __init__(self, settings, window_id):
         self.settings = settings
+        self.window_id = window_id
+
+    def get_window_condition(self, condition):
+        # Kodi evaluates script conditions against the topmost modal dialog when one is open, such as the keyboard.
+        return WINDOW_PROPERTY_REGEX.sub(f'Window({self.window_id}).Property(', condition)
 
     @cached_property
     def focusable_ids(self):
@@ -240,7 +247,7 @@ class SettingsViewBounds:
         return [
             setting.control_id
             for setting in self.settings
-            if xbmc.getCondVisibility(setting.focusable_condition)
+            if xbmc.getCondVisibility(self.get_window_condition(setting.focusable_condition))
         ]
 
     @cached_property
