@@ -85,9 +85,7 @@ class SkinSettingsTemplate:
         'group': '14',
         'button': '7',
         'radiobutton': '8',
-        'spincontrol': '9',
         'edit': '12',
-        'slider': '13',
     }
     # Kodi hides its default template controls in native settings windows so the script removes them.
     default_ids = ('7', '8', '9', '10', '11', '12', '13', '14', '15')
@@ -180,17 +178,9 @@ class SkinSettingsTemplate:
 
 
 class SettingsCategoryTemplate(SkinSettingsTemplate):
-    """Builds the scripted window from the skin's SettingsCategory.xml when the skin has no script template.
-
-    Kodi does not let scripts set the values of spincontrolex or sliderex controls so the button template is used.
-    """
+    """Builds the scripted window from the skin's SettingsCategory.xml when the skin has no script template."""
 
     filename = 'SettingsCategory.xml'
-    template_ids = {
-        **SkinSettingsTemplate.template_ids,
-        'spincontrol': '7',
-        'slider': '7',
-    }
 
 
 def get_skinsettings_template(folder, definition):

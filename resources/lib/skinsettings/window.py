@@ -7,10 +7,6 @@ from resources.lib.skinsettings.search import SettingsSearch
 
 DESCRIPTION_CONTROL_ID = 6
 CLOSE_ACTIONS = (xbmcgui.ACTION_PREVIOUS_MENU, xbmcgui.ACTION_NAV_BACK)
-STEP_ACTIONS = {
-    xbmcgui.ACTION_MOVE_LEFT: -1,
-    xbmcgui.ACTION_MOVE_RIGHT: 1,
-}
 
 
 class UnmanagedControl(DefinitionItem):
@@ -54,20 +50,6 @@ class SkinSettingsWindow(xbmcgui.WindowXML):
         for name, value in search.properties.items():
             self.setProperty(name, value)
 
-    def set_slider(self, control_id, value, maximum):
-        """Position a plain slider provided by the skin template. Other control types show the value in label2."""
-        try:
-            control = self.getControl(control_id)
-        except RuntimeError:  # Kodi raises for control types that python cannot access such as sliderex.
-            return
-        if not isinstance(control, xbmcgui.ControlSlider):
-            return
-        control.setInt(value, 0, 1, maximum)
-
-    def onInit(self):
-        for setting in self.definition.settings:
-            setting.oninit(self)
-
     def onFocus(self, control_id):
         self.get_item(control_id).onfocus(self)
 
@@ -75,10 +57,6 @@ class SkinSettingsWindow(xbmcgui.WindowXML):
         self.get_item(control_id).onclick(self)
 
     def onAction(self, action):
-        action_id = action.getId()
-        if action_id in CLOSE_ACTIONS:
-            self.close()
+        if action.getId() not in CLOSE_ACTIONS:
             return
-        if action_id not in STEP_ACTIONS:
-            return
-        self.get_item(self.getFocusId()).onstep(self, STEP_ACTIONS[action_id])
+        self.close()
