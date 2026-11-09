@@ -52,30 +52,34 @@ class SearchMode(SearchBase):
     """Shared behaviour of the search modes. Subclasses decide where the edit control and the results appear."""
 
     default_label = '$LOCALIZE[137]'
-    edit_control_id = SEARCH_EDIT_ID
 
     @property
     def label(self):
         return str(self.meta.get('label', self.default_label))
 
-    @cached_property
-    def edit(self):
-        return SearchEdit(self)
-
-    @property
-    def list_items(self):
-        return [self.edit]
-
-    @property
-    def edit_overrides(self):
-        return []
-
     def get_shown_condition(self, item):
         raise NotImplementedError
 
 
-class SearchCategory(SearchMode, SkinSettingsCategory):
-    """Search shown as the first category. Its settings area shows the edit control and the matching settings."""
+class SearchEditControl:
+    """Edit control that searches the settings each time its text changes."""
+
+    template = 'edit'
+
+    @property
+    def hinttext_overrides(self):
+        return [('hinttext', str(self.meta['hinttext']), {})] if 'hinttext' in self.meta else []
+
+    def get_overrides(self):
+        return super().get_overrides() + self.hinttext_overrides
+
+    def onclick(self, window):
+        # Edit controls send a click each time their text changes.
+        window.set_search(window.get_text(self.control_id))
+
+
+class SearchCategory(SearchEditControl, SearchMode, SkinSettingsCategory):
+    """Search shown as the first category using the edit template. Its settings area shows the matching settings."""
 
     def __init__(self, meta):
         super().__init__(SEARCH_KEY, meta, 0)
@@ -84,10 +88,6 @@ class SearchCategory(SearchMode, SkinSettingsCategory):
     def categories(self):
         return [self]
 
-    @property
-    def edit_overrides(self):
-        return [('visible', self.condition, {})]
-
     def get_shown_condition(self, item):
         return f'[{item.category.condition}] | [{self.condition} + {item.match_condition}]'
 
@@ -95,10 +95,19 @@ class SearchCategory(SearchMode, SkinSettingsCategory):
 class LocalSearch(SearchMode):
     """Edit control at the top of every category that filters the settings of the selected category."""
 
+    edit_control_id = SEARCH_EDIT_ID
     inactive_condition = f'String.IsEmpty(Window.Property({QUERY_PROPERTY}))'
 
     def __init__(self, meta):
         self.meta = meta
+
+    @cached_property
+    def edit(self):
+        return SearchEdit(self)
+
+    @property
+    def list_items(self):
+        return [self.edit]
 
     def get_shown_condition(self, item):
         return f'[{item.category.condition}] + [[{self.inactive_condition}] | [{item.match_condition}]]'
@@ -132,9 +141,7 @@ class GlobalSearch(LocalSearch):
         window.set_view_bounds()
 
 
-class SearchEdit(DefinitionItem):
-    template = 'edit'
-
+class SearchEdit(SearchEditControl, DefinitionItem):
     def __init__(self, search):
         super().__init__('search', search.meta, 0, search)
 
@@ -149,14 +156,6 @@ class SearchEdit(DefinitionItem):
     @property
     def label(self):
         return self.search.label
-
-    def get_overrides(self):
-        hinttext = [('hinttext', str(self.meta['hinttext']), {})] if 'hinttext' in self.meta else []
-        return super().get_overrides() + self.search.edit_overrides + hinttext
-
-    def onclick(self, window):
-        # Edit controls send a click each time their text changes.
-        window.set_search(window.get_text(self.control_id))
 
 
 SEARCH_MODES = {
