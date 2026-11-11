@@ -168,7 +168,7 @@ class ViewTypesPluginWindowView(ViewTypesPluginView):
             self.current_viewid,
             header=self.header,
             configured_groups=self.configured_groups,
-            exclusive_groups=self.viewtypes_obj.exclusive_groups,
+            group_mode=self.viewtypes_obj.group_mode,
         )
 
     @cached_property
@@ -176,7 +176,7 @@ class ViewTypesPluginWindowView(ViewTypesPluginView):
         return self.get_controller()
 
     def get_controller(self):
-        return ViewTypesWindowController(self.layout)
+        return ViewTypesWindowController(self.layout, tuple(self.viewtypes_obj.viewtypes))
 
     def select(self):
         if not self.controller.available:

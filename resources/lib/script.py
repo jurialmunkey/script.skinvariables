@@ -106,7 +106,7 @@ class Script(object):
             from resources.lib.viewtypes.controller import ViewTypes
             return ViewTypes(
                 selector=self.params.get('selector'),
-                exclusive_groups=self.params.get('exclusive_groups'),
+                group_mode=self.params.get('groups'),
             ).update_xml(skinfolder=self.params.get('folder'), **self.params)
 
         if self.params.get('action') == 'buildtemplate':

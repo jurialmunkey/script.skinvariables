@@ -5,7 +5,7 @@ from json import loads, dumps
 from xbmcgui import DialogProgressBG
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.futils import check_hash, make_hash
-from jurialmunkey.parser import boolean, merge_dicts
+from jurialmunkey.parser import merge_dicts
 from resources.lib.viewtypes.addons import AddonDetails, NewPluginDialog
 from resources.lib.viewtypes.common import ADDON
 from resources.lib.viewtypes.configuration import ViewTypesConfiguration
@@ -17,10 +17,10 @@ from resources.lib.viewtypes.storage import ViewTypesStorage
 
 
 class ViewTypes:
-    def __init__(self, selector=None, exclusive_groups=False):
+    def __init__(self, selector=None, group_mode=None):
         self.storage = ViewTypesStorage()
         self.selector = selector
-        self.exclusive_groups = boolean(exclusive_groups)
+        self.group_mode = group_mode
 
     @cached_property
     def selector_class(self):

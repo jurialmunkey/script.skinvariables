@@ -87,14 +87,14 @@ class ViewTypesWindowView(ViewTypesWindowItem):
 
 
 class ViewTypesWindowGroupedView(ViewTypesWindowView):
-    """Viewtype button that is only shown while its group is expanded."""
+    """Viewtype button in a group. The group decides when the button is shown."""
 
     def __init__(self, source, rank, current_viewid, group):
         super().__init__(source, rank, current_viewid)
         self.group = group
 
     def get_overrides(self):
-        return super().get_overrides() + [('visible', self.group.expanded_condition, {})]
+        return super().get_overrides() + self.group.view_overrides
 
 
 class ViewTypesWindowGroup(ViewTypesWindowItem):
@@ -121,12 +121,42 @@ class ViewTypesWindowGroup(ViewTypesWindowItem):
     def total(self):
         return len(self.source.items)
 
-    def get_overrides(self):
+    @cached_property
+    def state_overrides(self):
+        return self.get_state_overrides()
+
+    def get_state_overrides(self):
         # The radiobutton shows whether the group is expanded rather than toggling its own state when clicked.
-        return super().get_overrides() + [('selected', self.expanded_condition, {})]
+        return [('selected', self.expanded_condition, {})]
+
+    @cached_property
+    def view_overrides(self):
+        """Overrides for the viewtype buttons of the group. They are shown while the group is expanded."""
+        return self.get_view_overrides()
+
+    def get_view_overrides(self):
+        return [('visible', self.expanded_condition, {})]
+
+    def get_overrides(self):
+        return super().get_overrides() + self.state_overrides
 
     def onclick(self, window):
         window.toggle_group(self)
+
+
+class ViewTypesWindowGroupLabel(ViewTypesWindowGroup):
+    """Label heading a group that is always expanded so its viewtype buttons are always shown."""
+
+    template = 'label'
+
+    def get_state_overrides(self):
+        return []
+
+    def get_view_overrides(self):
+        return []
+
+    def onclick(self, window):
+        pass
 
 
 class ViewTypesGroupState:
@@ -218,12 +248,15 @@ class ViewTypesWindowLayout:
         return self.get_properties()
 
     def get_properties(self):
-        return {TOTAL_PROPERTY: str(self.total), HEADER_PROPERTY: self.header}
+        properties = {TOTAL_PROPERTY: str(self.total), HEADER_PROPERTY: self.header}
+        properties.update(self.focus_item.focus_properties)
+        return properties
 
 
 class ViewTypesWindowGroupedLayout(ViewTypesWindowLayout):
     """Group buttons each followed by the viewtype buttons that are shown while the group is expanded."""
 
+    group_class = ViewTypesWindowGroup
     group_state_class = ViewTypesGroupState
 
     def __init__(self, items, current_viewid, header='', configured_groups=()):
@@ -235,7 +268,7 @@ class ViewTypesWindowGroupedLayout(ViewTypesWindowLayout):
         return self.get_groups()
 
     def get_groups(self):
-        return tuple(ViewTypesWindowGroup(group, rank) for rank, group in enumerate(self.configured_groups))
+        return tuple(self.group_class(group, rank) for rank, group in enumerate(self.configured_groups))
 
     @cached_property
     def group_views(self):
@@ -275,8 +308,30 @@ class ViewTypesWindowExclusiveLayout(ViewTypesWindowGroupedLayout):
     group_state_class = ExclusiveGroupState
 
 
-def get_viewtypes_window_layout(items, current_viewid, header='', configured_groups=(), exclusive_groups=False):
+class ViewTypesWindowExpandedLayout(ViewTypesWindowGroupedLayout):
+    """Group labels each followed by the viewtype buttons of the group, which are always shown."""
+
+    group_class = ViewTypesWindowGroupLabel
+
+    def get_focus_item(self):
+        # Labels cannot be focused so the first viewtype button is focused when no viewtype is current.
+        return self.current_view or self.views[0]
+
+    def get_properties(self):
+        properties = super().get_properties()
+        properties.update({group.expanded_property: 'True' for group in self.groups})
+        return properties
+
+
+# Layouts by the groups option. Groups expand and collapse independently when the option is not given.
+GROUP_LAYOUT_CLASSES = {
+    'exclusive': ViewTypesWindowExclusiveLayout,
+    'expanded': ViewTypesWindowExpandedLayout,
+}
+
+
+def get_viewtypes_window_layout(items, current_viewid, header='', configured_groups=(), group_mode=None):
     if not configured_groups:
         return ViewTypesWindowLayout(items, current_viewid, header)
-    layout_class = ViewTypesWindowExclusiveLayout if exclusive_groups else ViewTypesWindowGroupedLayout
+    layout_class = GROUP_LAYOUT_CLASSES.get(group_mode, ViewTypesWindowGroupedLayout)
     return layout_class(items, current_viewid, header, configured_groups)
