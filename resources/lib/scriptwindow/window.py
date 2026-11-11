@@ -19,8 +19,8 @@ class UnmanagedControl:
 UNMANAGED_CONTROL = UnmanagedControl()
 
 
-class ScriptWindow(xbmcgui.WindowXML):
-    """Scripted window that passes focus and clicks to the generated item with the control id."""
+class ScriptWindowMixin:
+    """Passes focus and clicks to the generated item with the control id."""
 
     @property
     def controls(self):
@@ -43,3 +43,11 @@ class ScriptWindow(xbmcgui.WindowXML):
         if action.getId() not in CLOSE_ACTIONS:
             return
         self.close()
+
+
+class ScriptWindow(ScriptWindowMixin, xbmcgui.WindowXML):
+    pass
+
+
+class ScriptDialog(ScriptWindowMixin, xbmcgui.WindowXMLDialog):
+    pass

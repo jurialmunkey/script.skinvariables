@@ -6,6 +6,7 @@ from jurialmunkey.ftools import cached_property
 PROPERTY_PREFIX = 'SkinVariables.ViewTypes'
 NAME_PROPERTY = f'{PROPERTY_PREFIX}.Name'
 SCREENSHOT_PROPERTY = f'{PROPERTY_PREFIX}.Screenshot'
+VIEWID_PROPERTY = f'{PROPERTY_PREFIX}.ViewID'
 TOTAL_PROPERTY = f'{PROPERTY_PREFIX}.Total'
 HEADER_PROPERTY = f'{PROPERTY_PREFIX}.Header'
 GROUP_PROPERTY_PREFIX = f'{PROPERTY_PREFIX}.Group'
@@ -15,7 +16,7 @@ VIEW_ID_START = -200000
 
 
 class ViewTypesWindowItem:
-    """Button generated in the selector window for a viewtype or a group of viewtypes."""
+    """Button generated in the selector dialog for a viewtype or a group of viewtypes."""
 
     control_id_start = 0
     template = None
@@ -36,12 +37,17 @@ class ViewTypesWindowItem:
     def icon(self):
         return self.source.icon
 
+    @property
+    def view_id(self):
+        """Viewtype of the button. Empty for group buttons so focusing them clears the property."""
+        return ''
+
     @cached_property
     def focus_properties(self):
         return self.get_focus_properties()
 
     def get_focus_properties(self):
-        return {NAME_PROPERTY: self.name, SCREENSHOT_PROPERTY: self.icon}
+        return {NAME_PROPERTY: self.name, SCREENSHOT_PROPERTY: self.icon, VIEWID_PROPERTY: self.view_id}
 
     @cached_property
     def overrides(self):
@@ -156,7 +162,7 @@ class ExclusiveGroupState(ViewTypesGroupState):
 
 
 class ViewTypesWindowLayout:
-    """Viewtype buttons in the order they are shown in the selector window."""
+    """Viewtype buttons in the order they are shown in the selector dialog."""
 
     def __init__(self, items, current_viewid, header=''):
         self.items = items
@@ -193,7 +199,7 @@ class ViewTypesWindowLayout:
 
     @cached_property
     def focus_item(self):
-        """Button focused when the window opens. The current viewtype or else the first button."""
+        """Button focused when the dialog opens. The current viewtype or else the first button."""
         return self.get_focus_item()
 
     def get_focus_item(self):
@@ -208,7 +214,7 @@ class ViewTypesWindowLayout:
 
     @cached_property
     def properties(self):
-        """Window properties set when the window opens."""
+        """Window properties set when the dialog opens."""
         return self.get_properties()
 
     def get_properties(self):

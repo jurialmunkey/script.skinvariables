@@ -149,7 +149,7 @@ class ViewTypesPluginView:
 
 
 class ViewTypesPluginWindowView(ViewTypesPluginView):
-    """Selects the viewtype in a scripted window. Uses the select dialog when the skin has no window template."""
+    """Selects the viewtype in a scripted dialog. Uses the select dialog when the skin has no dialog template."""
 
     @cached_property
     def configured_groups(self):

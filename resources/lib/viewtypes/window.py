@@ -5,11 +5,11 @@ import xbmcvfs
 from jurialmunkey.ftools import cached_property
 from resources.lib.scriptwindow.controller import ScriptWindowController, ScriptWindowFile
 from resources.lib.scriptwindow.template import ScriptWindowTemplate
-from resources.lib.scriptwindow.window import ScriptWindow
+from resources.lib.scriptwindow.window import ScriptDialog
 
 
 class ViewTypesWindowTemplate(ScriptWindowTemplate):
-    """Builds the viewtype selector window from a skin template file written for the script."""
+    """Builds the viewtype selector dialog from a skin template file written for the script."""
 
     filename = 'script-skinvariables-viewtypes.xml'
     list_id = '3'
@@ -63,11 +63,11 @@ class ViewTypesWindowFile(ScriptWindowFile):
         return ViewTypesWindowTemplate(self.folder, self.layout)
 
 
-class ViewTypesWindow(ScriptWindow):
+class ViewTypesDialog(ScriptDialog):
     def __init__(self, *args, layout=None, **kwargs):
         self.layout = layout
         self.choice = None
-        # Set before the window opens so the current group is expanded when Kodi focuses the default control.
+        # Set before the dialog opens so the current group is expanded when Kodi focuses the default control.
         self.set_properties(self.layout.properties)
 
     @property
@@ -88,14 +88,14 @@ class ViewTypesWindow(ScriptWindow):
 
 class ViewTypesWindowController(ScriptWindowController):
     window_file_class = ViewTypesWindowFile
-    window_class = ViewTypesWindow
+    window_class = ViewTypesDialog
 
     def __init__(self, layout):
         self.layout = layout
 
     @cached_property
     def available(self):
-        """Whether every skin folder has a template for the window."""
+        """Whether every skin folder has a template for the dialog."""
         return self.get_available()
 
     def get_available(self):
