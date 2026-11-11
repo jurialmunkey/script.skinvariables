@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from jurialmunkey.ftools import cached_property
+from resources.lib.scriptwindow.items import ScriptWindowItem
 
 
 PROPERTY_PREFIX = 'SkinVariables.ViewTypes'
@@ -15,19 +16,12 @@ GROUP_ID_START = -100000
 VIEW_ID_START = -200000
 
 
-class ViewTypesWindowItem:
+class ViewTypesWindowItem(ScriptWindowItem):
     """Button generated in the selector dialog for a viewtype or a group of viewtypes."""
-
-    control_id_start = 0
-    template = None
 
     def __init__(self, source, rank):
         self.source = source
         self.rank = rank
-
-    @property
-    def control_id(self):
-        return self.control_id_start + self.rank
 
     @property
     def name(self):
@@ -49,18 +43,11 @@ class ViewTypesWindowItem:
     def get_focus_properties(self):
         return {NAME_PROPERTY: self.name, SCREENSHOT_PROPERTY: self.icon, VIEWID_PROPERTY: self.view_id}
 
-    @cached_property
-    def overrides(self):
-        return self.get_overrides()
-
-    def get_overrides(self):
-        return [('label', self.name, {})]
+    def get_values(self):
+        return {'label': self.name}
 
     def onfocus(self, window):
         window.set_properties(self.focus_properties)
-
-    def onclick(self, window):
-        pass
 
 
 class ViewTypesWindowView(ViewTypesWindowItem):

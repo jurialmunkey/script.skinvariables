@@ -44,7 +44,7 @@ class SkinSettingsTemplate(ScriptWindowTemplate):
 
     def configure_placed_items(self):
         for item in self.definition.search.placed_items:
-            self.get_template(item.template).configure(item.control_id, item.overrides)
+            self.get_template(item.template).configure(item)
 
     def get_document(self):
         category_elements, settings_elements = self.category_elements, self.settings_elements

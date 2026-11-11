@@ -68,13 +68,6 @@ class SearchEditControl:
 
     template = 'edit'
 
-    @property
-    def hinttext_overrides(self):
-        return [('hinttext', str(self.meta['hinttext']), {})] if 'hinttext' in self.meta else []
-
-    def get_overrides(self):
-        return super().get_overrides() + self.hinttext_overrides
-
     def onclick(self, window):
         # Edit controls send a click each time their text changes.
         window.set_search(window.get_text(self.control_id))

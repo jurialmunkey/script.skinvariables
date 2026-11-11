@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+import re
 import xml.etree.ElementTree as ET
 from copy import deepcopy
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.futils import load_filecontent
 from resources.lib.xmlhelper.serializer import XML_HEADER
+
+
+SUBSTITUTION_PATTERN = re.compile(r'\$SUBSTITUTE\[(\w+)\]')
 
 
 class TemplateControl:
@@ -29,13 +33,34 @@ class TemplateControl:
         element.text = text
         return element
 
-    def configure(self, control_id, overrides):
-        """Replace the template tags given by overrides. Includes receive them as nested content."""
-        tags = {tag for tag, text, attrib in overrides}
+    @staticmethod
+    def get_substituted_text(text, substitutions):
+        return SUBSTITUTION_PATTERN.sub(lambda match: substitutions[match.group(1)], text)
+
+    def substitute(self, substitutions):
+        """Replace $SUBSTITUTE[name] in the template text with the item's string value for name."""
+        for element in [element for element in self.element.iter() if element.text]:
+            element.text = self.get_substituted_text(element.text, substitutions)
+
+    @property
+    def tags(self):
+        return {child.tag for child in self.element}
+
+    def get_missing_defaults(self, defaults):
+        tags = self.tags
+        return [default for default in defaults if default[0] not in tags]
+
+    def remove_tags(self, tags):
         for child in [child for child in self.element if child.tag in tags]:
             self.element.remove(child)
-        self.element.extend(self.get_override_element(*override) for override in overrides)
-        self.set_control_id(control_id)
+
+    def configure(self, item):
+        """Configure the template for the item. Includes receive the overrides and defaults as nested content."""
+        self.substitute(item.substitutions)
+        defaults = self.get_missing_defaults(item.defaults)
+        self.remove_tags({tag for tag, text, attrib in item.overrides})
+        self.element.extend(self.get_override_element(*override) for override in item.overrides + defaults)
+        self.set_control_id(item.control_id)
         return self.element
 
 
@@ -124,7 +149,7 @@ class ScriptWindowTemplate:
         return self.controls[self.template_ids[name]]
 
     def get_element(self, item):
-        return self.get_template(item.template).clone().configure(item.control_id, item.overrides)
+        return self.get_template(item.template).clone().configure(item)
 
     @cached_property
     def placed_ids(self):

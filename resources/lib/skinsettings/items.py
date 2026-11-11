@@ -2,6 +2,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import xbmc
 from jurialmunkey.ftools import cached_property
+from resources.lib.scriptwindow.items import ScriptWindowItem
 
 
 PROPERTY_PREFIX = 'SkinVariables.SkinSettings'
@@ -21,6 +22,11 @@ def get_label_text(label):
     if '$' in label:
         return xbmc.getInfoLabel(label)
     return label
+
+
+def get_label_info(label):
+    """Format a skin label to resolve inside other label text. Kodi only localizes ids given as a full label."""
+    return f'$LOCALIZE[{label}]' if label.isdigit() else label
 
 
 class DefinitionEntries:
@@ -45,19 +51,15 @@ class DefinitionEntries:
         ]
 
 
-class DefinitionItem:
-    control_id_start = 0
-    template = None
+class DefinitionItem(ScriptWindowItem):
+    # Keys holding skin labels. Numeric ids are substituted as $LOCALIZE so they resolve inside other text.
+    label_keys = ('label', 'label2', 'hinttext', 'description')
 
     def __init__(self, key, meta, rank, parent=None):
         self.key = key
         self.meta = meta
         self.rank = rank
         self.parent = parent
-
-    @property
-    def control_id(self):
-        return self.control_id_start + self.rank
 
     @property
     def label(self):
@@ -82,18 +84,19 @@ class DefinitionItem:
     def get_order(self):
         return self.parent.order + (self.rank,)
 
-    @cached_property
-    def overrides(self):
-        return self.get_overrides()
+    def get_values(self):
+        """String values of the definition. The label property gives the label so subclasses can supply a default."""
+        values = {key: value for key, value in self.meta.items() if isinstance(value, str)}
+        return {**values, 'label': self.label}
 
-    def get_overrides(self):
-        return [('label', self.label, {})]
+    def get_substitution(self, key, value):
+        return get_label_info(value) if key in self.label_keys else value
+
+    def get_substitutions(self):
+        return {key: self.get_substitution(key, value) for key, value in self.values.items()}
 
     def onfocus(self, window):
         window.set_description(self.description)
-
-    def onclick(self, window):
-        pass
 
 
 class SkinSettingsCategory(DefinitionItem):
@@ -111,7 +114,8 @@ class SkinSettingsCategory(DefinitionItem):
         return (self.rank,)
 
     def get_overrides(self):
-        # Togglebutton templates show the selected category with their alt textures. Other control types ignore the tag.
+        # Togglebutton templates show the selected category with their alt textures and an altlabel written with
+        # $SUBSTITUTE[label] so the label always matches the toggle state. Other control types ignore the tag.
         return super().get_overrides() + [('usealttexture', self.condition, {})]
 
     def onfocus(self, window):
@@ -172,7 +176,7 @@ class SkinSettingsGroup(SettingsListItem):
 class SkinSetting(SettingsListItem):
     control_id_start = SETTING_ID_START
     template = 'button'
-    optional_tags = (('label2', 'label2'), ('enabled', 'enable'))
+    optional_tags = (('enabled', 'enable'),)
 
     @property
     def group(self):
