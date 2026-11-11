@@ -12,13 +12,25 @@ from resources.lib.viewtypes.configuration import ViewTypesConfiguration
 from resources.lib.viewtypes.expressions import ViewTypeAssignments, ViewTypeExpressions, ViewTypesXML
 from resources.lib.viewtypes.menu import ConfiguredViews
 from resources.lib.viewtypes.metadata import ViewTypesDefaults, ViewTypesPreferences
-from resources.lib.viewtypes.selection import ViewTypesPluginView
+from resources.lib.viewtypes.selection import get_selector_class
 from resources.lib.viewtypes.storage import ViewTypesStorage
 
 
 class ViewTypes:
-    def __init__(self):
+    def __init__(self, selector=None, group_mode=None):
         self.storage = ViewTypesStorage()
+        self.selector = selector
+        self.group_mode = group_mode
+
+    @cached_property
+    def selector_class(self):
+        return self.get_selector_class()
+
+    def get_selector_class(self):
+        return get_selector_class(self.selector)
+
+    def get_selector(self, contentid, pluginname):
+        return self.selector_class(self, contentid, pluginname)
 
     @cached_property
     def content(self):
@@ -138,7 +150,7 @@ class ViewTypes:
             progress.close()
 
     def add_pluginview(self, contentid=None, pluginname=None):
-        view_id = ViewTypesPluginView(self, contentid, pluginname).view_id
+        view_id = self.get_selector(contentid, pluginname).view_id
         if not view_id:
             return
         self.addon_meta.setdefault(pluginname, {})[contentid] = view_id

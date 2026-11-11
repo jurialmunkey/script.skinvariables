@@ -4,6 +4,8 @@ from xbmcgui import Dialog
 from jurialmunkey.ftools import cached_property
 from resources.lib.viewtypes.common import ADDON
 from resources.lib.viewtypes.items import ViewTypesItem, ViewTypesGroup
+from resources.lib.viewtypes.window import ViewTypesWindowController
+from resources.lib.viewtypes.windowitems import get_viewtypes_window_layout
 
 
 class ViewTypesPluginGroup:
@@ -89,14 +91,20 @@ class ViewTypesPluginView:
         return [viewid for viewid in self.viewtypes_obj.viewtypes if viewid in self.content_viewtypes]
 
     @cached_property
+    def viewtypes_items(self):
+        return self.get_viewtypes_items()
+
+    def get_viewtypes_items(self):
+        return tuple(self.get_viewtypes_item(viewid) for viewid in self.viewtype_ids)
+
+    @cached_property
     def items(self):
         return self.get_items()
 
     def get_items(self):
-        items = tuple(self.get_viewtypes_item(viewid) for viewid in self.viewtype_ids)
         if not self.viewtypes_obj.groups:
-            return items
-        choice = ViewTypesPluginGroup(items, self.viewtypes_obj.groups, header=self.header).choice
+            return self.viewtypes_items
+        choice = ViewTypesPluginGroup(self.viewtypes_items, self.viewtypes_obj.groups, header=self.header).choice
         return choice.items if choice else None
 
     def get_viewtypes_item(self, view_id):
@@ -138,3 +146,50 @@ class ViewTypesPluginView:
         if not self.contentid or not self.pluginname or not self.content or not self.choice:
             return
         return self.choice.view_id
+
+
+class ViewTypesPluginWindowView(ViewTypesPluginView):
+    """Selects the viewtype in a scripted dialog. Uses the select dialog when the skin has no dialog template."""
+
+    @cached_property
+    def configured_groups(self):
+        return self.get_configured_groups()
+
+    def get_configured_groups(self):
+        return ViewTypesPluginGroup(self.viewtypes_items, self.viewtypes_obj.groups).configured_groups
+
+    @cached_property
+    def layout(self):
+        return self.get_layout()
+
+    def get_layout(self):
+        return get_viewtypes_window_layout(
+            self.viewtypes_items,
+            self.current_viewid,
+            header=self.header,
+            configured_groups=self.configured_groups,
+            group_mode=self.viewtypes_obj.group_mode,
+        )
+
+    @cached_property
+    def controller(self):
+        return self.get_controller()
+
+    def get_controller(self):
+        return ViewTypesWindowController(self.layout, tuple(self.viewtypes_obj.viewtypes))
+
+    def select(self):
+        if not self.controller.available:
+            return super().select()
+        if not self.layout.views:
+            return
+        return self.controller.run()
+
+
+SELECTOR_CLASSES = {
+    'window': ViewTypesPluginWindowView,
+}
+
+
+def get_selector_class(selector=None):
+    return SELECTOR_CLASSES.get(selector, ViewTypesPluginView)

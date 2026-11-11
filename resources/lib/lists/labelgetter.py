@@ -39,6 +39,10 @@ class ListItemAbsoluteInfoLabelGetter(ListInfoLabelGetter):
     listitem_key = 'ListItemAbsolute'
 
 
+class ListItemInfoLabelGetter(ListInfoLabelGetter):
+    listitem_key = 'ListItem'
+
+
 class ListGetListLabelsItems:
 
     def __init__(self, container, infolabel, **infoprops):

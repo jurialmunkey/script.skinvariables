@@ -104,7 +104,10 @@ class Script(object):
     def router(self):
         if self.params.get('action') == 'buildviews':
             from resources.lib.viewtypes.controller import ViewTypes
-            return ViewTypes().update_xml(skinfolder=self.params.get('folder'), **self.params)
+            return ViewTypes(
+                selector=self.params.get('selector'),
+                group_mode=self.params.get('groups'),
+            ).update_xml(skinfolder=self.params.get('folder'), **self.params)
 
         if self.params.get('action') == 'buildtemplate':
             from resources.lib.shortcuts.template.controller import ShortcutsTemplate
