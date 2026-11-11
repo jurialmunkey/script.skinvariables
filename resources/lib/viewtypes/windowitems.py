@@ -254,7 +254,10 @@ class ViewTypesWindowLayout:
 
 
 class ViewTypesWindowGroupedLayout(ViewTypesWindowLayout):
-    """Group buttons each followed by the viewtype buttons that are shown while the group is expanded."""
+    """Group buttons each followed by the viewtype buttons that are shown while the group is expanded.
+
+    All groups start collapsed with the first group button focused.
+    """
 
     group_class = ViewTypesWindowGroup
     group_state_class = ViewTypesGroupState
@@ -296,15 +299,18 @@ class ViewTypesWindowGroupedLayout(ViewTypesWindowLayout):
     def get_group_state(self):
         return self.group_state_class(self.groups)
 
+    def get_focus_item(self):
+        return self.groups[0]
+
     def get_properties(self):
         properties = super().get_properties()
         properties.update({group.total_property: str(group.total) for group in self.groups})
-        if self.current_view:
-            properties[self.current_view.group.expanded_property] = 'True'
         return properties
 
 
 class ViewTypesWindowExclusiveLayout(ViewTypesWindowGroupedLayout):
+    """Only one group is expanded at a time. All groups start collapsed with the first group button focused."""
+
     group_state_class = ExclusiveGroupState
 
 
