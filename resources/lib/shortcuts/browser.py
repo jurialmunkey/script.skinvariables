@@ -45,7 +45,7 @@ class GetDirectoryBrowser():
         if not path:
             return ('', '')
         if node and not link and path.endswith(PLAYLIST_EXT) and _ask_is_playable(path):
-            return (f'PlayMedia({path})', '')
+            return (f'RunScript(script.skinvariables,"run_executebuiltin=PlayMedia({path})")', '')
         # Links without nodes and folders with nodes retain the raw path.
         if (not node) is not (not link):
             return (path, node)
@@ -55,7 +55,7 @@ class GetDirectoryBrowser():
         if path.startswith('androidapp://'):
             path = path.replace('androidapp://', '')
             return (f'StartAndroidActivity({path})', '')
-        return (f'PlayMedia({path})', '')
+        return (f'RunScript(script.skinvariables,"run_executebuiltin=PlayMedia({path})")', '')
 
     @staticmethod
     def get_decoded_reload(path):
