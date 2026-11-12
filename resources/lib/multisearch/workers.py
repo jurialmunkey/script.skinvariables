@@ -5,6 +5,18 @@ from jurialmunkey.ftools import cached_property
 from resources.lib.filterdir.items import ParallelThread
 
 
+class EmptySearchRequest:
+    """Stands in for a search while the search text is empty."""
+
+    items = []
+
+    def get_source_items(self, source):
+        return []
+
+
+EMPTY_REQUEST = EmptySearchRequest()
+
+
 class SearchRequest:
     """Looks up the query for each source in its own thread and combines the results with the sort method."""
 
@@ -28,11 +40,25 @@ class SearchRequest:
         return queue
 
     @cached_property
+    def results_by_source(self):
+        return self.get_results_by_source()
+
+    def get_results_by_source(self):
+        return dict(zip(self.sources, self.source_results))
+
+    def get_sorted_items(self, source_results):
+        return self.sort_method(source_results).items[:self.limit]
+
+    @cached_property
     def items(self):
         return self.get_items()
 
     def get_items(self):
-        return self.sort_method(self.source_results).items[:self.limit]
+        return self.get_sorted_items(self.source_results)
+
+    def get_source_items(self, source):
+        """Results of one source. Empty for a source that was not enabled for this search."""
+        return self.get_sorted_items([self.results_by_source.get(source, [])])
 
     def run(self):
         # Build the results on the worker so the callback only displays them.

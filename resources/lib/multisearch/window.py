@@ -3,8 +3,11 @@
 import threading
 import xbmc
 import xbmcgui
+from jurialmunkey.ftools import cached_property
 from resources.lib.kodiutils import get_localized
+from resources.lib.multisearch.constants import PROPERTY_PREFIX
 from resources.lib.multisearch.keyboard import KEYBOARD_KEYS
+from resources.lib.multisearch.workers import EMPTY_REQUEST
 from resources.lib.scriptwindow.window import ScriptWindow
 
 
@@ -13,7 +16,6 @@ EDIT_ID = 100
 KEYBOARD_ID = 101
 SOURCES_ID = 102
 SORT_ID = 103
-PROPERTY_PREFIX = 'SkinVariables.MultiSearch'
 SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
 COUNT_PROPERTY = f'{PROPERTY_PREFIX}.Count'
 
@@ -91,16 +93,20 @@ class MultiSearchWindow(ScriptWindow):
     """Searches the enabled sources each time the search text changes and lists the combined results.
 
     Results arrive from the search worker so changes to the results list are made while holding the lock.
+    The focused source button decides whether the list shows the results of all sources or of one source.
     """
 
-    def __init__(self, *args, search=None, **kwargs):
+    def __init__(self, *args, search=None, buttons=None, **kwargs):
         self.search = search
+        self.buttons = buttons
+        self.request = EMPTY_REQUEST
+        self.selected_button = buttons.all_button
         self.results = []
         self.lock = threading.Lock()
 
-    @property
+    @cached_property
     def controls(self):
-        return MULTISEARCH_CONTROLS
+        return {**MULTISEARCH_CONTROLS, **self.buttons.controls}
 
     @property
     def query(self):
@@ -110,6 +116,8 @@ class MultiSearchWindow(ScriptWindow):
         # Kodi calls onInit again when returning from a window opened from the results.
         self.fill_keyboard()
         self.set_sort_property()
+        self.set_properties(self.buttons.enabled_properties)
+        self.set_properties(self.selected_button.focus_properties)
         with self.lock:
             self.fill_results()
 
@@ -126,13 +134,14 @@ class MultiSearchWindow(ScriptWindow):
         self.setProperty(SORT_PROPERTY, self.search.sort_method.get_label())
 
     def fill_results(self):
+        self.results = self.selected_button.get_results(self.request)
         control = self.getControl(RESULTS_ID)
         control.reset()
         control.addItems([result.listitem for result in self.results])
         self.setProperty(COUNT_PROPERTY, str(len(self.results)))
 
-    def set_results(self, results):
-        self.results = results
+    def set_request(self, request):
+        self.request = request
         self.fill_results()
 
     def show_results(self, request):
@@ -140,7 +149,7 @@ class MultiSearchWindow(ScriptWindow):
         with self.lock:
             if not self.search.is_current(request):
                 return
-            self.set_results(request.items)
+            self.set_request(request)
 
     def run_search(self):
         query = self.query
@@ -149,7 +158,16 @@ class MultiSearchWindow(ScriptWindow):
                 self.search.submit(query, self.show_results)
                 return
             self.search.clear()
-            self.set_results([])
+            self.set_request(EMPTY_REQUEST)
+
+    def select_button(self, button):
+        """Show the results of the focused source button. Returning focus to the selected button keeps the list."""
+        self.set_properties(button.focus_properties)
+        with self.lock:
+            if button is self.selected_button:
+                return
+            self.selected_button = button
+            self.fill_results()
 
     def press_key(self):
         key = KEYBOARD_KEYS[self.getControl(KEYBOARD_ID).getSelectedPosition()]
@@ -167,6 +185,9 @@ class MultiSearchWindow(ScriptWindow):
         if positions is None:
             return
         sources.set_enabled_positions(positions)
+        self.set_properties(self.buttons.enabled_properties)
+        if not self.selected_button.is_enabled(sources):
+            self.select_button(self.buttons.all_button)
         # Cached source results are reused so only newly enabled sources are looked up.
         self.run_search()
 
