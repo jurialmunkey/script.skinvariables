@@ -139,6 +139,10 @@ class SearchSources:
     def set_enabled_positions(self, positions):
         self.disabled_positions = set(range(len(self.items))) - set(positions)
 
+    def reset(self):
+        """Enable every source as when the window opens."""
+        self.disabled_positions = set()
+
     @property
     def enabled(self):
         return [self.items[position] for position in self.enabled_positions]

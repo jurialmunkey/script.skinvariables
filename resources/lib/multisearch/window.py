@@ -18,6 +18,7 @@ SOURCES_ID = 102
 SORT_ID = 103
 GENRE_ID = 104
 DECADE_ID = 105
+RESET_ID = 106
 SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
 COUNT_PROPERTY = f'{PROPERTY_PREFIX}.Count'
 BUSY_PROPERTY = f'{PROPERTY_PREFIX}.Busy'
@@ -111,6 +112,15 @@ class DecadeButton(FilterButton):
     filter_name = 'decade'
 
 
+class ResetButton(MultiSearchControl):
+    """Optional button that clears the search text and returns the filters and sources to their defaults."""
+
+    control_id = RESET_ID
+
+    def onclick(self, window):
+        window.reset_options()
+
+
 class ResultsControl(MultiSearchControl):
     """Results container. The skin can define a container for each widget style of the results."""
 
@@ -140,6 +150,7 @@ MULTISEARCH_CONTROLS = {
         SortButton(),
         GenreButton(),
         DecadeButton(),
+        ResetButton(),
     )
 }
 
@@ -359,6 +370,14 @@ class MultiSearchWindow(ScriptWindow):
             result_filter.set_value(options.values[position - 1] if position else '')
             self.set_properties(result_filter.properties)
             self.refresh_view()
+
+    def reset_options(self):
+        """Clear the search text and filters and enable every source. Clearing the text empties the results."""
+        with self.lock:
+            self.search.reset()
+            self.set_properties(self.search.filters.properties)
+            self.controls[SOURCES_ID].set_properties(self)
+        self.set_text('')
 
     @property
     def selected_result(self):

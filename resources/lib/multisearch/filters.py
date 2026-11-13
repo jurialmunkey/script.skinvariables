@@ -47,6 +47,9 @@ class ResultFilter:
     def set_value(self, value):
         self.value = value
 
+    def reset(self):
+        self.set_value('')
+
 
 class GenreFilter(ResultFilter):
     """Matches results with the genre. Results with several genres count for each of them."""
@@ -97,6 +100,11 @@ class ResultFilters:
             for result_filter in self.items.values()
             if result_filter is not excluded
         )
+
+    def reset(self):
+        """Clear every filter so all results are shown."""
+        for result_filter in self.items.values():
+            result_filter.reset()
 
     @property
     def properties(self):

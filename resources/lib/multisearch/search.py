@@ -35,6 +35,11 @@ class MultiSearch:
     def set_sort_position(self, position):
         self.sort_position = position
 
+    def reset(self):
+        """Return the filters and sources to their defaults. The sort method is kept."""
+        self.filters.reset()
+        self.sources.reset()
+
     def get_request(self, text, callback):
         return SearchRequest(SearchQuery(text), self.sources.enabled, callback)
 
