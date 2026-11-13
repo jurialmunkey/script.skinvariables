@@ -146,9 +146,12 @@ class MultiSearchWindow(ScriptWindow):
     The genre and decade filters narrow the results of each source before they are combined and limited.
     """
 
-    def __init__(self, *args, search=None, buttons=None, **kwargs):
+    def __init__(self, *args, search=None, buttons=None, opening_query=None, stored_query=None, **kwargs):
         self.search = search
         self.buttons = buttons
+        self.opening_query = opening_query
+        self.stored_query = stored_query
+        self.text = ''
         self.view = search.get_view(EMPTY_REQUEST)
         self.selected_button = buttons.all_button
         self.results = []
@@ -172,6 +175,18 @@ class MultiSearchWindow(ScriptWindow):
         with self.lock:
             self.update_buttons()
             self.fill_results()
+        self.restore_query()
+
+    def restore_query(self):
+        """Fill the edit control with the opening search text the first time the window opens.
+
+        Kodi keeps the edit control text when returning from a window opened from the results.
+        """
+        if self.opening_query is None:
+            return
+        query, self.opening_query = self.opening_query, None
+        self.getControl(EDIT_ID).setText(query)
+        self.run_search()
 
     def onAction(self, action):
         self.controls.get(self.getFocusId(), UNFOCUSED_CONTROL).onaction(self, action.getId())
@@ -224,7 +239,7 @@ class MultiSearchWindow(ScriptWindow):
             self.set_request(request)
 
     def run_search(self):
-        query = self.query
+        query = self.text = self.query
         with self.lock:
             if query.strip():
                 # Set while the current search waits or runs. Older searches finishing later do not clear it.
@@ -276,12 +291,12 @@ class MultiSearchWindow(ScriptWindow):
             self.refresh_view()
 
     def select_filter(self, result_filter):
-        """Choose a value for the filter from the results of the selected source button, or All to clear it."""
+        """Choose a value for the filter from the results of the selected source button, or Any to clear it."""
         with self.lock:
             options = self.view.get_options(result_filter, self.selected_button.get_scope_results(self.view))
         position = xbmcgui.Dialog().select(
             get_localized(result_filter.localized_id),
-            [get_localized(593), *options],
+            [get_localized(32100), *options],
             preselect=options.index(result_filter.value) + 1 if result_filter.value else 0,
         )
         if position < 0:
@@ -307,5 +322,6 @@ class MultiSearchWindow(ScriptWindow):
         xbmcgui.Dialog().info(result.listitem)
 
     def stop(self):
-        """Drop the queued search and wait for the running searches once the window has closed."""
+        """Store the search text for the session, drop the queued search and wait for the running searches."""
+        self.stored_query.set_value(self.text)
         self.search.close()

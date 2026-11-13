@@ -527,3 +527,8 @@ msgstr ""
 msgctxt "#32099"
 msgid "Decade"
 msgstr ""
+
+#: /resources/lib/multisearch/window.py
+msgctxt "#32100"
+msgid "Any"
+msgstr ""
