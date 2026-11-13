@@ -52,6 +52,22 @@ class SearchResult:
         return f'PlayMedia("{self.item.path}")'
 
 
+class CachedFilterDirItems(FilterDirItems):
+    """Directory items read from the search cache when stored there, otherwise looked up and stored."""
+
+    def __init__(self, paths, search_cache, library=None):
+        super().__init__(paths, library=library)
+        self.search_cache = search_cache
+
+    def get_stored_directory(self, path):
+        directory = super().get_directory(path)
+        self.search_cache.set(self.library, path, directory)
+        return directory
+
+    def get_directory(self, path):
+        return self.search_cache.get(self.library, path) or self.get_stored_directory(path)
+
+
 class SourceResults:
     """All items of one search source for one query. The results limit is applied after filtering."""
 
@@ -72,7 +88,7 @@ class SourceResults:
 
     def get_directory(self):
         paths = FilterDirPaths((self.path,), (self.source.label,))
-        return FilterDirItems(paths, library=self.source.library)
+        return CachedFilterDirItems(paths, self.source.search_cache, library=self.source.library)
 
     @cached_property
     def items(self):

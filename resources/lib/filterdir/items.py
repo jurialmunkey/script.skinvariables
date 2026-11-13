@@ -75,8 +75,12 @@ class FilterDirItems:
             return
         return item
 
+    def get_directory(self, path):
+        """JSON-RPC directory items of the path."""
+        return get_directory(path, self.directory_properties)
+
     def get_path_items(self, path, name):
-        directory = get_directory(path, self.directory_properties)
+        directory = self.get_directory(path)
         with ParallelThread(directory, self.get_item, name) as threads:
             queue = threads.queue
         return [item for item in queue if item]

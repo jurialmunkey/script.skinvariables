@@ -4,6 +4,7 @@ import xbmc
 from xbmcgui import ListItem
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.parser import parse_localize
+from resources.lib.multisearch.cache import SearchCache
 from resources.lib.multisearch.results import SourceResults
 from resources.lib.shortcuts.futils import read_meta_from_file
 from resources.lib.shortcuts.node.controller import ListGetShortcutsNode
@@ -24,10 +25,11 @@ class SearchSource:
     The path is either a name defined in the skin's search paths file or a raw path.
     """
 
-    def __init__(self, index, meta, definitions):
+    def __init__(self, index, meta, definitions, search_cache):
         self.index = index
         self.meta = meta
         self.definitions = definitions
+        self.search_cache = search_cache
         self.cache = {}
 
     @cached_property
@@ -85,6 +87,11 @@ class SearchSources:
         self.disabled_positions = set()
 
     @cached_property
+    def search_cache(self):
+        """Results of the sources kept for a day across windows. Each source also keeps its results while open."""
+        return SearchCache()
+
+    @cached_property
     def skinid(self):
         """Shortcuts folder of the skin, matching the generator's skin id for the current skin user."""
         return self.get_skinid()
@@ -116,7 +123,7 @@ class SearchSources:
 
     def get_items(self):
         return [
-            SearchSource(index, meta, self.definitions)
+            SearchSource(index, meta, self.definitions, self.search_cache)
             for index, meta in enumerate(self.menu_meta)
             if meta.get('path')
         ]
