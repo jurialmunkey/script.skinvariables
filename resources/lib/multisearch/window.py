@@ -6,12 +6,12 @@ import xbmcgui
 from jurialmunkey.ftools import cached_property
 from resources.lib.kodiutils import get_localized
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
+from resources.lib.multisearch.containers import CONTAINER_PROPERTY, FALLBACK_ID
 from resources.lib.multisearch.keyboard import KEYBOARD_KEYS
 from resources.lib.multisearch.workers import EMPTY_REQUEST
 from resources.lib.scriptwindow.window import ScriptWindow
 
 
-RESULTS_ID = 50
 EDIT_ID = 100
 KEYBOARD_ID = 101
 SOURCES_ID = 102
@@ -112,7 +112,10 @@ class DecadeButton(FilterButton):
 
 
 class ResultsControl(MultiSearchControl):
-    control_id = RESULTS_ID
+    """Results container. The skin can define a container for each widget style of the results."""
+
+    def __init__(self, control_id):
+        self.control_id = control_id
 
     def onclick(self, window):
         window.open_result()
@@ -137,7 +140,6 @@ MULTISEARCH_CONTROLS = {
         SortButton(),
         GenreButton(),
         DecadeButton(),
-        ResultsControl(),
     )
 }
 
@@ -148,11 +150,22 @@ class MultiSearchWindow(ScriptWindow):
     Results arrive from the search workers so changes to the results list are made while holding the lock.
     The focused source button decides whether the list shows the results of all sources or of one source.
     The genre and decade filters narrow the results of each source before they are combined and limited.
+    The results are added to the container for their most common widget style and the other containers are emptied.
     """
 
-    def __init__(self, *args, search=None, buttons=None, opening_query=None, stored_query=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        search=None,
+        buttons=None,
+        containers=None,
+        opening_query=None,
+        stored_query=None,
+        **kwargs,
+    ):
         self.search = search
         self.buttons = buttons
+        self.containers = containers
         self.opening_query = opening_query
         self.stored_query = stored_query
         # Latest search text. Kodi applies setText later on the GUI thread so getText can still return the old text.
@@ -160,11 +173,19 @@ class MultiSearchWindow(ScriptWindow):
         self.view = search.get_view(EMPTY_REQUEST)
         self.selected_button = buttons.all_button
         self.results = []
+        self.container_id = FALLBACK_ID
         self.lock = threading.Lock()
 
     @cached_property
+    def results_controls(self):
+        return self.get_results_controls()
+
+    def get_results_controls(self):
+        return {control_id: ResultsControl(control_id) for control_id in self.containers.control_ids}
+
+    @cached_property
     def controls(self):
-        return {**MULTISEARCH_CONTROLS, **self.buttons.controls}
+        return {**MULTISEARCH_CONTROLS, **self.results_controls, **self.buttons.controls}
 
     @property
     def query(self):
@@ -204,9 +225,16 @@ class MultiSearchWindow(ScriptWindow):
     def set_sort_property(self):
         self.setProperty(SORT_PROPERTY, self.search.sort_method.get_label())
 
+    def set_container(self):
+        """Show the container for the style of the results. The container shown before is emptied."""
+        self.getControl(self.container_id).reset()
+        self.container_id = self.containers.get_choice(self.results).control_id
+        self.setProperty(CONTAINER_PROPERTY, str(self.container_id))
+
     def fill_results(self):
         self.results = self.selected_button.get_results(self.view)
-        control = self.getControl(RESULTS_ID)
+        self.set_container()
+        control = self.getControl(self.container_id)
         control.reset()
         control.addItems([result.listitem for result in self.results])
         self.setProperty(COUNT_PROPERTY, str(len(self.results)))
@@ -335,7 +363,7 @@ class MultiSearchWindow(ScriptWindow):
     @property
     def selected_result(self):
         with self.lock:
-            return self.results[self.getControl(RESULTS_ID).getSelectedPosition()]
+            return self.results[self.getControl(self.container_id).getSelectedPosition()]
 
     def open_result(self):
         xbmc.executebuiltin(self.selected_result.builtin)

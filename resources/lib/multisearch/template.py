@@ -10,6 +10,9 @@ class MultiSearchWindowTemplate(ScriptWindowTemplate):
 
     The source grouplist is optional. When the skin has both the grouplist and its button template, the grouplist is
     filled with a button for all sources followed by a button for each source.
+
+    When the skin defines results containers by widget style, each one in the window file is only visible while the
+    results use it.
     """
 
     filename = 'script-skinvariables-multisearch.xml'
@@ -19,9 +22,10 @@ class MultiSearchWindowTemplate(ScriptWindowTemplate):
     }
     default_ids = ('201',)
 
-    def __init__(self, folder, buttons):
+    def __init__(self, folder, buttons, containers):
         super().__init__(folder)
         self.buttons = buttons
+        self.containers = containers
 
     @cached_property
     def has_grouplist(self):
@@ -44,8 +48,26 @@ class MultiSearchWindowTemplate(ScriptWindowTemplate):
         self.remove_default_elements()
         self.controls[self.grouplist_id].element.extend(elements)
 
+    @cached_property
+    def container_controls(self):
+        """Results containers in the window file that are shown only while the results use them."""
+        return self.get_container_controls()
+
+    def get_container_controls(self):
+        return {
+            control_id: self.controls[str(control_id)]
+            for control_id in self.containers.toggled_ids
+            if str(control_id) in self.controls
+        }
+
+    def add_container_conditions(self):
+        for control_id, control in self.container_controls.items():
+            condition = self.containers.get_visible_condition(control_id)
+            control.element.append(control.get_override_element('visible', condition, {}))
+
     def get_document(self):
         self.add_buttons()
+        self.add_container_conditions()
         return self.root
 
 
@@ -53,9 +75,10 @@ class MultiSearchWindowFile(ScriptWindowFile):
     basefolder = 'special://profile/addon_data/script.skinvariables/multisearch/'
     filename = 'script-skinvariables-multisearch-generated.xml'
 
-    def __init__(self, folder, buttons):
+    def __init__(self, folder, buttons, containers):
         super().__init__(folder)
         self.buttons = buttons
+        self.containers = containers
 
     def get_template(self):
-        return MultiSearchWindowTemplate(self.folder, self.buttons)
+        return MultiSearchWindowTemplate(self.folder, self.buttons, self.containers)

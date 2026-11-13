@@ -2,6 +2,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from jurialmunkey.ftools import cached_property
 from resources.lib.multisearch.buttons import SourceButtons
+from resources.lib.multisearch.containers import ResultsContainers
 from resources.lib.multisearch.history import StoredQuery
 from resources.lib.multisearch.search import MultiSearch, RESULTS_LIMIT
 from resources.lib.multisearch.sources import SearchSources
@@ -20,16 +21,29 @@ class MultiSearchController(ScriptWindowController):
     window_file_class = MultiSearchWindowFile
     window_class = MultiSearchWindow
 
-    def __init__(self, menu=None, skin=None, paths_file=None, limit=None, query=USE_STORED_QUERY):
+    def __init__(
+        self,
+        menu=None,
+        skin=None,
+        paths_file=None,
+        containers_file=None,
+        limit=None,
+        query=USE_STORED_QUERY,
+    ):
         self.menu = menu
         self.skin = skin
         self.paths_file = paths_file
+        self.containers_file = containers_file
         self.limit = limit
         self.query = query
 
     @cached_property
     def sources(self):
         return SearchSources(self.menu, self.skin, self.paths_file)
+
+    @cached_property
+    def containers(self):
+        return ResultsContainers(self.containers_file)
 
     @cached_property
     def results_limit(self):
@@ -58,12 +72,13 @@ class MultiSearchController(ScriptWindowController):
         return SourceButtons(self.sources)
 
     def get_window_file(self, folder):
-        return MultiSearchWindowFile(folder, self.buttons)
+        return MultiSearchWindowFile(folder, self.buttons, self.containers)
 
     def get_window_kwargs(self):
         return {
             'search': self.search,
             'buttons': self.buttons,
+            'containers': self.containers,
             'opening_query': self.opening_query,
             'stored_query': self.stored_query,
         }
@@ -78,8 +93,9 @@ def run_multisearch(
     menu=None,
     skin=None,
     paths=None,
+    containers=None,
     limit=None,
     query=USE_STORED_QUERY,
     **kwargs,
 ):
-    MultiSearchController(menu, skin, paths, limit, query).run()
+    MultiSearchController(menu, skin, paths, containers, limit, query).run()
