@@ -41,6 +41,9 @@ class SourceFilterButton(ScriptWindowItem):
     def onfocus(self, window):
         window.select_button(self)
 
+    def onclick(self, window):
+        window.select_source_button()
+
     def onaction(self, window, action_id):
         pass
 
@@ -147,3 +150,7 @@ class SourceButtons:
             button.shown_property: 'true' if button.is_shown(self.sources, view) else ''
             for button in self.source_buttons
         }
+
+    def get_shown_buttons(self, view):
+        """Buttons shown in the grouplist, in grouplist order."""
+        return [button for button in self.items if button.is_shown(self.sources, view)]

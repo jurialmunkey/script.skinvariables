@@ -257,6 +257,19 @@ class MultiSearchWindow(ScriptWindow):
             self.set_selected_button(button)
             self.fill_results()
 
+    def select_source_button(self):
+        """Choose a shown source button from a select dialog. Focusing the button shows its results."""
+        with self.lock:
+            buttons = self.buttons.get_shown_buttons(self.view)
+        position = xbmcgui.Dialog().select(
+            get_localized(39031),
+            [button.label for button in buttons],
+            preselect=buttons.index(self.selected_button),
+        )
+        if position < 0:
+            return
+        self.setFocusId(buttons[position].control_id)
+
     def press_key(self):
         key = KEYBOARD_KEYS[self.getControl(KEYBOARD_ID).getSelectedPosition()]
         self.getControl(EDIT_ID).setText(key.apply(self.query))
