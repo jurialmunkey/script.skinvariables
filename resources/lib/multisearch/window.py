@@ -18,6 +18,8 @@ SOURCES_ID = 102
 SORT_ID = 103
 SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
 COUNT_PROPERTY = f'{PROPERTY_PREFIX}.Count'
+SOURCES_ENABLED_PROPERTY = f'{PROPERTY_PREFIX}.Sources.Enabled'
+SOURCES_TOTAL_PROPERTY = f'{PROPERTY_PREFIX}.Sources.Total'
 
 
 class MultiSearchControl:
@@ -51,10 +53,23 @@ class KeyboardControl(MultiSearchControl):
 
 
 class SourcesButton(MultiSearchControl):
+    """Button that opens the sources dialog. The skin builds its label from the source count properties."""
+
     control_id = SOURCES_ID
+
+    @staticmethod
+    def get_properties(sources):
+        return {
+            SOURCES_ENABLED_PROPERTY: str(len(sources.enabled_positions)),
+            SOURCES_TOTAL_PROPERTY: str(len(sources.items)),
+        }
+
+    def set_properties(self, window):
+        window.set_properties(self.get_properties(window.search.sources))
 
     def onclick(self, window):
         window.select_sources()
+        self.set_properties(window)
 
 
 class SortButton(MultiSearchControl):
@@ -116,9 +131,10 @@ class MultiSearchWindow(ScriptWindow):
         # Kodi calls onInit again when returning from a window opened from the results.
         self.fill_keyboard()
         self.set_sort_property()
-        self.set_properties(self.buttons.enabled_properties)
+        self.controls[SOURCES_ID].set_properties(self)
         self.set_properties(self.selected_button.focus_properties)
         with self.lock:
+            self.update_buttons()
             self.fill_results()
 
     def onAction(self, action):
@@ -140,8 +156,19 @@ class MultiSearchWindow(ScriptWindow):
         control.addItems([result.listitem for result in self.results])
         self.setProperty(COUNT_PROPERTY, str(len(self.results)))
 
+    def set_selected_button(self, button):
+        self.set_properties(button.focus_properties)
+        self.selected_button = button
+
+    def update_buttons(self):
+        """Show the source buttons with results. The list returns to all sources when the selected button is hidden."""
+        self.set_properties(self.buttons.get_shown_properties(self.request))
+        if not self.selected_button.is_shown(self.search.sources, self.request):
+            self.set_selected_button(self.buttons.all_button)
+
     def set_request(self, request):
         self.request = request
+        self.update_buttons()
         self.fill_results()
 
     def show_results(self, request):
@@ -162,11 +189,10 @@ class MultiSearchWindow(ScriptWindow):
 
     def select_button(self, button):
         """Show the results of the focused source button. Returning focus to the selected button keeps the list."""
-        self.set_properties(button.focus_properties)
         with self.lock:
             if button is self.selected_button:
                 return
-            self.selected_button = button
+            self.set_selected_button(button)
             self.fill_results()
 
     def press_key(self):
@@ -180,14 +206,13 @@ class MultiSearchWindow(ScriptWindow):
             get_localized(39031),
             sources.listitems,
             preselect=sources.enabled_positions,
-            useDetails=True,
         )
-        if positions is None:
+        if not positions:  # Cancelled, or every source was turned off, which keeps the sources already enabled.
             return
         sources.set_enabled_positions(positions)
-        self.set_properties(self.buttons.enabled_properties)
-        if not self.selected_button.is_enabled(sources):
-            self.select_button(self.buttons.all_button)
+        with self.lock:
+            self.update_buttons()
+            self.fill_results()
         # Cached source results are reused so only newly enabled sources are looked up.
         self.run_search()
 

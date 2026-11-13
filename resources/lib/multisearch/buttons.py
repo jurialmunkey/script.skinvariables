@@ -27,7 +27,7 @@ class SourceFilterButton(ScriptWindowItem):
     def get_focus_properties(self):
         return {SOURCE_PROPERTY: self.label}
 
-    def is_enabled(self, sources):
+    def is_shown(self, sources, request):
         raise NotImplementedError
 
     def get_results(self, request):
@@ -41,7 +41,7 @@ class SourceFilterButton(ScriptWindowItem):
 
 
 class AllSourcesButton(SourceFilterButton):
-    """Button for the results of every enabled source. Shown first and selected when the window opens."""
+    """Button for the results of every enabled source. Always shown first and selected when the window opens."""
 
     rank = 0
 
@@ -57,7 +57,7 @@ class AllSourcesButton(SourceFilterButton):
             'widget_style': '',
         }
 
-    def is_enabled(self, sources):
+    def is_shown(self, sources, request):
         return True
 
     def get_results(self, request):
@@ -65,7 +65,7 @@ class AllSourcesButton(SourceFilterButton):
 
 
 class SourceButton(SourceFilterButton):
-    """Button for one search source. Shown while the source is enabled."""
+    """Button for one search source. Shown while the source is enabled and has results in the shown search."""
 
     def __init__(self, source, position):
         self.source = source
@@ -80,8 +80,8 @@ class SourceButton(SourceFilterButton):
         return self.source.label
 
     @cached_property
-    def enabled_property(self):
-        return f'{SOURCE_PROPERTY}.{self.position}.Enabled'
+    def shown_property(self):
+        return f'{SOURCE_PROPERTY}.{self.position}.HasResults'
 
     def get_values(self):
         return {
@@ -92,10 +92,11 @@ class SourceButton(SourceFilterButton):
         }
 
     def get_overrides(self):
-        return [('visible', f'!String.IsEmpty(Window.Property({self.enabled_property}))', {})]
+        return [('visible', f'!String.IsEmpty(Window.Property({self.shown_property}))', {})]
 
-    def is_enabled(self, sources):
-        return self.source in sources.enabled
+    def is_shown(self, sources, request):
+        # Sources turned off since the search started are hidden before the next search finishes.
+        return self.source in sources.enabled and bool(request.get_source_items(self.source))
 
     def get_results(self, request):
         return request.get_source_items(self.source)
@@ -129,13 +130,9 @@ class SourceButtons:
     def get_controls(self):
         return {button.control_id: button for button in self.items}
 
-    @property
-    def enabled_properties(self):
-        """Window properties that show the buttons of the enabled sources."""
-        return self.get_enabled_properties()
-
-    def get_enabled_properties(self):
+    def get_shown_properties(self, request):
+        """Window properties that show the buttons of the enabled sources with results in the shown search."""
         return {
-            button.enabled_property: 'true' if button.is_enabled(self.sources) else ''
+            button.shown_property: 'true' if button.is_shown(self.sources, request) else ''
             for button in self.source_buttons
         }
