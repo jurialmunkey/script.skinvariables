@@ -19,6 +19,7 @@ SORT_ID = 103
 GENRE_ID = 104
 DECADE_ID = 105
 RESET_ID = 106
+MEDIATYPE_ID = 107
 SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
 COUNT_PROPERTY = f'{PROPERTY_PREFIX}.Count'
 BUSY_PROPERTY = f'{PROPERTY_PREFIX}.Busy'
@@ -112,6 +113,11 @@ class DecadeButton(FilterButton):
     filter_name = 'decade'
 
 
+class MediaTypeButton(FilterButton):
+    control_id = MEDIATYPE_ID
+    filter_name = 'mediatype'
+
+
 class ResetButton(MultiSearchControl):
     """Optional button that clears the search text and returns the filters and sources to their defaults."""
 
@@ -150,6 +156,7 @@ MULTISEARCH_CONTROLS = {
         SortButton(),
         GenreButton(),
         DecadeButton(),
+        MediaTypeButton(),
         ResetButton(),
     )
 }
@@ -160,7 +167,7 @@ class MultiSearchWindow(ScriptWindow):
 
     Results arrive from the search workers so changes to the results list are made while holding the lock.
     The focused source button decides whether the list shows the results of all sources or of one source.
-    The genre and decade filters narrow the results of each source before they are combined and limited.
+    The content type, genre and decade filters narrow the results of each source before they are combined and limited.
     The results are added to the container for their most common widget style and the other containers are emptied.
     """
 
@@ -373,7 +380,7 @@ class MultiSearchWindow(ScriptWindow):
             options = self.view.get_filter_options(result_filter, self.selected_button.get_scope_results(self.view))
             labels = [
                 get_count_label(get_localized(32100), options.any_count),
-                *(get_count_label(value, count) for value, count in options.items),
+                *(get_count_label(result_filter.get_option_label(value), count) for value, count in options.items),
             ]
         position = xbmcgui.Dialog().select(
             get_localized(result_filter.localized_id),

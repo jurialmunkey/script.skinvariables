@@ -35,7 +35,7 @@ class SourceFilterButton(ScriptWindowItem):
         raise NotImplementedError
 
     def get_scope_results(self, view):
-        """Unfiltered results that the genre and decade options are taken from while the button is selected."""
+        """Unfiltered results that the filter options are taken from while the button is selected."""
         raise NotImplementedError
 
     def onfocus(self, window):

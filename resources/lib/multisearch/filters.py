@@ -1,10 +1,22 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from collections import Counter
+from resources.lib.kodiutils import get_localized
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
 
 
 GENRE_SEPARATOR = ' / '
+MEDIATYPE_LOCALIZED_IDS = {
+    'movie': 20338,
+    'set': 20434,
+    'tvshow': 36903,
+    'season': 20373,
+    'episode': 20359,
+    'musicvideo': 20391,
+    'artist': 557,
+    'album': 558,
+    'song': 179,
+}
 
 
 class ResultFilter:
@@ -18,8 +30,12 @@ class ResultFilter:
         self.value = ''
 
     @property
+    def property_affix(self):
+        return self.name.capitalize()
+
+    @property
     def property_name(self):
-        return f'{PROPERTY_PREFIX}.{self.name.capitalize()}'
+        return f'{PROPERTY_PREFIX}.{self.property_affix}'
 
     @property
     def properties(self):
@@ -43,6 +59,10 @@ class ResultFilter:
 
     def get_option_key(self, value):
         return value.lower()
+
+    def get_option_label(self, value):
+        """Label of the value in the select dialog."""
+        return value
 
     def set_value(self, value):
         self.value = value
@@ -78,13 +98,38 @@ class DecadeFilter(ResultFilter):
         return [f'{year // 10 * 10}s']
 
 
+class MediaTypeFilter(ResultFilter):
+    """Matches results with the content type, such as movie or tvshow, found in their ListItem.DBType.
+
+    Known types are shown with their Kodi label. Results without a type are in no content type.
+    """
+
+    name = 'mediatype'
+    property_affix = 'DBType'
+    localized_id = 467
+
+    def get_values(self, result):
+        mediatype = result.item.infolabels.get('mediatype')
+        return [mediatype] if mediatype else []
+
+    def get_option_key(self, value):
+        return self.get_option_label(value).lower()
+
+    def get_option_label(self, value):
+        try:
+            return get_localized(MEDIATYPE_LOCALIZED_IDS[value])
+        except KeyError:  # Types without a Kodi label are shown as they are.
+            return value
+
+
 class ResultFilters:
-    """Genre and decade filters chosen in the window. A result is shown when it matches every filter."""
+    """Content type, genre and decade filters chosen in the window. A result is shown when it matches every filter."""
 
     def __init__(self):
         self.items = {
             result_filter.name: result_filter
             for result_filter in (
+                MediaTypeFilter(),
                 GenreFilter(),
                 DecadeFilter(),
             )
