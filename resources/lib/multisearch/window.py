@@ -185,6 +185,8 @@ class MultiSearchWindow(ScriptWindow):
         self.selected_button = buttons.all_button
         self.results = []
         self.container_id = FALLBACK_ID
+        # Position of the result opened from the list, which is focused again when the window returns.
+        self.opened_position = None
         self.lock = threading.Lock()
 
     @cached_property
@@ -212,7 +214,21 @@ class MultiSearchWindow(ScriptWindow):
         with self.lock:
             self.update_buttons()
             self.fill_results()
+            self.restore_focus()
         self.restore_query()
+
+    def restore_focus(self):
+        """Focus the result opened from the list again when returning from its window.
+
+        Kodi reloads the window controls when returning so its own focus restore finds the results list empty.
+        """
+        if self.opened_position is None:
+            return
+        position, self.opened_position = self.opened_position, None
+        if not self.results:
+            return
+        self.setFocusId(self.container_id)
+        self.getControl(self.container_id).selectItem(min(position, len(self.results) - 1))
 
     def restore_query(self):
         """Fill the edit control with the opening search text the first time the window opens.
@@ -385,6 +401,7 @@ class MultiSearchWindow(ScriptWindow):
             return self.results[self.getControl(self.container_id).getSelectedPosition()]
 
     def open_result(self):
+        self.opened_position = self.getControl(self.container_id).getSelectedPosition()
         xbmc.executebuiltin(self.selected_result.builtin)
 
     def show_info(self):
