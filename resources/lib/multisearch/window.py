@@ -50,8 +50,8 @@ class SearchEditControl(MultiSearchControl):
     control_id = EDIT_ID
 
     def onclick(self, window):
-        # Edit controls send a click each time their text changes.
-        window.run_search()
+        # Edit controls send a click each time their text changes, after Kodi has updated the text.
+        window.run_search(window.query)
 
 
 class KeyboardControl(MultiSearchControl):
@@ -151,6 +151,7 @@ class MultiSearchWindow(ScriptWindow):
         self.buttons = buttons
         self.opening_query = opening_query
         self.stored_query = stored_query
+        # Latest search text. Kodi applies setText later on the GUI thread so getText can still return the old text.
         self.text = ''
         self.view = search.get_view(EMPTY_REQUEST)
         self.selected_button = buttons.all_button
@@ -185,8 +186,7 @@ class MultiSearchWindow(ScriptWindow):
         if self.opening_query is None:
             return
         query, self.opening_query = self.opening_query, None
-        self.getControl(EDIT_ID).setText(query)
-        self.run_search()
+        self.set_text(query)
 
     def onAction(self, action):
         self.controls.get(self.getFocusId(), UNFOCUSED_CONTROL).onaction(self, action.getId())
@@ -238,8 +238,13 @@ class MultiSearchWindow(ScriptWindow):
                 return
             self.set_request(request)
 
-    def run_search(self):
-        query = self.text = self.query
+    def set_text(self, text):
+        """Set the edit control text and search for it without reading the text back from the control."""
+        self.getControl(EDIT_ID).setText(text)
+        self.run_search(text)
+
+    def run_search(self, query):
+        self.text = query
         with self.lock:
             if query.strip():
                 # Set while the current search waits or runs. Older searches finishing later do not clear it.
@@ -272,8 +277,7 @@ class MultiSearchWindow(ScriptWindow):
 
     def press_key(self):
         key = KEYBOARD_KEYS[self.getControl(KEYBOARD_ID).getSelectedPosition()]
-        self.getControl(EDIT_ID).setText(key.apply(self.query))
-        self.run_search()
+        self.set_text(key.apply(self.text))
 
     def select_sources(self):
         sources = self.search.sources
@@ -288,7 +292,7 @@ class MultiSearchWindow(ScriptWindow):
         with self.lock:
             self.refresh_view()
         # Cached source results are reused so only newly enabled sources are looked up.
-        self.run_search()
+        self.run_search(self.text)
 
     def select_sort(self):
         position = xbmcgui.Dialog().select(
