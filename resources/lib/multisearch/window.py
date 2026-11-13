@@ -123,6 +123,10 @@ class ResultsControl(MultiSearchControl):
             window.show_info()
 
 
+def get_count_label(label, count):
+    return f'{label} ({count})'
+
+
 UNFOCUSED_CONTROL = MultiSearchControl()
 MULTISEARCH_CONTROLS = {
     control.control_id: control
@@ -266,9 +270,10 @@ class MultiSearchWindow(ScriptWindow):
         """Choose a shown source button from a select dialog. Focusing the button shows its results."""
         with self.lock:
             buttons = self.buttons.get_shown_buttons(self.view)
+            labels = [get_count_label(button.label, len(button.get_results(self.view))) for button in buttons]
         position = xbmcgui.Dialog().select(
             get_localized(39031),
-            [button.label for button in buttons],
+            labels,
             preselect=buttons.index(self.selected_button),
         )
         if position < 0:
@@ -310,16 +315,20 @@ class MultiSearchWindow(ScriptWindow):
     def select_filter(self, result_filter):
         """Choose a value for the filter from the results of the selected source button, or Any to clear it."""
         with self.lock:
-            options = self.view.get_options(result_filter, self.selected_button.get_scope_results(self.view))
+            options = self.view.get_filter_options(result_filter, self.selected_button.get_scope_results(self.view))
+            labels = [
+                get_count_label(get_localized(32100), options.any_count),
+                *(get_count_label(value, count) for value, count in options.items),
+            ]
         position = xbmcgui.Dialog().select(
             get_localized(result_filter.localized_id),
-            [get_localized(32100), *options],
-            preselect=options.index(result_filter.value) + 1 if result_filter.value else 0,
+            labels,
+            preselect=options.values.index(result_filter.value) + 1 if result_filter.value else 0,
         )
         if position < 0:
             return
         with self.lock:
-            result_filter.set_value(options[position - 1] if position else '')
+            result_filter.set_value(options.values[position - 1] if position else '')
             self.set_properties(result_filter.properties)
             self.refresh_view()
 

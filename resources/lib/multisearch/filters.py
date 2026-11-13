@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+from collections import Counter
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
 
 
@@ -31,11 +32,14 @@ class ResultFilter:
     def matches(self, result):
         return not self.value or self.value in self.get_values(result)
 
-    def get_options(self, results):
-        """Values found in the results, including the chosen value so it stays selectable."""
-        values = {value for result in results for value in self.get_values(result)}
-        values.update([self.value] if self.value else [])
-        return sorted(values, key=self.get_option_key, reverse=self.reverse)
+    def get_option_counts(self, results):
+        """Values found in the results with how many results have each, in select dialog order.
+
+        The chosen value is included so it stays selectable, counted as zero when no result has it.
+        """
+        counts = Counter(value for result in results for value in set(self.get_values(result)))
+        counts.update({self.value: 0} if self.value else {})
+        return [(value, counts[value]) for value in sorted(counts, key=self.get_option_key, reverse=self.reverse)]
 
     def get_option_key(self, value):
         return value.lower()

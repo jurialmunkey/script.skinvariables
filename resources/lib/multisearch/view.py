@@ -58,10 +58,52 @@ class ResultsView:
         """Unfiltered results of one source."""
         return self.request.results_by_source.get(source, [])
 
-    def get_options(self, result_filter, scope_results):
-        """Values to choose for the filter from the results in scope that match the other filters."""
-        return result_filter.get_options([
+    def get_filter_options(self, result_filter, scope_results):
+        return FilterOptions(self, result_filter, scope_results)
+
+
+class FilterOptions:
+    """Values to choose for a filter from the results in scope that match the other filters.
+
+    Each count is the number of results the list shows when the value is chosen, so it is capped at the limit.
+    """
+
+    def __init__(self, view, result_filter, scope_results):
+        self.view = view
+        self.result_filter = result_filter
+        self.scope_results = scope_results
+
+    @cached_property
+    def matching_results(self):
+        """Results in scope that match every filter apart from this one."""
+        return self.get_matching_results()
+
+    def get_matching_results(self):
+        return [
             result
-            for result in scope_results
-            if self.filters.matches(result, excluded=result_filter)
-        ])
+            for result in self.scope_results
+            if self.view.filters.matches(result, excluded=self.result_filter)
+        ]
+
+    def get_count(self, count):
+        return min(count, self.view.limit)
+
+    @cached_property
+    def any_count(self):
+        """Results shown when the filter is cleared."""
+        return self.get_count(len(self.matching_results))
+
+    @cached_property
+    def items(self):
+        """Values with the number of results shown when each is chosen."""
+        return self.get_items()
+
+    def get_items(self):
+        return [
+            (value, self.get_count(count))
+            for value, count in self.result_filter.get_option_counts(self.matching_results)
+        ]
+
+    @cached_property
+    def values(self):
+        return [value for value, count in self.items]
