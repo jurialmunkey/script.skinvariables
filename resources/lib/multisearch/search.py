@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+from resources.lib.multisearch.filters import ResultFilters
 from resources.lib.multisearch.query import SearchQuery
 from resources.lib.multisearch.sorting import SORT_METHODS
+from resources.lib.multisearch.view import ResultsView
 from resources.lib.multisearch.workers import SearchDispatcher, SearchRequest
 
 
@@ -9,7 +11,7 @@ RESULTS_LIMIT = 100
 
 
 class MultiSearch:
-    """Search settings of the window and the searches sent to the worker.
+    """Search settings of the window and the searches sent to the workers.
 
     Only the most recently submitted search is current so results from searches that finish later are discarded.
     """
@@ -18,6 +20,7 @@ class MultiSearch:
         self.sources = sources
         self.limit = limit
         self.sort_position = 0
+        self.filters = ResultFilters()
         self.current = None
         self.dispatcher = SearchDispatcher()
 
@@ -33,11 +36,18 @@ class MultiSearch:
         self.sort_position = position
 
     def get_request(self, text, callback):
-        return SearchRequest(SearchQuery(text), self.sources.enabled, self.sort_method, self.limit, callback)
+        return SearchRequest(SearchQuery(text), self.sources.enabled, callback)
+
+    def get_view(self, request):
+        """Results of the search with the current filters, sort method and limit."""
+        return ResultsView(request, self.filters, self.sort_method, self.limit)
 
     def submit(self, text, callback):
         self.current = self.get_request(text, callback)
         self.dispatcher.submit(self.current)
+
+    def extend_wait(self):
+        self.dispatcher.extend_wait()
 
     def is_current(self, request):
         return request is self.current
@@ -48,4 +58,4 @@ class MultiSearch:
 
     def close(self):
         self.clear()
-        self.dispatcher.join()
+        self.dispatcher.stop()

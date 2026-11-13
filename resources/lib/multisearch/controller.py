@@ -44,7 +44,7 @@ class MultiSearchController(ScriptWindowController):
         return {'search': self.search, 'buttons': self.buttons}
 
     def get_result(self, window):
-        # The window has closed so stop the queued search and wait for the running search.
+        # The window has closed so drop the queued search and wait for the running searches.
         window.stop()
 
 

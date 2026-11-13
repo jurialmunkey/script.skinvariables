@@ -16,10 +16,19 @@ EDIT_ID = 100
 KEYBOARD_ID = 101
 SOURCES_ID = 102
 SORT_ID = 103
+GENRE_ID = 104
+DECADE_ID = 105
 SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
 COUNT_PROPERTY = f'{PROPERTY_PREFIX}.Count'
+BUSY_PROPERTY = f'{PROPERTY_PREFIX}.Busy'
 SOURCES_ENABLED_PROPERTY = f'{PROPERTY_PREFIX}.Sources.Enabled'
 SOURCES_TOTAL_PROPERTY = f'{PROPERTY_PREFIX}.Sources.Total'
+MOVE_ACTIONS = (
+    xbmcgui.ACTION_MOVE_LEFT,
+    xbmcgui.ACTION_MOVE_RIGHT,
+    xbmcgui.ACTION_MOVE_UP,
+    xbmcgui.ACTION_MOVE_DOWN,
+)
 
 
 class MultiSearchControl:
@@ -51,6 +60,10 @@ class KeyboardControl(MultiSearchControl):
     def onclick(self, window):
         window.press_key()
 
+    def onaction(self, window, action_id):
+        if action_id in MOVE_ACTIONS:
+            window.search.extend_wait()
+
 
 class SourcesButton(MultiSearchControl):
     """Button that opens the sources dialog. The skin builds its label from the source count properties."""
@@ -79,6 +92,25 @@ class SortButton(MultiSearchControl):
         window.select_sort()
 
 
+class FilterButton(MultiSearchControl):
+    """Optional button that opens a select dialog to filter the results by a value found in them."""
+
+    filter_name = ''
+
+    def onclick(self, window):
+        window.select_filter(window.search.filters.get(self.filter_name))
+
+
+class GenreButton(FilterButton):
+    control_id = GENRE_ID
+    filter_name = 'genre'
+
+
+class DecadeButton(FilterButton):
+    control_id = DECADE_ID
+    filter_name = 'decade'
+
+
 class ResultsControl(MultiSearchControl):
     control_id = RESULTS_ID
 
@@ -99,6 +131,8 @@ MULTISEARCH_CONTROLS = {
         KeyboardControl(),
         SourcesButton(),
         SortButton(),
+        GenreButton(),
+        DecadeButton(),
         ResultsControl(),
     )
 }
@@ -107,14 +141,15 @@ MULTISEARCH_CONTROLS = {
 class MultiSearchWindow(ScriptWindow):
     """Searches the enabled sources each time the search text changes and lists the combined results.
 
-    Results arrive from the search worker so changes to the results list are made while holding the lock.
+    Results arrive from the search workers so changes to the results list are made while holding the lock.
     The focused source button decides whether the list shows the results of all sources or of one source.
+    The genre and decade filters narrow the results of each source before they are combined and limited.
     """
 
     def __init__(self, *args, search=None, buttons=None, **kwargs):
         self.search = search
         self.buttons = buttons
-        self.request = EMPTY_REQUEST
+        self.view = search.get_view(EMPTY_REQUEST)
         self.selected_button = buttons.all_button
         self.results = []
         self.lock = threading.Lock()
@@ -133,6 +168,7 @@ class MultiSearchWindow(ScriptWindow):
         self.set_sort_property()
         self.controls[SOURCES_ID].set_properties(self)
         self.set_properties(self.selected_button.focus_properties)
+        self.set_properties(self.search.filters.properties)
         with self.lock:
             self.update_buttons()
             self.fill_results()
@@ -150,7 +186,7 @@ class MultiSearchWindow(ScriptWindow):
         self.setProperty(SORT_PROPERTY, self.search.sort_method.get_label())
 
     def fill_results(self):
-        self.results = self.selected_button.get_results(self.request)
+        self.results = self.selected_button.get_results(self.view)
         control = self.getControl(RESULTS_ID)
         control.reset()
         control.addItems([result.listitem for result in self.results])
@@ -162,17 +198,26 @@ class MultiSearchWindow(ScriptWindow):
 
     def update_buttons(self):
         """Show the source buttons with results. The list returns to all sources when the selected button is hidden."""
-        self.set_properties(self.buttons.get_shown_properties(self.request))
-        if not self.selected_button.is_shown(self.search.sources, self.request):
+        self.set_properties(self.buttons.get_shown_properties(self.view))
+        if not self.selected_button.is_shown(self.search.sources, self.view):
             self.set_selected_button(self.buttons.all_button)
 
-    def set_request(self, request):
-        self.request = request
+    def set_view(self, view):
+        self.view = view
         self.update_buttons()
         self.fill_results()
 
+    def refresh_view(self):
+        """Show the shown search again after the sources, sort method or filters change."""
+        self.set_view(self.search.get_view(self.view.request))
+
+    def set_request(self, request):
+        """Show the current search. It has finished so the busy property is cleared."""
+        self.set_view(self.search.get_view(request))
+        self.setProperty(BUSY_PROPERTY, '')
+
     def show_results(self, request):
-        """Called by the search worker. Results of searches replaced by a later search are discarded."""
+        """Called by a search worker. Results of searches replaced by a later search are discarded."""
         with self.lock:
             if not self.search.is_current(request):
                 return
@@ -182,6 +227,8 @@ class MultiSearchWindow(ScriptWindow):
         query = self.query
         with self.lock:
             if query.strip():
+                # Set while the current search waits or runs. Older searches finishing later do not clear it.
+                self.setProperty(BUSY_PROPERTY, 'true')
                 self.search.submit(query, self.show_results)
                 return
             self.search.clear()
@@ -211,8 +258,7 @@ class MultiSearchWindow(ScriptWindow):
             return
         sources.set_enabled_positions(positions)
         with self.lock:
-            self.update_buttons()
-            self.fill_results()
+            self.refresh_view()
         # Cached source results are reused so only newly enabled sources are looked up.
         self.run_search()
 
@@ -226,7 +272,24 @@ class MultiSearchWindow(ScriptWindow):
             return
         self.search.set_sort_position(position)
         self.set_sort_property()
-        self.run_search()
+        with self.lock:
+            self.refresh_view()
+
+    def select_filter(self, result_filter):
+        """Choose a value for the filter from the results of the selected source button, or All to clear it."""
+        with self.lock:
+            options = self.view.get_options(result_filter, self.selected_button.get_scope_results(self.view))
+        position = xbmcgui.Dialog().select(
+            get_localized(result_filter.localized_id),
+            [get_localized(593), *options],
+            preselect=options.index(result_filter.value) + 1 if result_filter.value else 0,
+        )
+        if position < 0:
+            return
+        with self.lock:
+            result_filter.set_value(options[position - 1] if position else '')
+            self.set_properties(result_filter.properties)
+            self.refresh_view()
 
     @property
     def selected_result(self):
@@ -244,5 +307,5 @@ class MultiSearchWindow(ScriptWindow):
         xbmcgui.Dialog().info(result.listitem)
 
     def stop(self):
-        """Drop the queued search and wait for the running search once the window has closed."""
+        """Drop the queued search and wait for the running searches once the window has closed."""
         self.search.close()

@@ -522,3 +522,8 @@ msgstr ""
 msgctxt "#32098"
 msgid "Disable default user"
 msgstr ""
+
+#: /resources/lib/multisearch/filters.py
+msgctxt "#32099"
+msgid "Decade"
+msgstr ""

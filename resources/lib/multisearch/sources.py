@@ -67,11 +67,11 @@ class SearchSource:
         listitem.setArt({'icon': self.icon, 'thumb': self.icon})
         return listitem
 
-    def get_results(self, query, limit):
+    def get_results(self, query):
         try:
             return self.cache[query.raw]
         except KeyError:
-            self.cache[query.raw] = SourceResults(self, query, limit).items
+            self.cache[query.raw] = SourceResults(self, query).items
             return self.cache[query.raw]
 
 

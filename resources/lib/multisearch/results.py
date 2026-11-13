@@ -53,12 +53,11 @@ class SearchResult:
 
 
 class SourceResults:
-    """Items of one search source for one query, limited to the results limit."""
+    """All items of one search source for one query. The results limit is applied after filtering."""
 
-    def __init__(self, source, query, limit):
+    def __init__(self, source, query):
         self.source = source
         self.query = query
-        self.limit = limit
 
     @cached_property
     def path(self):
@@ -82,5 +81,5 @@ class SourceResults:
     def get_items(self):
         return [
             SearchResult(self.source, rank, item)
-            for rank, item in enumerate(self.directory.items[:self.limit])
+            for rank, item in enumerate(self.directory.items)
         ]
