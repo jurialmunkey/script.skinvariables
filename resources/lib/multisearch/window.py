@@ -189,6 +189,7 @@ class MultiSearchWindow(ScriptWindow):
         search=None,
         buttons=None,
         lists=None,
+        widget_container=None,
         opening_query=None,
         stored_query=None,
         **kwargs,
@@ -196,6 +197,7 @@ class MultiSearchWindow(ScriptWindow):
         self.search = search
         self.buttons = buttons
         self.lists = lists
+        self.widget_container = widget_container
         self.opening_query = opening_query
         self.stored_query = stored_query
         # Latest search text. Kodi applies setText later on the GUI thread so getText can still return the old text.
@@ -283,9 +285,14 @@ class MultiSearchWindow(ScriptWindow):
         control.addItems([result.listitem for result in results_list.results])
         self.set_properties(results_list.properties)
 
+    def set_widget_container(self):
+        """Set the widget container properties once the lists are filled."""
+        self.set_properties(self.widget_container.properties)
+
     def fill_results(self):
         for results_list in self.lists.items:
             self.fill_list(results_list)
+        self.set_widget_container()
 
     def set_selected_button(self, button):
         self.set_properties(button.focus_properties)
@@ -351,6 +358,7 @@ class MultiSearchWindow(ScriptWindow):
                 return
             self.set_selected_button(button)
             self.fill_list(self.lists.selected_list)
+            self.set_widget_container()
 
     def select_source_button(self):
         """Choose a shown source button from a select dialog. Focusing the button shows its results."""

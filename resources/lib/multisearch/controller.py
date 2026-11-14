@@ -11,8 +11,8 @@ from resources.lib.multisearch.template import MultiSearchWindowFile
 from resources.lib.multisearch.widgets import (
     MediaTypeResultsLists,
     ResultsLists,
-    SelectedButtonList,
-    TMDbHelperSelectedButtonList,
+    TMDbHelperWidgetContainer,
+    WidgetContainer,
 )
 from resources.lib.multisearch.window import MultiSearchWindow
 from resources.lib.scriptwindow.controller import ScriptWindowController
@@ -34,8 +34,9 @@ class MultiSearchController(ScriptWindowController):
     The skin passes the mediatype_lists param for a window without the source grouplist. Lists 501 to 510 each show
     the results of one content type, in the order of the content type buttons, alongside the list of all results.
 
-    The skin passes the tmdbhelper_container param to set the TMDbHelper.WidgetContainer window property to the shown
-    results container. TMDbHelper reads it from the window when the skin enables TMDbHelper.UseLocalWidgetContainer.
+    The skin passes the tmdbhelper_container param to set the TMDbHelper.WidgetContainer window property to the
+    container of the visible list with the lowest id. TMDbHelper reads it from the window when the skin enables
+    TMDbHelper.UseLocalWidgetContainer.
     """
 
     window_file_class = MultiSearchWindowFile
@@ -120,22 +121,22 @@ class MultiSearchController(ScriptWindowController):
         return SourceButtons(self.sources)
 
     @cached_property
-    def selected_list_class(self):
-        return self.get_selected_list_class()
-
-    def get_selected_list_class(self):
-        if self.tmdbhelper_container:
-            return TMDbHelperSelectedButtonList
-        return SelectedButtonList
-
-    @cached_property
     def lists(self):
         return self.get_lists()
 
     def get_lists(self):
         if self.mediatype_lists:
-            return MediaTypeResultsLists(self.containers, self.buttons, self.selected_list_class)
-        return ResultsLists(self.containers, self.buttons, self.selected_list_class)
+            return MediaTypeResultsLists(self.containers, self.buttons)
+        return ResultsLists(self.containers, self.buttons)
+
+    @cached_property
+    def widget_container(self):
+        return self.get_widget_container()
+
+    def get_widget_container(self):
+        if self.tmdbhelper_container:
+            return TMDbHelperWidgetContainer(self.lists)
+        return WidgetContainer(self.lists)
 
     def get_window_file(self, folder):
         return MultiSearchWindowFile(folder, self.buttons, self.containers)
@@ -145,6 +146,7 @@ class MultiSearchController(ScriptWindowController):
             'search': self.search,
             'buttons': self.buttons,
             'lists': self.lists,
+            'widget_container': self.widget_container,
             'opening_query': self.opening_query,
             'stored_query': self.stored_query,
         }

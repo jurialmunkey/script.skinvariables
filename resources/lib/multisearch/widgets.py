@@ -67,16 +67,6 @@ class SelectedButtonList(ResultsList):
         return self.button.get_container_choice(self.containers, self.results).control_id
 
 
-class TMDbHelperSelectedButtonList(SelectedButtonList):
-    """Selected button list that also sets the local TMDbHelper widget container to the container it fills."""
-
-    def get_properties(self):
-        return {
-            **super().get_properties(),
-            TMDBHELPER_CONTAINER_PROPERTY: str(self.control_id),
-        }
-
-
 class MediaTypeResultsList(ResultsList):
     """Results of one content type in its own container. The skin defines the style of the container."""
 
@@ -95,14 +85,13 @@ class MediaTypeResultsList(ResultsList):
 class ResultsLists:
     """Results lists of the window. The selected list shows the results of the selected source button."""
 
-    def __init__(self, containers, buttons, selected_list_class=SelectedButtonList):
+    def __init__(self, containers, buttons):
         self.containers = containers
         self.buttons = buttons
-        self.selected_list_class = selected_list_class
 
     @cached_property
     def selected_list(self):
-        return self.selected_list_class(self.containers, self.buttons.sources)
+        return SelectedButtonList(self.containers, self.buttons.sources)
 
     @cached_property
     def items(self):
@@ -122,6 +111,22 @@ class ResultsLists:
     def get(self, control_id):
         """List shown in the container. KeyError when no list currently fills the container."""
         return {results_list.control_id: results_list for results_list in self.items}[control_id]
+
+    @property
+    def top_list(self):
+        """Visible list with the lowest container id. The selected list when no list has results."""
+        return self.get_top_list()
+
+    def get_top_list(self):
+        return min(
+            (
+                results_list
+                for results_list in self.items
+                if results_list.results
+            ),
+            key=lambda results_list: results_list.control_id,
+            default=self.selected_list,
+        )
 
 
 class MediaTypeResultsLists(ResultsLists):
@@ -148,3 +153,24 @@ class MediaTypeResultsLists(ResultsLists):
             *self.containers.control_ids,
             *(results_list.control_id for results_list in self.mediatype_lists),
         )
+
+
+class WidgetContainer:
+    """Window properties for the container of the top list of the window. The skin sets none by default."""
+
+    def __init__(self, lists):
+        self.lists = lists
+
+    @property
+    def properties(self):
+        return self.get_properties()
+
+    def get_properties(self):
+        return {}
+
+
+class TMDbHelperWidgetContainer(WidgetContainer):
+    """Sets the local TMDbHelper widget container to the container of the top list of the window."""
+
+    def get_properties(self):
+        return {TMDBHELPER_CONTAINER_PROPERTY: str(self.lists.top_list.control_id)}
