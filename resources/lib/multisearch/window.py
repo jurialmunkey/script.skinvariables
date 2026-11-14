@@ -285,6 +285,17 @@ class MultiSearchWindow(ScriptWindow):
         control.addItems([result.listitem for result in results_list.results])
         self.set_properties(results_list.properties)
 
+    def hide_list(self, results_list):
+        """Empty the container of the list until the results are filled again."""
+        self.getControl(results_list.control_id).reset()
+        results_list.clear()
+        self.set_properties(results_list.properties)
+
+    def hide_lists(self):
+        """Hide every list except the top list while the results update."""
+        for results_list in self.lists.hidden_lists:
+            self.hide_list(results_list)
+
     def set_widget_container(self):
         """Set the widget container properties once the lists are filled."""
         self.set_properties(self.widget_container.properties)
@@ -338,6 +349,7 @@ class MultiSearchWindow(ScriptWindow):
             if self.search.can_search(query):
                 # Set while the current search waits or runs. Older searches finishing later do not clear it.
                 self.setProperty(BUSY_PROPERTY, 'true')
+                self.hide_lists()
                 self.search.submit(query, self.show_results)
                 return
             self.search.clear()

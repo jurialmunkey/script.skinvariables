@@ -39,6 +39,10 @@ class ResultsList:
         self.results = self.get_results(view)
         self.control_id = self.get_control_id()
 
+    def clear(self):
+        """Empty the list while keeping its container."""
+        self.results = []
+
 
 class SelectedButtonList(ResultsList):
     """Results of the selected source button, in the container for their widget style.
@@ -127,6 +131,19 @@ class ResultsLists:
             key=lambda results_list: results_list.control_id,
             default=self.selected_list,
         )
+
+    @property
+    def hidden_lists(self):
+        """Lists hidden while the results update. Every list except the top list."""
+        return self.get_hidden_lists()
+
+    def get_hidden_lists(self):
+        top_list = self.top_list
+        return [
+            results_list
+            for results_list in self.items
+            if results_list is not top_list
+        ]
 
 
 class MediaTypeResultsLists(ResultsLists):
