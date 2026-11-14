@@ -14,6 +14,8 @@ class ResultsList:
     """Results container of the window filled with the results of a source filter button."""
 
     button = None
+    # Set while a search updates the results, until every source of the search has finished.
+    updating = False
 
     def __init__(self, containers):
         self.containers = containers
@@ -48,8 +50,7 @@ class SelectedButtonList(ResultsList):
     """Results of the selected source button, in the container for their widget style.
 
     The window sets the button each time another source button is selected. The list is empty while the button is
-    hidden, which only happens to the always selected all sources button of the content type lists while a content type
-    list shows the same results.
+    hidden.
     """
 
     def __init__(self, containers, sources):
@@ -71,11 +72,46 @@ class SelectedButtonList(ResultsList):
         return self.button.get_container_choice(self.containers, self.results).control_id
 
 
-class MediaTypeResultsList(ResultsList):
-    """Results of one content type in its own container. The skin defines the style of the container."""
+class AllResultsList(SelectedButtonList):
+    """Results of the always selected all sources button of the content type lists.
 
-    def __init__(self, containers, button, control_id):
+    The list shows every result even when a content type list would show the same results, which hides that content
+    type list instead. The label property names the content type while every result has it, so the skin can label the
+    list after it, otherwise it is the all sources label.
+    """
+
+    def __init__(self, containers, sources):
+        super().__init__(containers, sources)
+        self.label = ''
+
+    def get_results(self, view):
+        return self.button.get_results(view)
+
+    def get_label(self, view):
+        return self.button.get_shown_label(self.sources, view)
+
+    def set_results(self, view):
+        super().set_results(view)
+        self.label = self.get_label(view)
+
+    def get_properties(self):
+        """The all sources button property follows the list, which is shown even when a content type repeats it."""
+        return {
+            **super().get_properties(),
+            self.button.shown_property: 'true' if self.results else '',
+            self.button.label_property: self.label,
+        }
+
+
+class MediaTypeResultsList(ResultsList):
+    """Results of one content type in its own container. The skin defines the style of the container.
+
+    The list is empty while the results update and while the list of all results shows the same results.
+    """
+
+    def __init__(self, containers, sources, button, control_id):
         super().__init__(containers)
+        self.sources = sources
         self.button = button
         self.control_id = control_id
 
@@ -84,6 +120,11 @@ class MediaTypeResultsList(ResultsList):
 
     def get_control_id(self):
         return self.control_id
+
+    def get_results(self, view):
+        if self.updating or self.button.repeats_all(self.sources, view):
+            return []
+        return super().get_results(view)
 
 
 class ResultsLists:
@@ -95,6 +136,9 @@ class ResultsLists:
 
     @cached_property
     def selected_list(self):
+        return self.get_selected_list()
+
+    def get_selected_list(self):
         return SelectedButtonList(self.containers, self.buttons.sources)
 
     @cached_property
@@ -132,25 +176,29 @@ class ResultsLists:
             default=self.selected_list,
         )
 
+    def set_updating(self, updating):
+        """Set whether a search is updating the results. The lists show the change when they are filled again."""
+        for results_list in self.items:
+            results_list.updating = updating
+
     @property
     def hidden_lists(self):
-        """Lists hidden while the results update. Every list except the top list."""
+        """Lists emptied when the results start to update. None while the selected list is the only list."""
         return self.get_hidden_lists()
 
     def get_hidden_lists(self):
-        top_list = self.top_list
-        return [
-            results_list
-            for results_list in self.items
-            if results_list is not top_list
-        ]
+        return []
 
 
 class MediaTypeResultsLists(ResultsLists):
     """Results lists with a list for each content type after the list of all results.
 
     The content type lists fill the containers from 501 onwards in the order of the content type buttons.
+    While the results update, only the list of all results is shown.
     """
+
+    def get_selected_list(self):
+        return AllResultsList(self.containers, self.buttons.sources)
 
     @cached_property
     def mediatype_lists(self):
@@ -158,12 +206,15 @@ class MediaTypeResultsLists(ResultsLists):
 
     def get_mediatype_lists(self):
         return [
-            MediaTypeResultsList(self.containers, button, control_id)
+            MediaTypeResultsList(self.containers, self.buttons.sources, button, control_id)
             for control_id, button in enumerate(self.buttons.mediatype_buttons, MEDIATYPE_LIST_ID_START)
         ]
 
     def get_items(self):
         return [self.selected_list, *self.mediatype_lists]
+
+    def get_hidden_lists(self):
+        return self.mediatype_lists
 
     def get_control_ids(self):
         return (

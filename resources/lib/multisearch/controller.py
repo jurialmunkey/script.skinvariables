@@ -33,6 +33,9 @@ class MultiSearchController(ScriptWindowController):
 
     The skin passes the mediatype_lists param for a window without the source grouplist. Lists 501 to 510 each show
     the results of one content type, in the order of the content type buttons, alongside the list of all results.
+    A content type list with the same results as the list of all results is hidden, and the
+    SkinVariables.MultiSearch.Source.All.Label property gives the content type label for the skin to label the list
+    of all results.
 
     The skin passes the tmdbhelper_container param to set the TMDbHelper.WidgetContainer window property to the
     container of the visible list with the lowest id. TMDbHelper reads it from the window when the skin enables
@@ -152,7 +155,7 @@ class MultiSearchController(ScriptWindowController):
         }
 
     def get_result(self, window):
-        # The window has closed so drop the queued search and wait for the running searches.
+        # The window has closed so drop the queued searches and wait for the running searches.
         window.stop()
 
 

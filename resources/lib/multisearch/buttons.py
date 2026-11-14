@@ -102,11 +102,23 @@ class AllSourcesButton(ToggledSourceFilterButton):
     def label(self):
         return get_localized(593)
 
+    @cached_property
+    def label_property(self):
+        return f'{SOURCE_PROPERTY}.All.Label'
+
     def get_shown_property(self):
         return f'{SOURCE_PROPERTY}.All.IsShown'
 
+    def get_repeating_button(self, sources, view):
+        """Button shown with the same results as the all sources button. None while no button repeats them."""
+        return next((button for button in self.buttons if button.repeats_all(sources, view)), None)
+
+    def get_shown_label(self, sources, view):
+        """Label of the button that repeats the results, otherwise the all sources label."""
+        return (self.get_repeating_button(sources, view) or self).label
+
     def is_shown(self, sources, view):
-        return not any(button.repeats_all(sources, view) for button in self.buttons)
+        return self.get_repeating_button(sources, view) is None
 
     def get_results(self, view):
         return view.all_items

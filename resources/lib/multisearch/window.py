@@ -26,12 +26,6 @@ SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
 BUSY_PROPERTY = f'{PROPERTY_PREFIX}.Busy'
 SOURCES_ENABLED_PROPERTY = f'{PROPERTY_PREFIX}.Sources.Enabled'
 SOURCES_TOTAL_PROPERTY = f'{PROPERTY_PREFIX}.Sources.Total'
-MOVE_ACTIONS = (
-    xbmcgui.ACTION_MOVE_LEFT,
-    xbmcgui.ACTION_MOVE_RIGHT,
-    xbmcgui.ACTION_MOVE_UP,
-    xbmcgui.ACTION_MOVE_DOWN,
-)
 
 
 class MultiSearchControl:
@@ -62,10 +56,6 @@ class KeyboardControl(MultiSearchControl):
 
     def onclick(self, window):
         window.press_key()
-
-    def onaction(self, window, action_id):
-        if action_id in MOVE_ACTIONS:
-            window.search.extend_wait()
 
 
 class SourcesButton(MultiSearchControl):
@@ -193,7 +183,9 @@ class MultiSearchWindow(ScriptWindow):
     The content type, genre, decade and unaired filters narrow the results of each source before they are combined and limited.
     Changing the filters or sort method searches again so discover sources can look up results for them.
     The results are added to the container for their most common widget style and the other containers are emptied.
-    When the window has a list for each content type, those lists are filled alongside the list of all results.
+    When the window has a list for each content type, those lists are filled alongside the list of all results once
+    every source of the search has finished. Until then only the list of all results is shown. A content type list
+    with the same results as the list of all results stays hidden.
     """
 
     def __init__(
@@ -310,8 +302,9 @@ class MultiSearchWindow(ScriptWindow):
         results_list.clear()
         self.set_properties(results_list.properties)
 
-    def hide_lists(self):
-        """Hide every list except the top list until the first source of the search finishes."""
+    def start_update(self):
+        """Show only the list of all results until every source of the search finishes."""
+        self.lists.set_updating(True)
         for results_list in self.lists.hidden_lists:
             self.hide_list(results_list)
 
@@ -347,6 +340,7 @@ class MultiSearchWindow(ScriptWindow):
 
     def set_request(self, request):
         """Show the results of the current search. The busy property stays set until every source has finished."""
+        self.lists.set_updating(not request.complete)
         self.set_view(self.search.get_view(request))
         self.setProperty(BUSY_PROPERTY, request.busy)
 
@@ -370,7 +364,7 @@ class MultiSearchWindow(ScriptWindow):
             if self.search.can_search(query):
                 # Set while the current search waits or runs. Older searches finishing later do not clear it.
                 self.setProperty(BUSY_PROPERTY, 'true')
-                self.hide_lists()
+                self.start_update()
                 self.search.submit(query, self.show_results)
                 return
             self.search.clear()
@@ -494,6 +488,6 @@ class MultiSearchWindow(ScriptWindow):
         xbmcgui.Dialog().info(result.listitem)
 
     def stop(self):
-        """Store the search text for the session, drop the queued search and wait for the running searches."""
+        """Store the search text for the session, drop the queued searches and wait for the running searches."""
         self.stored_query.set_value(self.text)
         self.search.close()

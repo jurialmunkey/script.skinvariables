@@ -2,10 +2,8 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import threading
 from jurialmunkey.ftools import cached_property
-from resources.lib.filterdir.items import ParallelThread
 
 
-SEARCH_DELAY = 0.4
 BURST_DELAY = 0.15
 
 
@@ -13,6 +11,7 @@ class EmptySearchRequest:
     """Stands in for a search while the search text is empty."""
 
     results_by_source = {}
+    complete = True
     busy = ''
 
 
@@ -44,7 +43,10 @@ class SearchSnapshot:
 
 
 class SearchRequest:
-    """Looks up the query for each source in its own thread. The results view filters, sorts and limits them.
+    """Search of the query on each of its sources. The source workers look up each source in their own thread.
+
+    The results view filters, sorts and limits them. A source replaced in its worker's queue by a later search never
+    finishes, so only searches that are no longer current are left incomplete.
 
     Sources that finish within the burst delay of each other send the callback one snapshot of the finished results.
     The complete snapshot is sent as soon as the last source finishes. Snapshots are sent while holding the lock and
@@ -107,49 +109,8 @@ class SearchRequest:
             self.timer.release()
             self.send_snapshot()
 
-    def run(self):
-        with ParallelThread(self.sources, self.get_source_results):
-            pass
-        self.timer.stop()
 
-
-class IdleTimer:
-    """Calls the callback once the delay passes without another restart."""
-
-    def __init__(self, callback, delay=SEARCH_DELAY):
-        self.callback = callback
-        self.delay = delay
-        self.timer = self.get_timer()
-
-    def get_timer(self):
-        return threading.Timer(self.delay, self.callback)
-
-    @property
-    def pending(self):
-        """Whether the delay is still running. The callback sees the delay as passed."""
-        return self.timer.is_alive() and self.timer is not threading.current_thread()
-
-    def restart(self):
-        self.cancel()
-        self.timer = self.get_timer()
-        self.timer.start()
-
-    def extend(self):
-        """Restart the delay only while it is already running."""
-        if self.pending:
-            self.restart()
-
-    def cancel(self):
-        self.timer.cancel()
-
-    def stop(self):
-        """Cancel the delay and let a callback that already started finish."""
-        self.cancel()
-        if self.timer.is_alive():
-            self.timer.join()
-
-
-class BurstTimer(IdleTimer):
+class BurstTimer:
     """Calls the callback once the delay passes after the first trigger. Later triggers join the waiting call.
 
     The call waits from the first trigger until the callback releases it. The owner calls trigger and release while
@@ -157,82 +118,102 @@ class BurstTimer(IdleTimer):
     """
 
     def __init__(self, callback, delay=BURST_DELAY):
-        super().__init__(callback, delay)
+        self.callback = callback
+        self.delay = delay
         self.waiting = False
+        self.timer = self.get_timer()
+
+    def get_timer(self):
+        return threading.Timer(self.delay, self.callback)
 
     def trigger(self):
         if self.waiting:
             return
         self.waiting = True
-        self.restart()
+        self.timer = self.get_timer()
+        self.timer.start()
 
     def release(self):
         self.waiting = False
 
+    def cancel(self):
+        self.timer.cancel()
 
-class SearchDispatcher:
-    """Runs searches on two workers with a single slot queue.
 
-    Each search waits in the slot and replaces any search already waiting there. The waiting search starts straight
-    away when both workers are free. While one worker is busy, it starts on the spare worker once the search text and
-    keyboard have been idle for the search delay. While both workers are busy, it waits for a worker to finish.
+class SourceWorker:
+    """Looks up one source for one search at a time with a single slot queue.
+
+    A search starts straight away when the worker is free. Otherwise it waits in the slot and replaces any search
+    already waiting there, so only the latest search runs once the lookup in progress finishes.
     """
 
-    worker_count = 2
-
-    def __init__(self, delay=SEARCH_DELAY):
+    def __init__(self, source):
+        self.source = source
         self.lock = threading.Lock()
-        self.active = 0
+        self.busy = False
         self.queued = None
-        self.threads = []
-        self.timer = IdleTimer(self.dispatch, delay)
+        self.thread = None
 
     @property
     def can_start(self):
         """Whether the waiting search can start now. Read while holding the lock."""
-        return self.get_can_start()
-
-    def get_can_start(self):
-        if self.queued is None or self.active >= self.worker_count:
-            return False
-        return self.active == 0 or not self.timer.pending
+        return self.queued is not None and not self.busy
 
     def submit(self, request):
         with self.lock:
             self.queued = request
-            self.timer.restart()
-        self.dispatch()
-
-    def extend_wait(self):
-        """Keyboard movement counts as activity while a search is waiting for the spare worker."""
-        self.timer.extend()
+            self.dispatch()
 
     def dispatch(self):
-        """Start the waiting search if it can start. Called on submit, after the delay and when a worker finishes."""
-        with self.lock:
-            if not self.can_start:
-                return
-            request, self.queued = self.queued, None
-            self.active += 1
-            self.start_worker(request)
-
-    def start_worker(self, request):
-        thread = threading.Thread(target=self.work, args=(request,))
-        self.threads = [*(running for running in self.threads if running.is_alive()), thread]
-        thread.start()
+        """Start the waiting search if the worker is free. Called while holding the lock."""
+        if not self.can_start:
+            return
+        request, self.queued = self.queued, None
+        self.busy = True
+        self.thread = threading.Thread(target=self.work, args=(request,))
+        self.thread.start()
 
     def work(self, request):
-        request.run()
+        request.get_source_results(self.source)
         with self.lock:
-            self.active -= 1
-        self.dispatch()
+            self.busy = False
+            self.dispatch()
 
     def clear(self):
         with self.lock:
             self.queued = None
 
     def stop(self):
-        """Stop the delay and wait for the running searches. Clear the waiting search before stopping."""
-        self.timer.stop()
-        for thread in list(self.threads):
+        """Wait for the running lookup. Clear the waiting search before stopping."""
+        with self.lock:
+            thread = self.thread
+        if thread is not None:
             thread.join()
+
+
+class SearchDispatcher:
+    """Runs searches with one worker for each source. Each worker has a single slot queue for its source."""
+
+    def __init__(self, sources):
+        self.sources = sources
+
+    @cached_property
+    def workers(self):
+        """Worker of each source of the window, including sources that are disabled."""
+        return self.get_workers()
+
+    def get_workers(self):
+        return {source: SourceWorker(source) for source in self.sources.items}
+
+    def submit(self, request):
+        for source in request.sources:
+            self.workers[source].submit(request)
+
+    def clear(self):
+        for worker in self.workers.values():
+            worker.clear()
+
+    def stop(self):
+        """Wait for the running lookups. Clear the waiting searches before stopping."""
+        for worker in self.workers.values():
+            worker.stop()

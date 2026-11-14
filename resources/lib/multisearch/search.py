@@ -24,7 +24,7 @@ class MultiSearch:
         self.sort_position = 0
         self.filters = ResultFilters()
         self.current = None
-        self.dispatcher = SearchDispatcher()
+        self.dispatcher = SearchDispatcher(sources)
 
     @property
     def sort_method(self):
@@ -75,9 +75,6 @@ class MultiSearch:
     def submit(self, text, callback):
         self.current = self.get_request(text, callback)
         self.dispatcher.submit(self.current)
-
-    def extend_wait(self):
-        self.dispatcher.extend_wait()
 
     def is_current(self, request):
         return request is self.current

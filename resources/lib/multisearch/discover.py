@@ -109,6 +109,7 @@ class DiscoverParams:
             'info': 'discover',
             'tmdb_type': self.source.tmdb_type,
             'nextpage': 'false',
+            'cacheonly': 'true',
             **self.query_params,
             **self.genre_params,
             **self.date_params,
