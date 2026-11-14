@@ -21,6 +21,7 @@ DECADE_ID = 105
 RESET_ID = 106
 MEDIATYPE_ID = 107
 HIDE_UNAIRED_ID = 108
+CLOSE_ID = 109
 SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
 BUSY_PROPERTY = f'{PROPERTY_PREFIX}.Busy'
 SOURCES_ENABLED_PROPERTY = f'{PROPERTY_PREFIX}.Sources.Enabled'
@@ -139,6 +140,17 @@ class ResetButton(MultiSearchControl):
         window.reset_options()
 
 
+class CloseButton(MultiSearchControl):
+    """Optional hidden button that closes the window. The window never closes on back, so the skin sends a click to
+    this button where it wants the window to close, which lets the script store the search text and stop searching.
+    """
+
+    control_id = CLOSE_ID
+
+    def onclick(self, window):
+        window.close()
+
+
 class ResultsControl(MultiSearchControl):
     """Results container. The skin can define a container for each widget style of the results."""
 
@@ -167,6 +179,7 @@ MULTISEARCH_CONTROLS = {
         MediaTypeButton(),
         HideUnairedButton(),
         ResetButton(),
+        CloseButton(),
     )
 }
 
@@ -265,8 +278,14 @@ class MultiSearchWindow(ScriptWindow):
         self.set_text(query)
 
     def onAction(self, action):
-        self.controls.get(self.getFocusId(), UNFOCUSED_CONTROL).onaction(self, action.getId())
-        super().onAction(action)
+        # Never close on back. Kodi runs the skin actions before this callback so the script cannot tell whether the
+        # skin already handled back by moving focus. The skin closes the window by clicking the close button.
+        # Previous menu is not a skin onback action so it still closes the window as the keymap intends.
+        action_id = action.getId()
+        if action_id == xbmcgui.ACTION_PREVIOUS_MENU:
+            self.close()
+            return
+        self.controls.get(self.getFocusId(), UNFOCUSED_CONTROL).onaction(self, action_id)
 
     def fill_keyboard(self):
         control = self.getControl(KEYBOARD_ID)
