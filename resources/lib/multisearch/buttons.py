@@ -59,10 +59,6 @@ class SourceFilterButton(ScriptWindowItem):
         """Filtered, sorted and limited results shown while the button is selected."""
         raise NotImplementedError
 
-    def get_scope_results(self, view):
-        """Unfiltered results that the filter options are taken from while the button is selected."""
-        raise NotImplementedError
-
     def get_container_choice(self, containers, results):
         """Container for the results shown while the button is selected."""
         return containers.get_choice(results)
@@ -115,9 +111,6 @@ class AllSourcesButton(ToggledSourceFilterButton):
     def get_results(self, view):
         return view.all_items
 
-    def get_scope_results(self, view):
-        return view.all_results
-
 
 class MediaTypeSourcesButton(ToggledSourceFilterButton):
     """Button for the results of every enabled source with one content type.
@@ -154,9 +147,6 @@ class MediaTypeSourcesButton(ToggledSourceFilterButton):
 
     def get_results(self, view):
         return view.get_mediatype_items(self.result_filter)
-
-    def get_scope_results(self, view):
-        return view.get_mediatype_results(self.result_filter)
 
     def get_container_choice(self, containers, results):
         """The results use the widget style of the content type when the skin defines one."""
@@ -201,9 +191,6 @@ class SourceButton(ToggledSourceFilterButton):
 
     def get_results(self, view):
         return view.get_source_items(self.source)
-
-    def get_scope_results(self, view):
-        return view.get_source_results(self.source)
 
 
 class SourceButtons:

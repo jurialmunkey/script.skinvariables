@@ -101,38 +101,31 @@ class ResultsView:
     def get_all_results(self):
         return UniqueResults(chain.from_iterable(self.request.results_by_source.values())).items
 
-    def get_source_results(self, source):
-        """Unfiltered results of one source."""
-        return self.request.results_by_source.get(source, [])
-
-    def get_mediatype_results(self, result_filter):
-        """Unfiltered results of every source with the content type of the filter."""
-        return [result for result in self.all_results if result_filter.matches(result)]
-
-    def get_filter_options(self, result_filter, scope_results):
-        return FilterOptions(self, result_filter, scope_results)
+    def get_filter_options(self, result_filter):
+        return FilterOptions(self, result_filter)
 
 
 class FilterOptions:
-    """Values to choose for a filter from the results in scope that match the other filters.
+    """Values to choose for a filter from the results of every source that match the other filters.
 
-    Each count is the number of results the list shows when the value is chosen, so it is capped at the limit.
+    The options do not depend on the selected source button, which only chooses which of the results are shown.
+    Each count is the number of results the all sources list shows when the value is chosen, so it is capped at the
+    limit.
     """
 
-    def __init__(self, view, result_filter, scope_results):
+    def __init__(self, view, result_filter):
         self.view = view
         self.result_filter = result_filter
-        self.scope_results = scope_results
 
     @cached_property
     def matching_results(self):
-        """Results in scope that match every filter apart from this one."""
+        """Results of every source that match every filter apart from this one."""
         return self.get_matching_results()
 
     def get_matching_results(self):
         return [
             result
-            for result in self.scope_results
+            for result in self.view.all_results
             if self.view.filters.matches(result, excluded=self.result_filter)
         ]
 
@@ -184,8 +177,8 @@ class DiscoverResultsView(ResultsView):
         super().__init__(request, filters, sort_method, limit)
         self.catalogue = catalogue
 
-    def get_filter_options(self, result_filter, scope_results):
-        return DiscoverFilterOptions(self, result_filter, scope_results)
+    def get_filter_options(self, result_filter):
+        return DiscoverFilterOptions(self, result_filter)
 
 
 class DiscoverFilterOptions(FilterOptions):

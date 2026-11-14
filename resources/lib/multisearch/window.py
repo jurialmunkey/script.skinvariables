@@ -384,9 +384,9 @@ class MultiSearchWindow(ScriptWindow):
         self.research()
 
     def select_filter(self, result_filter):
-        """Choose a value for the filter from the results of the selected source button, or Any to clear it."""
+        """Choose a value for the filter from the results of every source, or Any to clear it."""
         with self.lock:
-            options = self.view.get_filter_options(result_filter, self.selected_button.get_scope_results(self.view))
+            options = self.view.get_filter_options(result_filter)
             labels = options.labels
         position = xbmcgui.Dialog().select(
             get_localized(result_filter.localized_id),
