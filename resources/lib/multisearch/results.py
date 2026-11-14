@@ -14,6 +14,12 @@ UNIQUE_INFOLABELS = (
 )
 
 
+UNIQUE_ID_TYPES = {
+    'tmdb': ('tmdb',),
+    'imdb': ('imdb', 'imdbnumber'),
+}
+
+
 class SearchResult:
     """Directory item from a search source with the source details the skin uses to style it."""
 
@@ -55,7 +61,7 @@ class SearchResult:
     def unique_key(self):
         """Results with the same key are the same item from the same plugin or library.
 
-        The key is the origin, content type, title, show, season, episode and uniqueids. Results without uniqueids
+        The key is the origin, content type, title, show, season, episode and unique id. Results without uniqueids
         are only the same as themselves.
         """
         return self.get_unique_key()
@@ -66,6 +72,22 @@ class SearchResult:
         return (
             self.source.origin,
             *(self.item.infolabels.get(key) for key in UNIQUE_INFOLABELS),
+            self.unique_id,
+        )
+
+    @cached_property
+    def unique_id(self):
+        """The tmdb id, otherwise the imdb id, otherwise every uniqueid when the result has neither."""
+        return self.get_unique_id()
+
+    def get_unique_id(self):
+        return next(
+            (
+                (id_type, self.item.uniqueids[key])
+                for id_type, keys in UNIQUE_ID_TYPES.items()
+                for key in keys
+                if self.item.uniqueids.get(key)
+            ),
             frozenset(self.item.uniqueids.items()),
         )
 
