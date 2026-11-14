@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+from datetime import date
 from urllib.parse import parse_qs, quote, urlencode, urlsplit
 from jurialmunkey.ftools import cached_property, threaded_cached_property
 from resources.lib.filterdir.paths import FilterDirPaths
@@ -17,7 +18,7 @@ DISCOVER_DECADES = tuple(f'{year}s' for year in range(2020, 1890, -10))
 
 
 class DiscoverParams:
-    """TMDbHelper discover path for the search text with the genre, decade and sort method of the search.
+    """TMDbHelper discover path for the search text with the genre, decade, unaired and sort method of the search.
 
     The search text is passed as with_text_query, which TMDb accepts although it is undocumented. TMDbHelper adds the
     params to the TMDb URL without encoding them again, so the search text is encoded twice.
@@ -46,18 +47,54 @@ class DiscoverParams:
         return {'with_genres': self.source.genres.ids[genre], 'with_id': 'True'} if genre else {}
 
     @cached_property
-    def decade_params(self):
-        return self.get_decade_params()
+    def decade_start(self):
+        """First year of the chosen decade. None without a decade."""
+        return self.get_decade_start()
 
-    def get_decade_params(self):
+    def get_decade_start(self):
         decade = self.options.values['decade']
-        if not decade:
-            return {}
-        start = int(decade[:-1])
-        return {
-            f'{self.source.date_key}.gte': f'{start}-01-01',
-            f'{self.source.date_key}.lte': f'{start + 9}-12-31',
+        return int(decade[:-1]) if decade else None
+
+    @cached_property
+    def date_start(self):
+        return self.get_date_start()
+
+    def get_date_start(self):
+        return f'{self.decade_start}-01-01' if self.decade_start is not None else ''
+
+    @cached_property
+    def decade_end(self):
+        return self.get_decade_end()
+
+    def get_decade_end(self):
+        return f'{self.decade_start + 9}-12-31' if self.decade_start is not None else ''
+
+    @cached_property
+    def aired_end(self):
+        """Today while unaired results are hidden, so TMDb only discovers results that have aired."""
+        return self.get_aired_end()
+
+    def get_aired_end(self):
+        return date.today().isoformat() if self.options.values['unaired'] else ''
+
+    @cached_property
+    def date_end(self):
+        """Earliest of the decade end and the aired end."""
+        return self.get_date_end()
+
+    def get_date_end(self):
+        return min((end for end in (self.decade_end, self.aired_end) if end), default='')
+
+    @cached_property
+    def date_params(self):
+        return self.get_date_params()
+
+    def get_date_params(self):
+        params = {
+            f'{self.source.date_key}.gte': self.date_start,
+            f'{self.source.date_key}.lte': self.date_end,
         }
+        return {key: value for key, value in params.items() if value}
 
     @cached_property
     def sort_params(self):
@@ -74,7 +111,7 @@ class DiscoverParams:
             'nextpage': 'false',
             **self.query_params,
             **self.genre_params,
-            **self.decade_params,
+            **self.date_params,
             **self.sort_params,
         }
 

@@ -21,6 +21,7 @@ GENRE_ID = 104
 DECADE_ID = 105
 RESET_ID = 106
 MEDIATYPE_ID = 107
+HIDE_UNAIRED_ID = 108
 SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
 COUNT_PROPERTY = f'{PROPERTY_PREFIX}.Count'
 BUSY_PROPERTY = f'{PROPERTY_PREFIX}.Busy'
@@ -119,6 +120,18 @@ class MediaTypeButton(FilterButton):
     filter_name = 'mediatype'
 
 
+class ToggleFilterButton(FilterButton):
+    """Optional button that switches a filter on and off. The skin shows its state from the filter property."""
+
+    def onclick(self, window):
+        window.toggle_filter(window.search.filters.get(self.filter_name))
+
+
+class HideUnairedButton(ToggleFilterButton):
+    control_id = HIDE_UNAIRED_ID
+    filter_name = 'unaired'
+
+
 class ResetButton(MultiSearchControl):
     """Optional button that clears the search text and returns the filters and sources to their defaults."""
 
@@ -154,6 +167,7 @@ MULTISEARCH_CONTROLS = {
         GenreButton(),
         DecadeButton(),
         MediaTypeButton(),
+        HideUnairedButton(),
         ResetButton(),
     )
 }
@@ -165,7 +179,7 @@ class MultiSearchWindow(ScriptWindow):
     Results arrive from the search workers so changes to the results list are made while holding the lock.
     The focused source button decides whether the list shows the results of all sources, of one content type or of one
     source.
-    The content type, genre and decade filters narrow the results of each source before they are combined and limited.
+    The content type, genre, decade and unaired filters narrow the results of each source before they are combined and limited.
     Changing the filters or sort method searches again so discover sources can look up results for them.
     The results are added to the container for their most common widget style and the other containers are emptied.
     """
@@ -401,8 +415,16 @@ class MultiSearchWindow(ScriptWindow):
             self.refresh_view()
         self.research()
 
+    def toggle_filter(self, result_filter):
+        """Switch the filter on or off."""
+        with self.lock:
+            result_filter.toggle()
+            self.set_properties(result_filter.properties)
+            self.refresh_view()
+        self.research()
+
     def reset_options(self):
-        """Clear the search text and filters and enable every source.
+        """Clear the search text, return the filters to their defaults and enable every source.
 
         Clearing the text empties the results unless a discover source is enabled, which discovers without text.
         """

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from collections import Counter
+from datetime import date
 from resources.lib.kodiutils import get_localized
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
 
@@ -19,6 +20,13 @@ MEDIATYPE_LOCALIZED_IDS = {
     'song': 179,
     OTHER_MEDIATYPE: 32103,
 }
+AIRED_MEDIATYPES = (
+    'movie',
+    'tvshow',
+    'season',
+    'episode',
+)
+PREMIERED_LENGTH = len('YYYY-MM-DD')
 
 
 class ResultFilter:
@@ -27,9 +35,10 @@ class ResultFilter:
     name = ''
     localized_id = 0
     reverse = False
+    default_value = ''
 
     def __init__(self):
-        self.value = ''
+        self.value = self.default_value
 
     @property
     def property_affix(self):
@@ -72,7 +81,44 @@ class ResultFilter:
         self.value = value
 
     def reset(self):
-        self.set_value('')
+        self.set_value(self.default_value)
+
+
+class ToggleFilter(ResultFilter):
+    """Filter switched on and off by a button instead of chosen from a select dialog. Switched on by default."""
+
+    default_value = 'true'
+
+    def toggle(self):
+        self.set_value('' if self.value else 'true')
+
+
+class UnairedFilter(ToggleFilter):
+    """Hides movies, tvshows, seasons and episodes that have not aired by today. Other results are always shown.
+
+    Results are aired when their premiered date is today or earlier. Results without a premiered date are unaired.
+    """
+
+    name = 'unaired'
+    property_affix = 'HideUnaired'
+
+    @property
+    def today(self):
+        return date.today().isoformat()
+
+    def get_premiered(self, result):
+        return (result.item.infolabels.get('premiered') or '')[:PREMIERED_LENGTH]
+
+    def get_is_aired(self, result):
+        premiered = self.get_premiered(result)
+        return bool(premiered) and premiered <= self.today
+
+    def get_is_dated(self, result):
+        """Whether the content type of the result has a premiered date that decides if it has aired."""
+        return result.item.infolabels.get('mediatype') in AIRED_MEDIATYPES
+
+    def matches(self, result):
+        return not self.value or not self.get_is_dated(result) or self.get_is_aired(result)
 
 
 class GenreFilter(ResultFilter):
@@ -124,7 +170,10 @@ class MediaTypeFilter(ResultFilter):
 
 
 class ResultFilters:
-    """Content type, genre and decade filters chosen in the window. A result is shown when it matches every filter."""
+    """Content type, genre, decade and unaired filters chosen in the window.
+
+    A result is shown when it matches every filter.
+    """
 
     def __init__(self):
         self.items = {
@@ -133,6 +182,7 @@ class ResultFilters:
                 MediaTypeFilter(),
                 GenreFilter(),
                 DecadeFilter(),
+                UnairedFilter(),
             )
         }
 
@@ -148,7 +198,7 @@ class ResultFilters:
         )
 
     def reset(self):
-        """Clear every filter so all results are shown."""
+        """Return every filter to its default. Unaired results are hidden again."""
         for result_filter in self.items.values():
             result_filter.reset()
 
