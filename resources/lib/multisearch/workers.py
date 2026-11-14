@@ -6,6 +6,7 @@ from resources.lib.filterdir.items import ParallelThread
 
 
 SEARCH_DELAY = 0.4
+BURST_DELAY = 0.15
 
 
 class EmptySearchRequest:
@@ -45,8 +46,9 @@ class SearchSnapshot:
 class SearchRequest:
     """Looks up the query for each source in its own thread. The results view filters, sorts and limits them.
 
-    Each source sends the callback a snapshot of the finished results as soon as it finishes. The snapshots are sent
-    while holding the lock so the callback receives them in order and the complete snapshot is always the last.
+    Sources that finish within the burst delay of each other send the callback one snapshot of the finished results.
+    The complete snapshot is sent as soon as the last source finishes. Snapshots are sent while holding the lock and
+    only when more sources have finished, so the callback receives them in order and the complete snapshot is last.
     """
 
     def __init__(self, query, options, sources, callback):
@@ -55,7 +57,14 @@ class SearchRequest:
         self.sources = sources
         self.callback = callback
         self.finished = {}
+        self.sent_count = 0
         self.lock = threading.Lock()
+        self.timer = BurstTimer(self.send_waiting_snapshot)
+
+    @property
+    def complete(self):
+        """Whether every source has finished. Read while holding the lock."""
+        return len(self.finished) == len(self.sources)
 
     @property
     def snapshot(self):
@@ -75,11 +84,33 @@ class SearchRequest:
         results = source.get_results(self.query, self.options)
         with self.lock:
             self.finished[source] = results
-            self.callback(self.snapshot)
+            self.update()
+
+    def update(self):
+        """Send the complete snapshot now, otherwise wait for the burst delay. Called while holding the lock."""
+        if self.complete:
+            self.timer.cancel()
+            self.send_snapshot()
+            return
+        self.timer.trigger()
+
+    def send_snapshot(self):
+        """Send the finished results unless they were already sent. Called while holding the lock."""
+        if len(self.finished) == self.sent_count:
+            return
+        self.sent_count = len(self.finished)
+        self.callback(self.snapshot)
+
+    def send_waiting_snapshot(self):
+        """Called by the burst timer once the delay passes."""
+        with self.lock:
+            self.timer.release()
+            self.send_snapshot()
 
     def run(self):
         with ParallelThread(self.sources, self.get_source_results):
             pass
+        self.timer.stop()
 
 
 class IdleTimer:
@@ -116,6 +147,27 @@ class IdleTimer:
         self.cancel()
         if self.timer.is_alive():
             self.timer.join()
+
+
+class BurstTimer(IdleTimer):
+    """Calls the callback once the delay passes after the first trigger. Later triggers join the waiting call.
+
+    The call waits from the first trigger until the callback releases it. The owner calls trigger and release while
+    holding its own lock, so a trigger never joins a call that has already taken the waiting results.
+    """
+
+    def __init__(self, callback, delay=BURST_DELAY):
+        super().__init__(callback, delay)
+        self.waiting = False
+
+    def trigger(self):
+        if self.waiting:
+            return
+        self.waiting = True
+        self.restart()
+
+    def release(self):
+        self.waiting = False
 
 
 class SearchDispatcher:
