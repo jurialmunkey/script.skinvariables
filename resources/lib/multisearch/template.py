@@ -39,7 +39,7 @@ class MultiSearchWindowTemplate(ScriptWindowTemplate):
         return self.get_elements()
 
     def get_elements(self):
-        return [self.get_element(item) for item in self.buttons.items]
+        return [self.get_element(item) for item in self.buttons.grouplist_items]
 
     def add_buttons(self):
         if not self.has_grouplist:

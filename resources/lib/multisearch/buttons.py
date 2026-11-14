@@ -234,11 +234,19 @@ class SourceButtons:
         return [self.all_button, *self.toggled_buttons]
 
     @cached_property
+    def grouplist_items(self):
+        """Buttons generated in the source grouplist."""
+        return self.get_grouplist_items()
+
+    def get_grouplist_items(self):
+        return self.items
+
+    @cached_property
     def controls(self):
         return self.get_controls()
 
     def get_controls(self):
-        return {button.control_id: button for button in self.items}
+        return {button.control_id: button for button in self.grouplist_items}
 
     def get_shown_properties(self, view):
         """Window properties that show the buttons with results, without two buttons showing the same results."""
@@ -268,3 +276,25 @@ class MediaTypeButtons(SourceButtons):
     @cached_property
     def toggled_buttons(self):
         return self.mediatype_buttons
+
+
+class NoGrouplistButtons(SourceButtons):
+    """Source buttons without the source grouplist, for windows with a list for each content type.
+
+    The all sources button is the only button and is always selected. The content type buttons supply the results of
+    the content type lists. The all sources button is hidden while a content type list shows the same results.
+    """
+
+    @cached_property
+    def all_button(self):
+        return AllSourcesButton(self.mediatype_buttons)
+
+    @cached_property
+    def toggled_buttons(self):
+        return []
+
+    def get_grouplist_items(self):
+        return []
+
+    def get_default_button(self, view):
+        return self.all_button

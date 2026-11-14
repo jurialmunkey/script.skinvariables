@@ -6,7 +6,6 @@ import xbmcgui
 from jurialmunkey.ftools import cached_property
 from resources.lib.kodiutils import get_localized
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
-from resources.lib.multisearch.containers import CONTAINER_PROPERTY, FALLBACK_ID
 from resources.lib.multisearch.keyboard import KEYBOARD_KEYS
 from resources.lib.multisearch.view import get_count_label
 from resources.lib.multisearch.workers import EMPTY_REQUEST
@@ -23,7 +22,6 @@ RESET_ID = 106
 MEDIATYPE_ID = 107
 HIDE_UNAIRED_ID = 108
 SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
-COUNT_PROPERTY = f'{PROPERTY_PREFIX}.Count'
 BUSY_PROPERTY = f'{PROPERTY_PREFIX}.Busy'
 SOURCES_ENABLED_PROPERTY = f'{PROPERTY_PREFIX}.Sources.Enabled'
 SOURCES_TOTAL_PROPERTY = f'{PROPERTY_PREFIX}.Sources.Total'
@@ -148,12 +146,12 @@ class ResultsControl(MultiSearchControl):
         self.control_id = control_id
 
     def onclick(self, window):
-        window.open_result()
+        window.open_result(self.control_id)
 
     def onaction(self, window, action_id):
         # Python windows skip the media window actions so Kodi does not open the info dialog itself.
         if action_id == xbmcgui.ACTION_SHOW_INFO:
-            window.show_info()
+            window.show_info(self.control_id)
 
 
 UNFOCUSED_CONTROL = MultiSearchControl()
@@ -182,6 +180,7 @@ class MultiSearchWindow(ScriptWindow):
     The content type, genre, decade and unaired filters narrow the results of each source before they are combined and limited.
     Changing the filters or sort method searches again so discover sources can look up results for them.
     The results are added to the container for their most common widget style and the other containers are emptied.
+    When the window has a list for each content type, those lists are filled alongside the list of all results.
     """
 
     def __init__(
@@ -189,32 +188,35 @@ class MultiSearchWindow(ScriptWindow):
         *args,
         search=None,
         buttons=None,
-        containers=None,
+        lists=None,
         opening_query=None,
         stored_query=None,
         **kwargs,
     ):
         self.search = search
         self.buttons = buttons
-        self.containers = containers
+        self.lists = lists
         self.opening_query = opening_query
         self.stored_query = stored_query
         # Latest search text. Kodi applies setText later on the GUI thread so getText can still return the old text.
         self.text = ''
         self.view = search.get_view(EMPTY_REQUEST)
-        self.selected_button = buttons.get_default_button(self.view)
-        self.results = []
-        self.container_id = FALLBACK_ID
-        # Position of the result opened from the list, which is focused again when the window returns.
+        self.lists.selected_list.button = buttons.get_default_button(self.view)
+        # List and position of the result opened from the lists, which is focused again when the window returns.
+        self.opened_list = None
         self.opened_position = None
         self.lock = threading.Lock()
+
+    @property
+    def selected_button(self):
+        return self.lists.selected_list.button
 
     @cached_property
     def results_controls(self):
         return self.get_results_controls()
 
     def get_results_controls(self):
-        return {control_id: ResultsControl(control_id) for control_id in self.containers.control_ids}
+        return {control_id: ResultsControl(control_id) for control_id in self.lists.control_ids}
 
     @cached_property
     def controls(self):
@@ -242,13 +244,13 @@ class MultiSearchWindow(ScriptWindow):
 
         Kodi reloads the window controls when returning so its own focus restore finds the results list empty.
         """
-        if self.opened_position is None:
+        if self.opened_list is None:
             return
-        position, self.opened_position = self.opened_position, None
-        if not self.results:
+        results_list, self.opened_list = self.opened_list, None
+        if not results_list.results:
             return
-        self.setFocusId(self.container_id)
-        self.getControl(self.container_id).selectItem(min(position, len(self.results) - 1))
+        self.setFocusId(results_list.control_id)
+        self.getControl(results_list.control_id).selectItem(min(self.opened_position, len(results_list.results) - 1))
 
     def restore_query(self):
         """Fill the edit control with the opening search text the first time the window opens.
@@ -272,23 +274,22 @@ class MultiSearchWindow(ScriptWindow):
     def set_sort_property(self):
         self.setProperty(SORT_PROPERTY, self.search.sort_method.get_label())
 
-    def set_container(self):
-        """Show the container for the style of the results. The container shown before is emptied."""
-        self.getControl(self.container_id).reset()
-        self.container_id = self.selected_button.get_container_choice(self.containers, self.results).control_id
-        self.setProperty(CONTAINER_PROPERTY, str(self.container_id))
+    def fill_list(self, results_list):
+        """Fill the container for the results of the list. The container it filled before is emptied."""
+        self.getControl(results_list.control_id).reset()
+        results_list.set_results(self.view)
+        control = self.getControl(results_list.control_id)
+        control.reset()
+        control.addItems([result.listitem for result in results_list.results])
+        self.set_properties(results_list.properties)
 
     def fill_results(self):
-        self.results = self.selected_button.get_results(self.view)
-        self.set_container()
-        control = self.getControl(self.container_id)
-        control.reset()
-        control.addItems([result.listitem for result in self.results])
-        self.setProperty(COUNT_PROPERTY, str(len(self.results)))
+        for results_list in self.lists.items:
+            self.fill_list(results_list)
 
     def set_selected_button(self, button):
         self.set_properties(button.focus_properties)
-        self.selected_button = button
+        self.lists.selected_list.button = button
 
     def update_buttons(self):
         """Show the buttons with distinct results. The list returns to the first shown button if the selected button is
@@ -349,7 +350,7 @@ class MultiSearchWindow(ScriptWindow):
             if button is self.selected_button:
                 return
             self.set_selected_button(button)
-            self.fill_results()
+            self.fill_list(self.lists.selected_list)
 
     def select_source_button(self):
         """Choose a shown source button from a select dialog. Focusing the button shows its results."""
@@ -434,19 +435,20 @@ class MultiSearchWindow(ScriptWindow):
             self.controls[SOURCES_ID].set_properties(self)
         self.set_text('')
 
-    @property
-    def selected_result(self):
+    def get_selected_result(self, control_id):
+        """Result selected in the container, from the list that fills it."""
         with self.lock:
-            return self.results[self.getControl(self.container_id).getSelectedPosition()]
+            return self.lists.get(control_id).results[self.getControl(control_id).getSelectedPosition()]
 
-    def open_result(self):
-        self.opened_position = self.getControl(self.container_id).getSelectedPosition()
-        xbmc.executebuiltin(self.selected_result.builtin)
+    def open_result(self, control_id):
+        self.opened_list = self.lists.get(control_id)
+        self.opened_position = self.getControl(control_id).getSelectedPosition()
+        xbmc.executebuiltin(self.get_selected_result(control_id).builtin)
 
-    def show_info(self):
+    def show_info(self, control_id):
         try:
-            result = self.selected_result
-        except IndexError:  # Focus can stay on the emptied results list after the search text is cleared.
+            result = self.get_selected_result(control_id)
+        except (IndexError, KeyError):  # Focus can stay on a results list emptied by a new search or another style.
             return
         xbmcgui.Dialog().info(result.listitem)
 

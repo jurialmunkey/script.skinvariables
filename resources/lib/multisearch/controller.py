@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from jurialmunkey.ftools import cached_property
-from resources.lib.multisearch.buttons import MediaTypeButtons, SourceButtons
+from resources.lib.multisearch.buttons import MediaTypeButtons, NoGrouplistButtons, SourceButtons
 from resources.lib.multisearch.containers import MediaTypeStyles, ResultsContainers
 from resources.lib.multisearch.discover import DiscoverSearchSources
 from resources.lib.multisearch.history import StoredQuery
 from resources.lib.multisearch.search import MultiSearch, RESULTS_LIMIT
 from resources.lib.multisearch.sources import SearchSources
 from resources.lib.multisearch.template import MultiSearchWindowFile
+from resources.lib.multisearch.widgets import MediaTypeResultsLists, ResultsLists
 from resources.lib.multisearch.window import MultiSearchWindow
 from resources.lib.scriptwindow.controller import ScriptWindowController
 
@@ -24,6 +25,9 @@ class MultiSearchController(ScriptWindowController):
 
     The source grouplist only has buttons for all sources and each content type when the skin passes the
     no_source_buttons param.
+
+    The skin passes the mediatype_lists param for a window without the source grouplist. Lists 501 to 510 each show
+    the results of one content type, in the order of the content type buttons, alongside the list of all results.
     """
 
     window_file_class = MultiSearchWindowFile
@@ -41,6 +45,7 @@ class MultiSearchController(ScriptWindowController):
         discover_style=None,
         styles_file=None,
         no_source_buttons=False,
+        mediatype_lists=False,
     ):
         self.menu = menu
         self.skin = skin
@@ -52,6 +57,7 @@ class MultiSearchController(ScriptWindowController):
         self.discover_style = discover_style
         self.styles_file = styles_file
         self.no_source_buttons = no_source_buttons
+        self.mediatype_lists = mediatype_lists
 
     @cached_property
     def sources(self):
@@ -97,9 +103,20 @@ class MultiSearchController(ScriptWindowController):
         return self.get_buttons()
 
     def get_buttons(self):
+        if self.mediatype_lists:
+            return NoGrouplistButtons(self.sources)
         if self.no_source_buttons:
             return MediaTypeButtons(self.sources)
         return SourceButtons(self.sources)
+
+    @cached_property
+    def lists(self):
+        return self.get_lists()
+
+    def get_lists(self):
+        if self.mediatype_lists:
+            return MediaTypeResultsLists(self.containers, self.buttons)
+        return ResultsLists(self.containers, self.buttons)
 
     def get_window_file(self, folder):
         return MultiSearchWindowFile(folder, self.buttons, self.containers)
@@ -108,7 +125,7 @@ class MultiSearchController(ScriptWindowController):
         return {
             'search': self.search,
             'buttons': self.buttons,
-            'containers': self.containers,
+            'lists': self.lists,
             'opening_query': self.opening_query,
             'stored_query': self.stored_query,
         }
@@ -130,6 +147,7 @@ def run_multisearch(
     discover_style=None,
     styles=None,
     no_source_buttons=False,
+    mediatype_lists=False,
     **kwargs,
 ):
     MultiSearchController(
@@ -143,4 +161,5 @@ def run_multisearch(
         discover_style,
         styles,
         no_source_buttons,
+        mediatype_lists,
     ).run()
