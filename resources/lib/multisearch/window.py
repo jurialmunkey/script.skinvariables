@@ -261,7 +261,7 @@ class MultiSearchWindow(ScriptWindow):
     def set_container(self):
         """Show the container for the style of the results. The container shown before is emptied."""
         self.getControl(self.container_id).reset()
-        self.container_id = self.containers.get_choice(self.results).control_id
+        self.container_id = self.selected_button.get_container_choice(self.containers, self.results).control_id
         self.setProperty(CONTAINER_PROPERTY, str(self.container_id))
 
     def fill_results(self):

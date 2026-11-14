@@ -7,8 +7,34 @@ from resources.lib.shortcuts.futils import read_meta_from_file
 
 
 CONTAINERS_FILE = 'special://skin/shortcuts/skinvariables-multisearch-containers.json'
+STYLES_FILE = 'special://skin/shortcuts/skinvariables-multisearch-styles.json'
 FALLBACK_ID = 50
 CONTAINER_PROPERTY = f'{PROPERTY_PREFIX}.Container'
+
+
+class MediaTypeStyles:
+    """Widget style of the skin by content type, e.g. {"movie": "poster", "tvshow": "poster", "episode": "landscape"}.
+
+    Results with a content type that has no style use the widget style of their source. Skins without the file style
+    every result by its source.
+    """
+
+    def __init__(self, filepath=None):
+        self.filepath = filepath or STYLES_FILE
+
+    @cached_property
+    def items(self):
+        """Widget style by content type."""
+        return self.get_items()
+
+    def get_items(self):
+        return read_meta_from_file(self.filepath) or {}
+
+    def get(self, mediatype):
+        return self.items[mediatype]
+
+    def get_style(self, result):
+        return self.items.get(result.item.infolabels.get('mediatype'), result.source.widget_style)
 
 
 class ResultsContainers:
@@ -16,10 +42,14 @@ class ResultsContainers:
 
     The results are added to the container for their most common widget style, or to the fallback container when the
     style has no container. Skins without the file only use the fallback container.
+
+    When the skin defines widget styles by content type, the results count towards the style of their content type
+    instead of the style of their source, and the results of a content type always use the style of that type.
     """
 
-    def __init__(self, filepath=None):
+    def __init__(self, filepath=None, mediatype_styles=None):
         self.filepath = filepath or CONTAINERS_FILE
+        self.mediatype_styles = mediatype_styles or MediaTypeStyles()
 
     @cached_property
     def styles(self):
@@ -47,7 +77,17 @@ class ResultsContainers:
         return f'String.IsEqual(Window.Property({CONTAINER_PROPERTY}),{control_id})'
 
     def get_choice(self, results):
+        """Container for the most common style of the results."""
+        if self.mediatype_styles.items:
+            return MediaTypeContainerChoice(self, results)
         return ContainerChoice(self, results)
+
+    def get_mediatype_choice(self, mediatype, results):
+        """Container for the results of one content type. Types without a style use the most common style."""
+        try:
+            return FixedContainerChoice(self, results, self.mediatype_styles.get(mediatype))
+        except KeyError:
+            return self.get_choice(results)
 
 
 class ContainerChoice:
@@ -57,13 +97,17 @@ class ContainerChoice:
         self.containers = containers
         self.results = results
 
+    def get_result_style(self, result):
+        """Widget style the result counts towards."""
+        return result.source.widget_style
+
     @cached_property
     def most_common_style(self):
         """Most common widget style of the results. Empty when there are no results."""
         return self.get_most_common_style()
 
     def get_most_common_style(self):
-        counts = Counter(result.source.widget_style for result in self.results)
+        counts = Counter(self.get_result_style(result) for result in self.results)
         return next((style for style, count in counts.most_common(1)), '')
 
     @cached_property
@@ -72,3 +116,24 @@ class ContainerChoice:
 
     def get_control_id(self):
         return self.containers.styles.get(self.most_common_style, FALLBACK_ID)
+
+
+class MediaTypeContainerChoice(ContainerChoice):
+    """Container for a list of search results counted by the widget style of their content type.
+
+    Content types with the same style count together towards it.
+    """
+
+    def get_result_style(self, result):
+        return self.containers.mediatype_styles.get_style(result)
+
+
+class FixedContainerChoice(ContainerChoice):
+    """Container for a list of search results that always use one widget style."""
+
+    def __init__(self, containers, results, style):
+        super().__init__(containers, results)
+        self.style = style
+
+    def get_most_common_style(self):
+        return self.style

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from jurialmunkey.ftools import cached_property
-from resources.lib.multisearch.buttons import SourceButtons
-from resources.lib.multisearch.containers import ResultsContainers
+from resources.lib.multisearch.buttons import MediaTypeButtons, SourceButtons
+from resources.lib.multisearch.containers import MediaTypeStyles, ResultsContainers
 from resources.lib.multisearch.discover import DiscoverSearchSources
 from resources.lib.multisearch.history import StoredQuery
 from resources.lib.multisearch.search import MultiSearch, RESULTS_LIMIT
@@ -21,6 +21,9 @@ class MultiSearchController(ScriptWindowController):
 
     The TMDbHelper discover sources for movies and tvshows follow the shortcut sources unless the skin passes the
     no_discover param. Their results use the widget style of the discover_style param.
+
+    The source grouplist only has buttons for all sources and each content type when the skin passes the
+    no_source_buttons param.
     """
 
     window_file_class = MultiSearchWindowFile
@@ -36,6 +39,8 @@ class MultiSearchController(ScriptWindowController):
         query=USE_STORED_QUERY,
         no_discover=False,
         discover_style=None,
+        styles_file=None,
+        no_source_buttons=False,
     ):
         self.menu = menu
         self.skin = skin
@@ -45,6 +50,8 @@ class MultiSearchController(ScriptWindowController):
         self.query = query
         self.no_discover = no_discover
         self.discover_style = discover_style
+        self.styles_file = styles_file
+        self.no_source_buttons = no_source_buttons
 
     @cached_property
     def sources(self):
@@ -56,8 +63,12 @@ class MultiSearchController(ScriptWindowController):
         return DiscoverSearchSources(self.menu, self.skin, self.paths_file, self.discover_style)
 
     @cached_property
+    def mediatype_styles(self):
+        return MediaTypeStyles(self.styles_file)
+
+    @cached_property
     def containers(self):
-        return ResultsContainers(self.containers_file)
+        return ResultsContainers(self.containers_file, self.mediatype_styles)
 
     @cached_property
     def results_limit(self):
@@ -83,6 +94,11 @@ class MultiSearchController(ScriptWindowController):
 
     @cached_property
     def buttons(self):
+        return self.get_buttons()
+
+    def get_buttons(self):
+        if self.no_source_buttons:
+            return MediaTypeButtons(self.sources)
         return SourceButtons(self.sources)
 
     def get_window_file(self, folder):
@@ -112,6 +128,19 @@ def run_multisearch(
     query=USE_STORED_QUERY,
     no_discover=False,
     discover_style=None,
+    styles=None,
+    no_source_buttons=False,
     **kwargs,
 ):
-    MultiSearchController(menu, skin, paths, containers, limit, query, no_discover, discover_style).run()
+    MultiSearchController(
+        menu,
+        skin,
+        paths,
+        containers,
+        limit,
+        query,
+        no_discover,
+        discover_style,
+        styles,
+        no_source_buttons,
+    ).run()
