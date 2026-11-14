@@ -11,45 +11,75 @@ SEARCH_DELAY = 0.4
 class EmptySearchRequest:
     """Stands in for a search while the search text is empty."""
 
-    source_results = []
     results_by_source = {}
+    busy = ''
 
 
 EMPTY_REQUEST = EmptySearchRequest()
 
 
+class SearchSnapshot:
+    """Results of the sources of a search that have finished so far, in the order of the search sources."""
+
+    def __init__(self, request, results_by_source):
+        self.request = request
+        self.results_by_source = results_by_source
+
+    @cached_property
+    def complete(self):
+        """Whether every source of the search has finished."""
+        return self.get_complete()
+
+    def get_complete(self):
+        return len(self.results_by_source) == len(self.request.sources)
+
+    @cached_property
+    def busy(self):
+        """Busy window property value. Set until every source has finished."""
+        return self.get_busy()
+
+    def get_busy(self):
+        return '' if self.complete else 'true'
+
+
 class SearchRequest:
-    """Looks up the query for each source in its own thread. The results view filters, sorts and limits them."""
+    """Looks up the query for each source in its own thread. The results view filters, sorts and limits them.
+
+    Each source sends the callback a snapshot of the finished results as soon as it finishes. The snapshots are sent
+    while holding the lock so the callback receives them in order and the complete snapshot is always the last.
+    """
 
     def __init__(self, query, options, sources, callback):
         self.query = query
         self.options = options
         self.sources = sources
         self.callback = callback
+        self.finished = {}
+        self.lock = threading.Lock()
+
+    @property
+    def snapshot(self):
+        """Results of the finished sources. Read while holding the lock."""
+        return self.get_snapshot()
+
+    def get_snapshot(self):
+        results_by_source = {
+            source: self.finished[source]
+            for source in self.sources
+            if source in self.finished
+        }
+        return SearchSnapshot(self, results_by_source)
 
     def get_source_results(self, source):
-        return source.get_results(self.query, self.options)
-
-    @cached_property
-    def source_results(self):
-        return self.get_source_results_list()
-
-    def get_source_results_list(self):
-        with ParallelThread(self.sources, self.get_source_results) as threads:
-            queue = threads.queue
-        return queue
-
-    @cached_property
-    def results_by_source(self):
-        return self.get_results_by_source()
-
-    def get_results_by_source(self):
-        return dict(zip(self.sources, self.source_results))
+        # Look up the results before taking the lock so the sources look up in parallel.
+        results = source.get_results(self.query, self.options)
+        with self.lock:
+            self.finished[source] = results
+            self.callback(self.snapshot)
 
     def run(self):
-        # Look up the results on the worker so the callback only displays them.
-        self.results_by_source
-        self.callback(self)
+        with ParallelThread(self.sources, self.get_source_results):
+            pass
 
 
 class IdleTimer:

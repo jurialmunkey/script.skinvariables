@@ -311,7 +311,7 @@ class MultiSearchWindow(ScriptWindow):
         self.set_properties(results_list.properties)
 
     def hide_lists(self):
-        """Hide every list except the top list while the results update."""
+        """Hide every list except the top list until the first source of the search finishes."""
         for results_list in self.lists.hidden_lists:
             self.hide_list(results_list)
 
@@ -346,16 +346,18 @@ class MultiSearchWindow(ScriptWindow):
         self.set_view(self.search.get_view(self.view.request))
 
     def set_request(self, request):
-        """Show the current search. It has finished so the busy property is cleared."""
+        """Show the results of the current search. The busy property stays set until every source has finished."""
         self.set_view(self.search.get_view(request))
-        self.setProperty(BUSY_PROPERTY, '')
+        self.setProperty(BUSY_PROPERTY, request.busy)
 
-    def show_results(self, request):
-        """Called by a search worker. Results of searches replaced by a later search are discarded."""
+    def show_results(self, snapshot):
+        """Called by a search worker each time a source finishes. Snapshots of searches replaced by a later search are
+        discarded.
+        """
         with self.lock:
-            if not self.search.is_current(request):
+            if not self.search.is_current(snapshot.request):
                 return
-            self.set_request(request)
+            self.set_request(snapshot)
 
     def set_text(self, text):
         """Set the edit control text and search for it without reading the text back from the control."""
