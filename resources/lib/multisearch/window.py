@@ -188,7 +188,7 @@ class MultiSearchWindow(ScriptWindow):
         # Latest search text. Kodi applies setText later on the GUI thread so getText can still return the old text.
         self.text = ''
         self.view = search.get_view(EMPTY_REQUEST)
-        self.selected_button = buttons.all_button
+        self.selected_button = buttons.get_default_button(self.view)
         self.results = []
         self.container_id = FALLBACK_ID
         # Position of the result opened from the list, which is focused again when the window returns.
@@ -277,10 +277,12 @@ class MultiSearchWindow(ScriptWindow):
         self.selected_button = button
 
     def update_buttons(self):
-        """Show the buttons with distinct results. The list returns to all sources if the selected button is hidden."""
+        """Show the buttons with distinct results. The list returns to the first shown button if the selected button is
+        hidden.
+        """
         self.set_properties(self.buttons.get_shown_properties(self.view))
         if not self.selected_button.is_shown(self.search.sources, self.view):
-            self.set_selected_button(self.buttons.all_button)
+            self.set_selected_button(self.buttons.get_default_button(self.view))
 
     def set_view(self, view):
         self.view = view

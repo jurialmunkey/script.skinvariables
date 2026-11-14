@@ -71,19 +71,27 @@ class ResultsView:
         return bool(self.filtered_results.get(source))
 
     @cached_property
-    def has_several_sources(self):
-        """Whether more than one source has filtered results. Otherwise the one source shows the same results as all."""
-        return self.get_has_several_sources()
+    def sources_with_results(self):
+        """Sources with filtered results."""
+        return self.get_sources_with_results()
 
-    def get_has_several_sources(self):
-        return len([source for source, results in self.filtered_results.items() if results]) > 1
+    def get_sources_with_results(self):
+        return [source for source, results in self.filtered_results.items() if results]
+
+    def has_only_source(self, source):
+        """Whether the source is the only one with filtered results, so it shows the same results as all."""
+        return self.sources_with_results == [source]
 
     def get_mediatype_count(self, result_filter):
         return len(self.get_mediatype_unique_items(result_filter))
 
-    def has_mediatype_subset(self, result_filter):
-        """Whether some but not all of the results of every source have the content type of the filter."""
-        return 0 < self.get_mediatype_count(result_filter) < len(self.unique_items)
+    def has_mediatype(self, result_filter):
+        """Whether any of the results of every source have the content type of the filter."""
+        return self.get_mediatype_count(result_filter) > 0
+
+    def has_only_mediatype(self, result_filter):
+        """Whether every one of the results of every source has the content type of the filter."""
+        return self.has_mediatype(result_filter) and self.get_mediatype_count(result_filter) == len(self.unique_items)
 
     @cached_property
     def all_results(self):

@@ -6,6 +6,7 @@ from resources.lib.multisearch.constants import PROPERTY_PREFIX
 
 
 GENRE_SEPARATOR = ' / '
+OTHER_MEDIATYPE = 'other'
 MEDIATYPE_LOCALIZED_IDS = {
     'movie': 20338,
     'set': 20434,
@@ -16,6 +17,7 @@ MEDIATYPE_LOCALIZED_IDS = {
     'artist': 557,
     'album': 558,
     'song': 179,
+    OTHER_MEDIATYPE: 32103,
 }
 
 
@@ -103,7 +105,7 @@ class DecadeFilter(ResultFilter):
 class MediaTypeFilter(ResultFilter):
     """Matches results with the content type, such as movie or tvshow, found in their ListItem.DBType.
 
-    Known types are shown with their Kodi label. Results without a type are in no content type.
+    Results with a type that is not a known type, or without a type, are in the other type, which is listed last.
     """
 
     name = 'mediatype'
@@ -112,16 +114,13 @@ class MediaTypeFilter(ResultFilter):
 
     def get_values(self, result):
         mediatype = result.item.infolabels.get('mediatype')
-        return [mediatype] if mediatype else []
+        return [mediatype if mediatype in MEDIATYPE_LOCALIZED_IDS else OTHER_MEDIATYPE]
 
     def get_option_key(self, value):
-        return self.get_option_label(value).lower()
+        return (value == OTHER_MEDIATYPE, self.get_option_label(value).lower())
 
     def get_option_label(self, value):
-        try:
-            return get_localized(MEDIATYPE_LOCALIZED_IDS[value])
-        except KeyError:  # Types without a Kodi label are shown as they are.
-            return value
+        return get_localized(MEDIATYPE_LOCALIZED_IDS[value])
 
 
 class ResultFilters:

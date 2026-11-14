@@ -3,6 +3,7 @@
 from collections import Counter
 from jurialmunkey.ftools import cached_property
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
+from resources.lib.multisearch.filters import MediaTypeFilter
 from resources.lib.shortcuts.futils import read_meta_from_file
 
 
@@ -15,12 +16,17 @@ CONTAINER_PROPERTY = f'{PROPERTY_PREFIX}.Container'
 class MediaTypeStyles:
     """Widget style of the skin by content type, e.g. {"movie": "poster", "tvshow": "poster", "episode": "landscape"}.
 
-    Results with a content type that has no style use the widget style of their source. Skins without the file style
-    every result by its source.
+    Results with a content type that has no style use the widget style of their source. Results that are not one of
+    the known content types use the style of the other type. Skins without the file style every result by its source.
     """
 
     def __init__(self, filepath=None):
         self.filepath = filepath or STYLES_FILE
+
+    @cached_property
+    def mediatype_filter(self):
+        """Content type of the results, the same as the content type filter and buttons."""
+        return MediaTypeFilter()
 
     @cached_property
     def items(self):
@@ -34,7 +40,8 @@ class MediaTypeStyles:
         return self.items[mediatype]
 
     def get_style(self, result):
-        return self.items.get(result.item.infolabels.get('mediatype'), result.source.widget_style)
+        mediatype, = self.mediatype_filter.get_values(result)
+        return self.items.get(mediatype, result.source.widget_style)
 
 
 class ResultsContainers:

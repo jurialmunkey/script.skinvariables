@@ -542,3 +542,8 @@ msgstr ""
 msgctxt "#32102"
 msgid "Discover TV shows"
 msgstr ""
+
+#: /resources/lib/multisearch/filters.py
+msgctxt "#32103"
+msgid "Other"
+msgstr ""

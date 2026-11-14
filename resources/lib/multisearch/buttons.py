@@ -3,7 +3,7 @@
 from jurialmunkey.ftools import cached_property
 from resources.lib.kodiutils import get_localized
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
-from resources.lib.multisearch.filters import MediaTypeFilter
+from resources.lib.multisearch.filters import MediaTypeFilter, OTHER_MEDIATYPE
 from resources.lib.scriptwindow.items import ScriptWindowItem
 
 
@@ -19,6 +19,7 @@ MEDIATYPE_PLURAL_LOCALIZED_IDS = {
     'artist': 133,
     'album': 132,
     'song': 134,
+    OTHER_MEDIATYPE: 32103,
 }
 
 
@@ -50,6 +51,10 @@ class SourceFilterButton(ScriptWindowItem):
     def is_shown(self, sources, view):
         raise NotImplementedError
 
+    def repeats_all(self, sources, view):
+        """Whether the button is shown with the same results as the all sources button."""
+        return False
+
     def get_results(self, view):
         """Filtered, sorted and limited results shown while the button is selected."""
         raise NotImplementedError
@@ -72,25 +77,6 @@ class SourceFilterButton(ScriptWindowItem):
         pass
 
 
-class AllSourcesButton(SourceFilterButton):
-    """Button for the results of every enabled source. Always shown first and selected when the window opens."""
-
-    rank = 0
-
-    @cached_property
-    def label(self):
-        return get_localized(593)
-
-    def is_shown(self, sources, view):
-        return True
-
-    def get_results(self, view):
-        return view.all_items
-
-    def get_scope_results(self, view):
-        return view.all_results
-
-
 class ToggledSourceFilterButton(SourceFilterButton):
     """Button that is only visible while its window property is set."""
 
@@ -105,10 +91,39 @@ class ToggledSourceFilterButton(SourceFilterButton):
         return [('visible', f'!String.IsEmpty(Window.Property({self.shown_property}))', {})]
 
 
+class AllSourcesButton(ToggledSourceFilterButton):
+    """Button for the results of every enabled source. Always listed first.
+
+    Hidden while another button shows the same results, so that button is shown instead of repeating them.
+    """
+
+    rank = 0
+
+    def __init__(self, buttons):
+        self.buttons = buttons
+
+    @cached_property
+    def label(self):
+        return get_localized(593)
+
+    def get_shown_property(self):
+        return f'{SOURCE_PROPERTY}.All.IsShown'
+
+    def is_shown(self, sources, view):
+        return not any(button.repeats_all(sources, view) for button in self.buttons)
+
+    def get_results(self, view):
+        return view.all_items
+
+    def get_scope_results(self, view):
+        return view.all_results
+
+
 class MediaTypeSourcesButton(ToggledSourceFilterButton):
     """Button for the results of every enabled source with one content type.
 
-    Shown while some but not all of the all sources results have the content type, so it never repeats them.
+    Shown while any of the all sources results have the content type. Shown instead of the all sources button while
+    every one of them has the content type.
     """
 
     def __init__(self, mediatype, rank):
@@ -132,7 +147,10 @@ class MediaTypeSourcesButton(ToggledSourceFilterButton):
         return f'{SOURCE_PROPERTY}.{self.result_filter.property_affix}.{self.mediatype}.HasResults'
 
     def is_shown(self, sources, view):
-        return view.has_mediatype_subset(self.result_filter)
+        return view.has_mediatype(self.result_filter)
+
+    def repeats_all(self, sources, view):
+        return view.has_only_mediatype(self.result_filter)
 
     def get_results(self, view):
         return view.get_mediatype_items(self.result_filter)
@@ -148,7 +166,7 @@ class MediaTypeSourcesButton(ToggledSourceFilterButton):
 class SourceButton(ToggledSourceFilterButton):
     """Button for one search source. Shown while the source is enabled and has filtered results.
 
-    Hidden while it is the only source with filtered results, as it would repeat the all sources results.
+    Shown instead of the all sources button while it is the only source with filtered results.
     """
 
     def __init__(self, source, position):
@@ -176,7 +194,10 @@ class SourceButton(ToggledSourceFilterButton):
 
     def is_shown(self, sources, view):
         # Sources turned off since the search started are hidden before the next search finishes.
-        return self.source in sources.enabled and view.has_results(self.source) and view.has_several_sources
+        return self.source in sources.enabled and view.has_results(self.source)
+
+    def repeats_all(self, sources, view):
+        return self.source in sources.enabled and view.has_only_source(self.source)
 
     def get_results(self, view):
         return view.get_source_items(self.source)
@@ -190,6 +211,7 @@ class SourceButtons:
 
     The all sources button is followed by a button for each content type and then a button for each source. The
     content type buttons are ranked after the source buttons to keep the control ids of the source buttons.
+    The all sources button is hidden while one of the other buttons shows the same results.
     """
 
     def __init__(self, sources):
@@ -197,7 +219,7 @@ class SourceButtons:
 
     @cached_property
     def all_button(self):
-        return AllSourcesButton()
+        return AllSourcesButton(self.toggled_buttons)
 
     @cached_property
     def source_buttons(self):
@@ -232,15 +254,22 @@ class SourceButtons:
         return {button.control_id: button for button in self.items}
 
     def get_shown_properties(self, view):
-        """Window properties that show the buttons whose results differ from the all sources results."""
+        """Window properties that show the buttons with results, without two buttons showing the same results."""
         return {
             button.shown_property: 'true' if button.is_shown(self.sources, view) else ''
-            for button in self.toggled_buttons
+            for button in self.items
         }
 
     def get_shown_buttons(self, view):
         """Buttons shown in the grouplist, in grouplist order."""
         return [button for button in self.items if button.is_shown(self.sources, view)]
+
+    def get_default_button(self, view):
+        """First shown button, selected when the window opens or when the selected button is hidden.
+
+        The all sources button is shown unless another button shows its results, so a button is always shown.
+        """
+        return next(button for button in self.items if button.is_shown(self.sources, view))
 
 
 class MediaTypeButtons(SourceButtons):

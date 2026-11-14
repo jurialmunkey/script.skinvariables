@@ -71,6 +71,7 @@ class DiscoverParams:
         return {
             'info': 'discover',
             'tmdb_type': self.source.tmdb_type,
+            'nextpage': 'false',
             **self.query_params,
             **self.genre_params,
             **self.decade_params,
@@ -202,7 +203,7 @@ DISCOVER_SOURCE_CLASSES = (
 
 
 class DiscoverSearchSources(SearchSources):
-    """Search widgets of the shortcuts menu followed by the TMDbHelper discover sources for movies and tvshows."""
+    """TMDbHelper discover sources for movies and tvshows followed by the search widgets of the shortcuts menu."""
 
     def __init__(self, menu=None, skin=None, paths_file=None, widget_style=None):
         super().__init__(menu, skin, paths_file)
@@ -220,7 +221,8 @@ class DiscoverSearchSources(SearchSources):
         ]
 
     def get_items(self):
-        return [*super().get_items(), *self.discover_items]
+        """Discover sources are always listed first."""
+        return [*self.discover_items, *super().get_items()]
 
 
 class DiscoverCatalogue:
