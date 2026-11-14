@@ -8,7 +8,12 @@ from resources.lib.multisearch.history import StoredQuery
 from resources.lib.multisearch.search import MultiSearch, RESULTS_LIMIT
 from resources.lib.multisearch.sources import SearchSources
 from resources.lib.multisearch.template import MultiSearchWindowFile
-from resources.lib.multisearch.widgets import MediaTypeResultsLists, ResultsLists
+from resources.lib.multisearch.widgets import (
+    MediaTypeResultsLists,
+    ResultsLists,
+    SelectedButtonList,
+    TMDbHelperSelectedButtonList,
+)
 from resources.lib.multisearch.window import MultiSearchWindow
 from resources.lib.scriptwindow.controller import ScriptWindowController
 
@@ -28,6 +33,9 @@ class MultiSearchController(ScriptWindowController):
 
     The skin passes the mediatype_lists param for a window without the source grouplist. Lists 501 to 510 each show
     the results of one content type, in the order of the content type buttons, alongside the list of all results.
+
+    The skin passes the tmdbhelper_container param to set the TMDbHelper.WidgetContainer window property to the shown
+    results container. TMDbHelper reads it from the window when the skin enables TMDbHelper.UseLocalWidgetContainer.
     """
 
     window_file_class = MultiSearchWindowFile
@@ -46,6 +54,7 @@ class MultiSearchController(ScriptWindowController):
         styles_file=None,
         no_source_buttons=False,
         mediatype_lists=False,
+        tmdbhelper_container=False,
     ):
         self.menu = menu
         self.skin = skin
@@ -58,6 +67,7 @@ class MultiSearchController(ScriptWindowController):
         self.styles_file = styles_file
         self.no_source_buttons = no_source_buttons
         self.mediatype_lists = mediatype_lists
+        self.tmdbhelper_container = tmdbhelper_container
 
     @cached_property
     def sources(self):
@@ -110,13 +120,22 @@ class MultiSearchController(ScriptWindowController):
         return SourceButtons(self.sources)
 
     @cached_property
+    def selected_list_class(self):
+        return self.get_selected_list_class()
+
+    def get_selected_list_class(self):
+        if self.tmdbhelper_container:
+            return TMDbHelperSelectedButtonList
+        return SelectedButtonList
+
+    @cached_property
     def lists(self):
         return self.get_lists()
 
     def get_lists(self):
         if self.mediatype_lists:
-            return MediaTypeResultsLists(self.containers, self.buttons)
-        return ResultsLists(self.containers, self.buttons)
+            return MediaTypeResultsLists(self.containers, self.buttons, self.selected_list_class)
+        return ResultsLists(self.containers, self.buttons, self.selected_list_class)
 
     def get_window_file(self, folder):
         return MultiSearchWindowFile(folder, self.buttons, self.containers)
@@ -148,6 +167,7 @@ def run_multisearch(
     styles=None,
     no_source_buttons=False,
     mediatype_lists=False,
+    tmdbhelper_container=False,
     **kwargs,
 ):
     MultiSearchController(
@@ -162,4 +182,5 @@ def run_multisearch(
         styles,
         no_source_buttons,
         mediatype_lists,
+        tmdbhelper_container,
     ).run()
