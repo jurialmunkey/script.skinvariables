@@ -532,3 +532,13 @@ msgstr ""
 msgctxt "#32100"
 msgid "Any"
 msgstr ""
+
+#: /resources/lib/multisearch/discover.py
+msgctxt "#32101"
+msgid "Discover movies"
+msgstr ""
+
+#: /resources/lib/multisearch/discover.py
+msgctxt "#32102"
+msgid "Discover TV shows"
+msgstr ""

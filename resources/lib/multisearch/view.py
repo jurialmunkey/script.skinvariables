@@ -2,6 +2,12 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from itertools import chain
 from jurialmunkey.ftools import cached_property
+from resources.lib.kodiutils import get_localized
+from resources.lib.multisearch.results import UniqueResults
+
+
+def get_count_label(label, count):
+    return f'{label} ({count})'
 
 
 class ResultsView:
@@ -33,11 +39,29 @@ class ResultsView:
         return self.sort_method(source_results).items[:self.limit]
 
     @cached_property
+    def unique_items(self):
+        """Filtered results of every source, sorted and without duplicates, before the limit."""
+        return self.get_unique_items()
+
+    def get_unique_items(self):
+        """Duplicates are removed after sorting, keeping the copy sorted first."""
+        sorted_items = self.sort_method(list(self.filtered_results.values())).items
+        return UniqueResults(sorted_items).items
+
+    @cached_property
     def all_items(self):
         return self.get_all_items()
 
     def get_all_items(self):
-        return self.get_sorted_items(list(self.filtered_results.values()))
+        return self.unique_items[:self.limit]
+
+    def get_mediatype_unique_items(self, result_filter):
+        """Filtered results of every source with the content type of the filter, before the limit."""
+        return [result for result in self.unique_items if result_filter.matches(result)]
+
+    def get_mediatype_items(self, result_filter):
+        """Results of every source with the content type of the filter. The limit is applied after filtering."""
+        return self.get_mediatype_unique_items(result_filter)[:self.limit]
 
     def get_source_items(self, source):
         """Results of one source. Empty for a source that was not enabled for the search."""
@@ -47,16 +71,35 @@ class ResultsView:
         return bool(self.filtered_results.get(source))
 
     @cached_property
+    def has_several_sources(self):
+        """Whether more than one source has filtered results. Otherwise the one source shows the same results as all."""
+        return self.get_has_several_sources()
+
+    def get_has_several_sources(self):
+        return len([source for source, results in self.filtered_results.items() if results]) > 1
+
+    def get_mediatype_count(self, result_filter):
+        return len(self.get_mediatype_unique_items(result_filter))
+
+    def has_mediatype_subset(self, result_filter):
+        """Whether some but not all of the results of every source have the content type of the filter."""
+        return 0 < self.get_mediatype_count(result_filter) < len(self.unique_items)
+
+    @cached_property
     def all_results(self):
-        """Unfiltered results of every source."""
+        """Unfiltered results of every source without duplicates."""
         return self.get_all_results()
 
     def get_all_results(self):
-        return list(chain.from_iterable(self.request.results_by_source.values()))
+        return UniqueResults(chain.from_iterable(self.request.results_by_source.values())).items
 
     def get_source_results(self, source):
         """Unfiltered results of one source."""
         return self.request.results_by_source.get(source, [])
+
+    def get_mediatype_results(self, result_filter):
+        """Unfiltered results of every source with the content type of the filter."""
+        return [result for result in self.all_results if result_filter.matches(result)]
 
     def get_filter_options(self, result_filter, scope_results):
         return FilterOptions(self, result_filter, scope_results)
@@ -98,12 +141,54 @@ class FilterOptions:
         """Values with the number of results shown when each is chosen."""
         return self.get_items()
 
+    def get_option_counts(self):
+        return self.result_filter.get_option_counts(self.matching_results)
+
     def get_items(self):
         return [
             (value, self.get_count(count))
-            for value, count in self.result_filter.get_option_counts(self.matching_results)
+            for value, count in self.get_option_counts()
         ]
 
     @cached_property
     def values(self):
         return [value for value, count in self.items]
+
+    def get_label(self, label, count):
+        return get_count_label(label, count)
+
+    @cached_property
+    def labels(self):
+        """Select dialog labels: Any followed by the values."""
+        return self.get_labels()
+
+    def get_labels(self):
+        return [
+            self.get_label(get_localized(32100), self.any_count),
+            *(self.get_label(self.result_filter.get_option_label(value), count) for value, count in self.items),
+        ]
+
+
+class DiscoverResultsView(ResultsView):
+    """Results of a search with a discover source enabled. The filters offer every value TMDb can discover."""
+
+    def __init__(self, request, filters, sort_method, limit, catalogue):
+        super().__init__(request, filters, sort_method, limit)
+        self.catalogue = catalogue
+
+    def get_filter_options(self, result_filter, scope_results):
+        return DiscoverFilterOptions(self, result_filter, scope_results)
+
+
+class DiscoverFilterOptions(FilterOptions):
+    """Values to choose for a filter, including every value TMDb can discover for it.
+
+    Counts are hidden because choosing a value looks up new discover results.
+    """
+
+    def get_option_counts(self):
+        values = self.view.catalogue.get_values(self.result_filter)
+        return self.result_filter.get_option_counts(self.matching_results, values)
+
+    def get_label(self, label, count):
+        return label

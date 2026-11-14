@@ -3,6 +3,7 @@
 from jurialmunkey.ftools import cached_property
 from resources.lib.multisearch.buttons import SourceButtons
 from resources.lib.multisearch.containers import ResultsContainers
+from resources.lib.multisearch.discover import DiscoverSearchSources
 from resources.lib.multisearch.history import StoredQuery
 from resources.lib.multisearch.search import MultiSearch, RESULTS_LIMIT
 from resources.lib.multisearch.sources import SearchSources
@@ -16,7 +17,11 @@ USE_STORED_QUERY = object()
 
 
 class MultiSearchController(ScriptWindowController):
-    """Writes the multi search window from the skin's window file and shows it."""
+    """Writes the multi search window from the skin's window file and shows it.
+
+    The TMDbHelper discover sources for movies and tvshows follow the shortcut sources unless the skin passes the
+    no_discover param. Their results use the widget style of the discover_style param.
+    """
 
     window_file_class = MultiSearchWindowFile
     window_class = MultiSearchWindow
@@ -29,6 +34,8 @@ class MultiSearchController(ScriptWindowController):
         containers_file=None,
         limit=None,
         query=USE_STORED_QUERY,
+        no_discover=False,
+        discover_style=None,
     ):
         self.menu = menu
         self.skin = skin
@@ -36,10 +43,17 @@ class MultiSearchController(ScriptWindowController):
         self.containers_file = containers_file
         self.limit = limit
         self.query = query
+        self.no_discover = no_discover
+        self.discover_style = discover_style
 
     @cached_property
     def sources(self):
-        return SearchSources(self.menu, self.skin, self.paths_file)
+        return self.get_sources()
+
+    def get_sources(self):
+        if self.no_discover:
+            return SearchSources(self.menu, self.skin, self.paths_file)
+        return DiscoverSearchSources(self.menu, self.skin, self.paths_file, self.discover_style)
 
     @cached_property
     def containers(self):
@@ -96,6 +110,8 @@ def run_multisearch(
     containers=None,
     limit=None,
     query=USE_STORED_QUERY,
+    no_discover=False,
+    discover_style=None,
     **kwargs,
 ):
-    MultiSearchController(menu, skin, paths, containers, limit, query).run()
+    MultiSearchController(menu, skin, paths, containers, limit, query, no_discover, discover_style).run()

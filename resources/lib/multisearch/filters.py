@@ -48,12 +48,14 @@ class ResultFilter:
     def matches(self, result):
         return not self.value or self.value in self.get_values(result)
 
-    def get_option_counts(self, results):
+    def get_option_counts(self, results, values=()):
         """Values found in the results with how many results have each, in select dialog order.
 
-        The chosen value is included so it stays selectable, counted as zero when no result has it.
+        The chosen value and the given values are included so they stay selectable, counted as zero when no result
+        has them.
         """
         counts = Counter(value for result in results for value in set(self.get_values(result)))
+        counts.update(dict.fromkeys(values, 0))
         counts.update({self.value: 0} if self.value else {})
         return [(value, counts[value]) for value in sorted(counts, key=self.get_option_key, reverse=self.reverse)]
 
@@ -150,6 +152,11 @@ class ResultFilters:
         """Clear every filter so all results are shown."""
         for result_filter in self.items.values():
             result_filter.reset()
+
+    @property
+    def values(self):
+        """Chosen value of each filter by name. Empty for filters that let every result through."""
+        return {name: result_filter.value for name, result_filter in self.items.items()}
 
     @property
     def properties(self):

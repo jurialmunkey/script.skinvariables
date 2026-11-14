@@ -21,13 +21,14 @@ EMPTY_REQUEST = EmptySearchRequest()
 class SearchRequest:
     """Looks up the query for each source in its own thread. The results view filters, sorts and limits them."""
 
-    def __init__(self, query, sources, callback):
+    def __init__(self, query, options, sources, callback):
         self.query = query
+        self.options = options
         self.sources = sources
         self.callback = callback
 
     def get_source_results(self, source):
-        return source.get_results(self.query)
+        return source.get_results(self.query, self.options)
 
     @cached_property
     def source_results(self):

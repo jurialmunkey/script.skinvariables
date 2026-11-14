@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import xbmc
+from urllib.parse import urlsplit
 from xbmcgui import ListItem
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.parser import parse_localize
@@ -19,11 +20,19 @@ TARGET_LIBRARIES = {
 }
 
 
+def get_path_origin(path):
+    """Addon id of a plugin path, otherwise the scheme of the path, such as videodb for the video library."""
+    parts = urlsplit(path)
+    return parts.netloc if parts.scheme == 'plugin' else parts.scheme
+
+
 class SearchSource:
     """Search widget from the shortcuts file. Keeps the results of each query it has looked up.
 
     The path is either a name defined in the skin's search paths file or a raw path.
     """
+
+    discover = False
 
     def __init__(self, index, meta, definitions, search_cache):
         self.index = index
@@ -60,6 +69,14 @@ class SearchSource:
         path = self.meta['path']
         return self.definitions.get(path, path)
 
+    @cached_property
+    def origin(self):
+        """Plugin or library the results come from. Results of sources with the same origin can be duplicates."""
+        return self.get_origin()
+
+    def get_origin(self):
+        return get_path_origin(self.template)
+
     @property
     def listitem(self):
         return self.get_listitem()
@@ -69,12 +86,24 @@ class SearchSource:
         listitem.setArt({'icon': self.icon, 'thumb': self.icon})
         return listitem
 
-    def get_results(self, query):
+    def accepts(self, query, options):
+        """Whether the source searches for the query. Search paths need search text."""
+        return bool(query.raw)
+
+    def get_cache_key(self, query, options):
+        """Results only depend on the search text. The window filters and sorts them."""
+        return query.raw
+
+    def get_source_results(self, query, options):
+        return SourceResults(self, query)
+
+    def get_results(self, query, options):
+        key = self.get_cache_key(query, options)
         try:
-            return self.cache[query.raw]
+            return self.cache[key]
         except KeyError:
-            self.cache[query.raw] = SourceResults(self, query).items
-            return self.cache[query.raw]
+            self.cache[key] = self.get_source_results(query, options).items
+            return self.cache[key]
 
 
 class SearchSources:
@@ -146,6 +175,11 @@ class SearchSources:
     @property
     def enabled(self):
         return [self.items[position] for position in self.enabled_positions]
+
+    @property
+    def discover_enabled(self):
+        """Enabled sources that look up the filters and sort method themselves."""
+        return [source for source in self.enabled if source.discover]
 
     @property
     def listitems(self):

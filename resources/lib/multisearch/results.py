@@ -5,6 +5,15 @@ from resources.lib.filterdir.items import FilterDirItems
 from resources.lib.filterdir.paths import FilterDirPaths
 
 
+UNIQUE_INFOLABELS = (
+    'mediatype',
+    'title',
+    'tvshowtitle',
+    'season',
+    'episode',
+)
+
+
 class SearchResult:
     """Directory item from a search source with the source details the skin uses to style it."""
 
@@ -43,6 +52,24 @@ class SearchResult:
             return (0, str(value).lower())
 
     @cached_property
+    def unique_key(self):
+        """Results with the same key are the same item from the same plugin or library.
+
+        The key is the origin, content type, title, show, season, episode and uniqueids. Results without uniqueids
+        are only the same as themselves.
+        """
+        return self.get_unique_key()
+
+    def get_unique_key(self):
+        if not self.item.uniqueids:
+            return self
+        return (
+            self.source.origin,
+            *(self.item.infolabels.get(key) for key in UNIQUE_INFOLABELS),
+            frozenset(self.item.uniqueids.items()),
+        )
+
+    @cached_property
     def builtin(self):
         return self.get_builtin()
 
@@ -50,6 +77,23 @@ class SearchResult:
         if self.item.is_folder:
             return f'ActivateWindow({self.source.target},"{self.item.path}",return)'
         return f'PlayMedia("{self.item.path}")'
+
+
+class UniqueResults:
+    """Results without duplicates. The first result with each unique key is kept in its original order."""
+
+    def __init__(self, results):
+        self.results = results
+
+    @cached_property
+    def items(self):
+        return self.get_items()
+
+    def get_items(self):
+        unique_results = {}
+        for result in self.results:
+            unique_results.setdefault(result.unique_key, result)
+        return list(unique_results.values())
 
 
 class CachedFilterDirItems(FilterDirItems):

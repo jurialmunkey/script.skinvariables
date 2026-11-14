@@ -8,6 +8,7 @@ from resources.lib.kodiutils import get_localized
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
 from resources.lib.multisearch.containers import CONTAINER_PROPERTY, FALLBACK_ID
 from resources.lib.multisearch.keyboard import KEYBOARD_KEYS
+from resources.lib.multisearch.view import get_count_label
 from resources.lib.multisearch.workers import EMPTY_REQUEST
 from resources.lib.scriptwindow.window import ScriptWindow
 
@@ -142,10 +143,6 @@ class ResultsControl(MultiSearchControl):
             window.show_info()
 
 
-def get_count_label(label, count):
-    return f'{label} ({count})'
-
-
 UNFOCUSED_CONTROL = MultiSearchControl()
 MULTISEARCH_CONTROLS = {
     control.control_id: control
@@ -166,8 +163,10 @@ class MultiSearchWindow(ScriptWindow):
     """Searches the enabled sources each time the search text changes and lists the combined results.
 
     Results arrive from the search workers so changes to the results list are made while holding the lock.
-    The focused source button decides whether the list shows the results of all sources or of one source.
+    The focused source button decides whether the list shows the results of all sources, of one content type or of one
+    source.
     The content type, genre and decade filters narrow the results of each source before they are combined and limited.
+    Changing the filters or sort method searches again so discover sources can look up results for them.
     The results are added to the container for their most common widget style and the other containers are emptied.
     """
 
@@ -278,7 +277,7 @@ class MultiSearchWindow(ScriptWindow):
         self.selected_button = button
 
     def update_buttons(self):
-        """Show the source buttons with results. The list returns to all sources when the selected button is hidden."""
+        """Show the buttons with distinct results. The list returns to all sources if the selected button is hidden."""
         self.set_properties(self.buttons.get_shown_properties(self.view))
         if not self.selected_button.is_shown(self.search.sources, self.view):
             self.set_selected_button(self.buttons.all_button)
@@ -312,13 +311,21 @@ class MultiSearchWindow(ScriptWindow):
     def run_search(self, query):
         self.text = query
         with self.lock:
-            if query.strip():
+            if self.search.can_search(query):
                 # Set while the current search waits or runs. Older searches finishing later do not clear it.
                 self.setProperty(BUSY_PROPERTY, 'true')
                 self.search.submit(query, self.show_results)
                 return
             self.search.clear()
             self.set_request(EMPTY_REQUEST)
+
+    def research(self):
+        """Search again after the sources, sort method or filters change.
+
+        Cached source results are reused so only newly enabled sources and discover sources with new options are
+        looked up.
+        """
+        self.run_search(self.text)
 
     def select_button(self, button):
         """Show the results of the focused source button. Returning focus to the selected button keeps the list."""
@@ -358,8 +365,7 @@ class MultiSearchWindow(ScriptWindow):
         sources.set_enabled_positions(positions)
         with self.lock:
             self.refresh_view()
-        # Cached source results are reused so only newly enabled sources are looked up.
-        self.run_search(self.text)
+        self.research()
 
     def select_sort(self):
         position = xbmcgui.Dialog().select(
@@ -373,15 +379,13 @@ class MultiSearchWindow(ScriptWindow):
         self.set_sort_property()
         with self.lock:
             self.refresh_view()
+        self.research()
 
     def select_filter(self, result_filter):
         """Choose a value for the filter from the results of the selected source button, or Any to clear it."""
         with self.lock:
             options = self.view.get_filter_options(result_filter, self.selected_button.get_scope_results(self.view))
-            labels = [
-                get_count_label(get_localized(32100), options.any_count),
-                *(get_count_label(result_filter.get_option_label(value), count) for value, count in options.items),
-            ]
+            labels = options.labels
         position = xbmcgui.Dialog().select(
             get_localized(result_filter.localized_id),
             labels,
@@ -393,9 +397,13 @@ class MultiSearchWindow(ScriptWindow):
             result_filter.set_value(options.values[position - 1] if position else '')
             self.set_properties(result_filter.properties)
             self.refresh_view()
+        self.research()
 
     def reset_options(self):
-        """Clear the search text and filters and enable every source. Clearing the text empties the results."""
+        """Clear the search text and filters and enable every source.
+
+        Clearing the text empties the results unless a discover source is enabled, which discovers without text.
+        """
         with self.lock:
             self.search.reset()
             self.set_properties(self.search.filters.properties)
