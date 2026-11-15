@@ -54,6 +54,10 @@ class TemplateControl:
         for child in [child for child in self.element if child.tag in tags]:
             self.element.remove(child)
 
+    def get_targeted(self, control_type):
+        """Template whose generated id goes on its first control of the type rather than on the template itself."""
+        raise NotImplementedError
+
     def configure(self, item):
         """Configure the template for the item. Includes receive the overrides and defaults as nested content."""
         self.substitute(item.substitutions)
@@ -71,6 +75,35 @@ class ElementControl(TemplateControl):
 
     def set_control_id(self, control_id):
         self.element.set('id', str(control_id))
+
+    def get_targeted(self, control_type):
+        return TargetedElementControl(self.element, control_type)
+
+
+class TargetedElementControl(ElementControl):
+    """Control whose generated id goes on its first control of the target type, which can be the control itself.
+
+    Lets a template group the target with labels while the script reads the target by the generated id.
+    """
+
+    def __init__(self, element, control_type):
+        super().__init__(element)
+        self.control_type = control_type
+
+    def clone(self):
+        return type(self)(deepcopy(self.element), self.control_type)
+
+    @cached_property
+    def target(self):
+        return self.get_target()
+
+    def get_target(self):
+        return next(element for element in self.element.iter('control') if element.get('type') == self.control_type)
+
+    def set_control_id(self, control_id):
+        # The template id only finds the template so it is removed from the clone in case the target is nested.
+        self.element.attrib.pop('id')
+        self.target.set('id', str(control_id))
 
 
 class IncludeControl(TemplateControl):
@@ -91,6 +124,10 @@ class IncludeControl(TemplateControl):
             return
         self.id_param.text = str(control_id)
 
+    def get_targeted(self, control_type):
+        # The skin's include places the id param so it already decides which control receives the id.
+        return self
+
 
 TEMPLATE_CONTROL_CLASSES = {
     'control': ElementControl,
@@ -103,6 +140,8 @@ class ScriptWindowTemplate:
 
     filename = ''
     template_ids = {}
+    # Control types by template name for templates whose generated id goes on a control of that type inside them.
+    target_types = {}
     # Template controls that are only sources for clones and are removed from the window.
     default_ids = ()
 
@@ -146,7 +185,8 @@ class ScriptWindowTemplate:
 
     def get_template(self, name):
         # Looked up on use so skins only need the templates for the controls they use.
-        return self.controls[self.template_ids[name]]
+        control = self.controls[self.template_ids[name]]
+        return control.get_targeted(self.target_types[name]) if name in self.target_types else control
 
     def get_element(self, item):
         return self.get_template(item.template).clone().configure(item)

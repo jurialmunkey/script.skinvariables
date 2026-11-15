@@ -208,6 +208,9 @@ class SkinSetting(SettingsListItem):
     def get_overrides(self):
         return super().get_overrides() + self.optional_overrides
 
+    def onrefresh(self, window):
+        """Update the control from the skin state when the window opens and when focus moves."""
+
 
 class ButtonSetting(SkinSetting):
     template = 'button'
@@ -231,9 +234,3 @@ class ButtonSetting(SkinSetting):
 class RadioButtonSetting(ButtonSetting):
     template = 'radiobutton'
     optional_tags = SkinSetting.optional_tags + (('selected', 'selected'),)
-
-
-SETTING_CLASSES = {
-    'button': ButtonSetting,
-    'radiobutton': RadioButtonSetting,
-}

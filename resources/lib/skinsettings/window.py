@@ -35,6 +35,16 @@ class SkinSettingsWindow(ScriptWindow):
     def set_text(self, control_id, text):
         self.getControl(control_id).setText(text)
 
+    def get_slider_value(self, control_id):
+        return self.getControl(control_id).getInt()
+
+    def set_slider_value(self, control_id, value, maximum):
+        self.getControl(control_id).setInt(value, 0, 1, maximum)
+
+    def refresh_settings(self):
+        for setting in self.definition.settings:
+            setting.onrefresh(self)
+
     def set_search(self, query):
         self.set_properties(SettingsSearch(query, self.definition.groups, self.definition.settings).properties)
 
@@ -49,9 +59,13 @@ class SkinSettingsWindow(ScriptWindow):
     def set_view_bounds(self):
         self.set_properties(SettingsViewBounds(self.definition.ordered_settings, self.window_id).properties)
 
+    def onInit(self):
+        self.refresh_settings()
+
     def onFocus(self, control_id):
         # Settings can change while a dialog opened by a click is shown so moving focus also refreshes the view.
         super().onFocus(control_id)
+        self.refresh_settings()
         self.definition.search.onchangeview(self)
 
     def onClick(self, control_id):

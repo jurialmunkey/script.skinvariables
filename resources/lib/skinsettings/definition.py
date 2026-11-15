@@ -3,8 +3,22 @@
 from json import loads
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.futils import load_filecontent
-from resources.lib.skinsettings.items import DefinitionEntries, SkinSettingsCategory, SkinSettingsGroup, SETTING_CLASSES
+from resources.lib.skinsettings.items import (
+    ButtonSetting,
+    DefinitionEntries,
+    RadioButtonSetting,
+    SkinSettingsCategory,
+    SkinSettingsGroup,
+)
 from resources.lib.skinsettings.search import SearchDisabled, get_search
+from resources.lib.skinsettings.slider import SliderSetting
+
+
+SETTING_CLASSES = {
+    'button': ButtonSetting,
+    'radiobutton': RadioButtonSetting,
+    'slider': SliderSetting,
+}
 
 
 class SkinSettingsDefinition:
