@@ -6,6 +6,7 @@ from xbmcgui import ListItem
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.parser import parse_localize
 from resources.lib.multisearch.cache import SearchCache
+from resources.lib.multisearch.query import QUERY_PATTERN
 from resources.lib.multisearch.results import SourceResults
 from resources.lib.shortcuts.futils import read_meta_from_file
 from resources.lib.shortcuts.node.controller import ListGetShortcutsNode
@@ -20,6 +21,7 @@ TARGET_LIBRARIES = {
 }
 MUSIC_ORIGINS = ('musicdb',)
 MUSIC_PLUGIN_PREFIX = 'plugin.audio.'
+CUSTOM_PATH_QUERY = '{query}'
 
 
 def get_path_origin(path):
@@ -77,7 +79,18 @@ class SearchSource:
 
     def get_template(self):
         path = self.meta['path']
-        return self.definitions.get(path, path)
+        try:
+            return self.definitions[path]
+        except KeyError:
+            return self.get_custom_template(path)
+
+    def get_custom_template(self, path):
+        """Raw paths without a query placeholder have the encoded search text added to the end, as paths ending in
+        a query parameter such as &query= were searched before.
+        """
+        if QUERY_PATTERN.search(path):
+            return path
+        return f'{path}{CUSTOM_PATH_QUERY}'
 
     @cached_property
     def origin(self):
