@@ -7,7 +7,7 @@ msgstr ""
 "Project-Id-Version: XBMC-Addons\n"
 "Report-Msgid-Bugs-To: alanwww1@xbmc.org\n"
 "POT-Creation-Date: 2014-10-26 17:05+0000\n"
-"PO-Revision-Date: 2026-04-14 10:44+0800\n"
+"PO-Revision-Date: 2026-11-11 11:10+0800\n"
 "Last-Translator: wabisabi926\n"
 "Language-Team: LANGUAGE\n"
 "Language: zh_CN\n"
@@ -45,7 +45,7 @@ msgstr "选择视图类型"
 #: /resources/lib/viewtypes.py
 msgctxt "#32005"
 msgid "Building default rules for"
-msgstr "构建默认规则"
+msgstr "为以下内容构建默认规则："
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32006"
@@ -90,12 +90,12 @@ msgstr "自定义视图类型"
 #: /resources/lib/viewtypes.py
 msgctxt "#32014"
 msgid "Reset {} Views"
-msgstr "重置 {}视图"
+msgstr "重置 {} 的视图"
 
 #: /resources/lib/viewtypes.py
 msgctxt "#32015"
 msgid "Do you wish to reset all {} views to default"
-msgstr "是否要将所有{}视图重置为默认值"
+msgstr "是否要将 {} 的所有视图重置为默认值？"
 
 #: /resources/lib/skinshortcuts.menu.py
 msgctxt "#32016"
@@ -171,7 +171,7 @@ msgstr "覆盖菜单"
 #: /resources/lib/skinshortcuts.menu.py
 msgctxt "#32027"
 msgid "Importing will overwrite your current menus and setup. Are you sure?"
-msgstr "导入将覆盖您当前的菜单和设置。你确定吗？"
+msgstr "导入将覆盖您当前的菜单和设置。您确定吗？"
 
 #: /resources/lib/skinshortcuts.menu.py
 msgctxt "#32028"
@@ -234,7 +234,7 @@ msgstr "小于或等于 <="
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32038"
 msgid "Equal =="
-msgstr "等于 ="
+msgstr "等于 =="
 
 #: /resources/lib/lists/filterdir.py
 msgctxt "#32039"
@@ -274,7 +274,7 @@ msgstr "如果不保存，更改将被丢弃。"
 #: /resources/lib/shortcuts/template.py
 msgctxt "#32046"
 msgid "Generating globals"
-msgstr "生成全局"
+msgstr "生成全局变量"
 
 #: /resources/lib/shortcuts/template.py
 msgctxt "#32047"
@@ -284,7 +284,7 @@ msgstr "生成内容"
 #: /resources/lib/shortcuts/template.py
 msgctxt "#32048"
 msgid "Formatting content"
-msgstr "内容格式"
+msgstr "格式化内容"
 
 #: /resources/lib/shortcuts/template.py
 msgctxt "#32049"
@@ -324,7 +324,7 @@ msgstr "添加密码锁"
 #: /resources/lib/lists/skinusers.py
 msgctxt "#32056"
 msgid "Adding a pin-code lock will require users to enter the code before accessing the profile."
-msgstr "添加密码锁后，用户在访问个人资料前必须输入密码。"
+msgstr "添加密码锁后，用户在访问配置文件前必须输入密码。"
 
 #: /resources/lib/lists/skinusers.py
 msgctxt "#32057"
@@ -464,17 +464,17 @@ msgstr "添加列表"
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32084"
 msgid "[B][COLOR=red]WARNING[/COLOR][/B]: Adding this list will add {item_count} new items (skipping {skip_count} existing items previously added). This action cannot be undone."
-msgstr "[B][COLOR=red]警告[/COLOR][/B]：添加此列表将添加 {item_count} 新项目（跳过之前添加的 {skip_count} 现有项目）。此操作无法撤销。"
+msgstr "[B][COLOR=red]警告[/COLOR][/B]：添加此列表将添加 {item_count} 个新项目（跳过之前添加的 {skip_count} 个现有项目）。此操作无法撤销。"
 
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32085"
 msgid "No new items to add!"
-msgstr "无新项目添加！"
+msgstr "没有可添加的新项目！"
 
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32086"
 msgid "This list contains {item_count} items. The current max item limit is {item_limit}. This list will not be added."
-msgstr "此列表包含 {item_count} 项目。当前最大项目限制为 {item_limit}。将不会添加此列表。"
+msgstr "此列表包含 {item_count} 个项目。当前最大项目数限制为 {item_limit}。将不会添加此列表。"
 
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32087"
@@ -484,7 +484,7 @@ msgstr "删除列表"
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32088"
 msgid "[B][COLOR=red]WARNING[/COLOR][/B]: Deleting this list will remove {item_count} existing items. This action cannot be undone."
-msgstr "[B][COLOR=red]警告[/COLOR][/B]：删除此列表将删除 {item_count} 现有项目。此操作无法撤销。"
+msgstr "[B][COLOR=red]警告[/COLOR][/B]：删除此列表将删除 {item_count} 个现有项目。此操作无法撤销。"
 
 #: /resources/lib/shortcuts/node.py
 msgctxt "#32089"
