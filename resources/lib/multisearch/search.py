@@ -3,6 +3,7 @@
 from resources.lib.multisearch.discover import DiscoverCatalogue
 from resources.lib.multisearch.filters import ResultFilters
 from resources.lib.multisearch.options import SearchOptions
+from resources.lib.multisearch.progress import NO_PROGRESS
 from resources.lib.multisearch.query import SearchQuery
 from resources.lib.multisearch.sorting import SORT_METHODS
 from resources.lib.multisearch.view import DiscoverResultsView, ResultsView
@@ -18,13 +19,13 @@ class MultiSearch:
     Only the most recently submitted search is current so results from searches that finish later are discarded.
     """
 
-    def __init__(self, sources, limit=RESULTS_LIMIT):
+    def __init__(self, sources, limit=RESULTS_LIMIT, progress=NO_PROGRESS):
         self.sources = sources
         self.limit = limit
         self.sort_position = 0
         self.filters = ResultFilters()
         self.current = None
-        self.dispatcher = SearchDispatcher(sources)
+        self.dispatcher = SearchDispatcher(sources, progress)
 
     @property
     def sort_method(self):

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from jurialmunkey.ftools import cached_property
+from xbmcgui import ListItem
 from resources.lib.kodiutils import get_localized
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
 from resources.lib.multisearch.filters import MediaTypeFilter, OTHER_MEDIATYPE
-from resources.lib.scriptwindow.items import ScriptWindowItem
 
 
-SOURCE_ID_START = -400000
 SOURCE_PROPERTY = f'{PROPERTY_PREFIX}.Source'
 MEDIATYPE_PLURAL_LOCALIZED_IDS = {
     'movie': 342,
@@ -23,11 +22,8 @@ MEDIATYPE_PLURAL_LOCALIZED_IDS = {
 }
 
 
-class SourceFilterButton(ScriptWindowItem):
-    """Button generated in the source grouplist. Focusing it shows only the results of its source."""
-
-    template = 'button'
-    control_id_start = SOURCE_ID_START
+class SourceFilterButton:
+    """Item of the source list. Selecting it shows only the results of its source."""
 
     @property
     def label(self):
@@ -40,6 +36,11 @@ class SourceFilterButton(ScriptWindowItem):
     def get_focus_properties(self):
         return {SOURCE_PROPERTY: self.label}
 
+    @cached_property
+    def values(self):
+        """String values of the list item by name."""
+        return self.get_values()
+
     def get_values(self):
         return {
             'label': self.label,
@@ -47,6 +48,18 @@ class SourceFilterButton(ScriptWindowItem):
             'target': '',
             'widget_style': '',
         }
+
+    @property
+    def listitem(self):
+        """New list item each time the source list is filled."""
+        return self.get_listitem()
+
+    def get_listitem(self):
+        listitem = ListItem(label=self.values['label'], offscreen=True)
+        listitem.setArt({'icon': self.values['icon']})
+        listitem.setProperty('target', self.values['target'])
+        listitem.setProperty('widget_style', self.values['widget_style'])
+        return listitem
 
     def is_shown(self, sources, view):
         raise NotImplementedError
@@ -63,18 +76,9 @@ class SourceFilterButton(ScriptWindowItem):
         """Container for the results shown while the button is selected."""
         return containers.get_choice(results)
 
-    def onfocus(self, window):
-        window.select_button(self)
-
-    def onclick(self, window):
-        window.select_source_button()
-
-    def onaction(self, window, action_id):
-        pass
-
 
 class ToggledSourceFilterButton(SourceFilterButton):
-    """Button that is only visible while its window property is set."""
+    """Button with a window property that is set while it is shown."""
 
     @cached_property
     def shown_property(self):
@@ -83,17 +87,12 @@ class ToggledSourceFilterButton(SourceFilterButton):
     def get_shown_property(self):
         raise NotImplementedError
 
-    def get_overrides(self):
-        return [('visible', f'!String.IsEmpty(Window.Property({self.shown_property}))', {})]
-
 
 class AllSourcesButton(ToggledSourceFilterButton):
     """Button for the results of every enabled source. Always listed first.
 
     Hidden while another button shows the same results, so that button is shown instead of repeating them.
     """
-
-    rank = 0
 
     def __init__(self, buttons):
         self.buttons = buttons
@@ -131,9 +130,8 @@ class MediaTypeSourcesButton(ToggledSourceFilterButton):
     every one of them has the content type.
     """
 
-    def __init__(self, mediatype, rank):
+    def __init__(self, mediatype):
         self.mediatype = mediatype
-        self.rank = rank
 
     @cached_property
     def result_filter(self):
@@ -176,10 +174,6 @@ class SourceButton(ToggledSourceFilterButton):
         self.position = position
 
     @property
-    def rank(self):
-        return self.position + 1
-
-    @property
     def label(self):
         return self.source.label
 
@@ -206,10 +200,9 @@ class SourceButton(ToggledSourceFilterButton):
 
 
 class SourceButtons:
-    """Buttons of the source grouplist.
+    """Buttons of the source list.
 
-    The all sources button is followed by a button for each content type and then a button for each source. The
-    content type buttons are ranked after the source buttons to keep the control ids of the source buttons.
+    The all sources button is followed by a button for each content type and then a button for each source.
     The all sources button is hidden while one of the other buttons shows the same results.
     """
 
@@ -232,10 +225,7 @@ class SourceButtons:
         return self.get_mediatype_buttons()
 
     def get_mediatype_buttons(self):
-        return [
-            MediaTypeSourcesButton(mediatype, rank)
-            for rank, mediatype in enumerate(MEDIATYPE_PLURAL_LOCALIZED_IDS, len(self.source_buttons) + 1)
-        ]
+        return [MediaTypeSourcesButton(mediatype) for mediatype in MEDIATYPE_PLURAL_LOCALIZED_IDS]
 
     @cached_property
     def toggled_buttons(self):
@@ -245,21 +235,6 @@ class SourceButtons:
     def items(self):
         return [self.all_button, *self.toggled_buttons]
 
-    @cached_property
-    def grouplist_items(self):
-        """Buttons generated in the source grouplist."""
-        return self.get_grouplist_items()
-
-    def get_grouplist_items(self):
-        return self.items
-
-    @cached_property
-    def controls(self):
-        return self.get_controls()
-
-    def get_controls(self):
-        return {button.control_id: button for button in self.grouplist_items}
-
     def get_shown_properties(self, view):
         """Window properties that show the buttons with results, without two buttons showing the same results."""
         return {
@@ -268,7 +243,7 @@ class SourceButtons:
         }
 
     def get_shown_buttons(self, view):
-        """Buttons shown in the grouplist, in grouplist order."""
+        """Buttons shown in the source list, in source list order."""
         return [button for button in self.items if button.is_shown(self.sources, view)]
 
     def get_default_button(self, view):
@@ -280,7 +255,7 @@ class SourceButtons:
 
 
 class MediaTypeButtons(SourceButtons):
-    """Buttons of the source grouplist without a button for each source.
+    """Buttons of the source list without a button for each source.
 
     The all sources button is followed by a button for each content type.
     """
@@ -290,8 +265,19 @@ class MediaTypeButtons(SourceButtons):
         return self.mediatype_buttons
 
 
-class NoGrouplistButtons(SourceButtons):
-    """Source buttons without the source grouplist, for windows with a list for each content type.
+class SourceOnlyButtons(SourceButtons):
+    """Buttons of the source list without a button for each content type.
+
+    The all sources button is followed by a button for each source.
+    """
+
+    @cached_property
+    def toggled_buttons(self):
+        return self.source_buttons
+
+
+class NoSourceListButtons(SourceButtons):
+    """Source buttons without the source list, for windows with a list for each content type.
 
     The all sources button is the only button and is always selected. The content type buttons supply the results of
     the content type lists. The all sources button is hidden while a content type list shows the same results.
@@ -303,9 +289,6 @@ class NoGrouplistButtons(SourceButtons):
 
     @cached_property
     def toggled_buttons(self):
-        return []
-
-    def get_grouplist_items(self):
         return []
 
     def get_default_button(self, view):

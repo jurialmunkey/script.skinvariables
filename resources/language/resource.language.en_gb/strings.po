@@ -547,3 +547,8 @@ msgstr ""
 msgctxt "#32103"
 msgid "Other"
 msgstr ""
+
+#: /resources/lib/multisearch/progress.py
+msgctxt "#32104"
+msgid "Searching \"{}\""
+msgstr ""

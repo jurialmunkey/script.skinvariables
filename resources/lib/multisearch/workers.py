@@ -2,6 +2,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import threading
 from jurialmunkey.ftools import cached_property
+from resources.lib.multisearch.progress import NO_PROGRESS
 
 
 BURST_DELAY = 0.15
@@ -46,7 +47,8 @@ class SearchRequest:
     """Search of the query on each of its sources. The source workers look up each source in their own thread.
 
     The results view filters, sorts and limits them. A source replaced in its worker's queue by a later search never
-    finishes, so only searches that are no longer current are left incomplete.
+    finishes, so only searches that are no longer current are left incomplete. A source abandoned by its worker for a
+    later search still finishes, but its search is no longer current.
 
     Sources that finish within the burst delay of each other send the callback one snapshot of the finished results.
     The complete snapshot is sent as soon as the last source finishes. Snapshots are sent while holding the lock and
@@ -141,61 +143,115 @@ class BurstTimer:
 
 
 class SourceWorker:
-    """Looks up one source for one search at a time with a single slot queue.
+    """Looks up one source with a running lookup, an abandoned lookup and a single slot queue.
 
-    A search starts straight away when the worker is free. Otherwise it waits in the slot and replaces any search
-    already waiting there, so only the latest search runs once the lookup in progress finishes.
+    A search starts straight away when the worker is free. When a lookup is running and none is abandoned, the running
+    lookup is abandoned to finish in the background and the search starts straight away. Otherwise the search waits in
+    the slot and replaces any search already waiting there. Once the abandoned lookup finishes, the waiting search is
+    newer than the running lookup, so the running lookup is abandoned in turn and the waiting search starts. The worker
+    never has more than two lookups in progress.
+
+    An abandoned lookup still stores its results, but its search is no longer current so they are not shown.
+
+    The progress counts each search given to the worker. A waiting search that is replaced or cleared is dropped, as is
+    a running lookup once it is abandoned.
     """
 
-    def __init__(self, source):
+    def __init__(self, source, progress=NO_PROGRESS):
         self.source = source
+        self.progress = progress
         self.lock = threading.Lock()
-        self.busy = False
+        self.running = None
+        self.abandoned = None
         self.queued = None
-        self.thread = None
 
     @property
     def can_start(self):
         """Whether the waiting search can start now. Read while holding the lock."""
-        return self.queued is not None and not self.busy
+        return self.queued is not None and self.running is None
+
+    @property
+    def can_abandon(self):
+        """Whether the running lookup can be abandoned for the waiting search. Read while holding the lock."""
+        return self.queued is not None and self.running is not None and self.abandoned is None
 
     def submit(self, request):
         with self.lock:
+            self.track_queued(request)
             self.queued = request
             self.dispatch()
 
+    def track_queued(self, request):
+        """Add the new search to the progress, replacing any waiting search. Called while holding the lock."""
+        if self.queued is None:
+            self.progress.add(self.source, request)
+            return
+        self.progress.replace(self.source, request)
+
+    def drop_queued(self):
+        """Drop the waiting search from the progress. Called while holding the lock."""
+        if self.queued is None:
+            return
+        self.queued = None
+        self.progress.drop(self.source)
+
     def dispatch(self):
-        """Start the waiting search if the worker is free. Called while holding the lock."""
+        """Start the waiting search, abandoning the running lookup if no other is abandoned. Called holding the lock."""
+        if self.can_abandon:
+            self.abandon()
         if not self.can_start:
             return
         request, self.queued = self.queued, None
-        self.busy = True
-        self.thread = threading.Thread(target=self.work, args=(request,))
-        self.thread.start()
+        self.running = threading.Thread(target=self.work, args=(request,))
+        self.running.start()
+
+    def abandon(self):
+        """Leave the running lookup to finish in the background. Called while holding the lock."""
+        self.abandoned, self.running = self.running, None
+        self.progress.abandon(self.source)
 
     def work(self, request):
-        request.get_source_results(self.source)
-        with self.lock:
-            self.busy = False
-            self.dispatch()
+        try:
+            request.get_source_results(self.source)
+        finally:
+            with self.lock:
+                self.finish(threading.current_thread())
+                self.dispatch()
+
+    def finish(self, thread):
+        """Free the slot of the finished lookup. Only the running lookup counts. Called while holding the lock."""
+        if thread is self.abandoned:
+            self.abandoned = None
+            return
+        self.running = None
+        self.progress.complete(self.source)
+
+    @property
+    def threads(self):
+        """Lookups in progress. Read while holding the lock."""
+        return [thread for thread in (self.running, self.abandoned) if thread is not None]
 
     def clear(self):
         with self.lock:
-            self.queued = None
+            self.drop_queued()
 
     def stop(self):
-        """Wait for the running lookup. Clear the waiting search before stopping."""
+        """Wait for the running and abandoned lookups. Clear the waiting search before stopping."""
         with self.lock:
-            thread = self.thread
-        if thread is not None:
+            threads = self.threads
+        for thread in threads:
             thread.join()
 
 
 class SearchDispatcher:
-    """Runs searches with one worker for each source. Each worker has a single slot queue for its source."""
+    """Runs searches with one worker for each source. Each worker abandons or queues searches for its source.
 
-    def __init__(self, sources):
+    The workers share the progress of their lookups, which closes once the workers stop.
+    """
+
+    def __init__(self, sources, progress=NO_PROGRESS):
         self.sources = sources
+        self.progress = progress
 
     @cached_property
     def workers(self):
@@ -203,7 +259,7 @@ class SearchDispatcher:
         return self.get_workers()
 
     def get_workers(self):
-        return {source: SourceWorker(source) for source in self.sources.items}
+        return {source: SourceWorker(source, self.progress) for source in self.sources.items}
 
     def submit(self, request):
         for source in request.sources:
@@ -217,3 +273,4 @@ class SearchDispatcher:
         """Wait for the running lookups. Clear the waiting searches before stopping."""
         for worker in self.workers.values():
             worker.stop()
+        self.progress.close()

@@ -18,6 +18,8 @@ TARGET_LIBRARIES = {
     'videos': 'video',
     'music': 'music',
 }
+MUSIC_ORIGINS = ('musicdb',)
+MUSIC_PLUGIN_PREFIX = 'plugin.audio.'
 
 
 def get_path_origin(path):
@@ -51,7 +53,15 @@ class SearchSource:
 
     @cached_property
     def target(self):
-        return self.meta.get('target') or ''
+        """Window that opens folder results. Search widgets picked from the shortcuts browser are links that have no
+        target, so music sources open in music and every other source in videos.
+        """
+        return self.meta.get('target') or self.get_fallback_target()
+
+    def get_fallback_target(self):
+        if self.origin in MUSIC_ORIGINS or self.origin.startswith(MUSIC_PLUGIN_PREFIX):
+            return 'music'
+        return 'videos'
 
     @cached_property
     def widget_style(self):
@@ -164,6 +174,10 @@ class SearchSources:
             for position in range(len(self.items))
             if position not in self.disabled_positions
         ]
+
+    @property
+    def all_enabled(self):
+        return not self.disabled_positions
 
     def set_enabled_positions(self, positions):
         self.disabled_positions = set(range(len(self.items))) - set(positions)

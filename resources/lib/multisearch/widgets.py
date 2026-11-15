@@ -103,6 +103,19 @@ class AllResultsList(SelectedButtonList):
         }
 
 
+class NoAllResultsList(AllResultsList):
+    """Always selected all sources list of content type lists without a list of all results.
+
+    The list stays empty so the skin hides it, while the window keeps it as the selected list.
+    """
+
+    def get_results(self, view):
+        return []
+
+    def get_label(self, view):
+        return ''
+
+
 class MediaTypeResultsList(ResultsList):
     """Results of one content type in its own container. The skin defines the style of the container.
 
@@ -125,6 +138,13 @@ class MediaTypeResultsList(ResultsList):
         if self.updating or self.button.repeats_all(self.sources, view):
             return []
         return super().get_results(view)
+
+
+class UpdatingMediaTypeResultsList(MediaTypeResultsList):
+    """Results of one content type that update as each source finishes, without a list of all results to repeat."""
+
+    def get_results(self, view):
+        return self.button.get_results(view)
 
 
 class ResultsLists:
@@ -197,6 +217,8 @@ class MediaTypeResultsLists(ResultsLists):
     While the results update, only the list of all results is shown.
     """
 
+    mediatype_list_class = MediaTypeResultsList
+
     def get_selected_list(self):
         return AllResultsList(self.containers, self.buttons.sources)
 
@@ -206,7 +228,7 @@ class MediaTypeResultsLists(ResultsLists):
 
     def get_mediatype_lists(self):
         return [
-            MediaTypeResultsList(self.containers, self.buttons.sources, button, control_id)
+            self.mediatype_list_class(self.containers, self.buttons.sources, button, control_id)
             for control_id, button in enumerate(self.buttons.mediatype_buttons, MEDIATYPE_LIST_ID_START)
         ]
 
@@ -221,6 +243,21 @@ class MediaTypeResultsLists(ResultsLists):
             *self.containers.control_ids,
             *(results_list.control_id for results_list in self.mediatype_lists),
         )
+
+
+class NoAllMediaTypeResultsLists(MediaTypeResultsLists):
+    """Results lists with a list for each content type and an empty list of all results.
+
+    No list is emptied while the results update. Each content type list is filled again as each source finishes.
+    """
+
+    mediatype_list_class = UpdatingMediaTypeResultsList
+
+    def get_selected_list(self):
+        return NoAllResultsList(self.containers, self.buttons.sources)
+
+    def get_hidden_lists(self):
+        return []
 
 
 class WidgetContainer:
