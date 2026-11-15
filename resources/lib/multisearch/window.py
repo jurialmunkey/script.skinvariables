@@ -341,19 +341,39 @@ class MultiSearchWindow(ScriptWindow):
             self.set_selected_button(self.buttons.get_default_button(self.view))
         self.source_list.fill(self, self.view, self.selected_button)
 
-    def set_view(self, view):
-        self.view = view
+    @property
+    def is_browsing(self):
+        """Whether the source list or a results list has focus, so new results keep the selected button."""
+        return self.getFocusId() in (SOURCE_LIST_ID, *self.results_controls)
+
+    def reset_selected_button(self):
+        """Return to the first shown button unless the source list or a results list has focus."""
+        if self.is_browsing:
+            return
+        self.set_selected_button(self.buttons.get_default_button(self.view))
+
+    def show_view(self):
         self.update_buttons()
         self.fill_results()
+
+    def set_view(self, view):
+        self.view = view
+        self.show_view()
 
     def refresh_view(self):
         """Show the shown search again after the sources, sort method or filters change."""
         self.set_view(self.search.get_view(self.view.request))
 
     def set_request(self, request):
-        """Show the results of the current search. The busy property stays set until every source has finished."""
+        """Show the results of the current search. The busy property stays set until every source has finished.
+
+        The selection returns to the first shown button, as a source that finished first can have hidden the all
+        sources button, unless the source list or a results list has focus.
+        """
         self.lists.set_updating(not request.complete)
-        self.set_view(self.search.get_view(request))
+        self.view = self.search.get_view(request)
+        self.reset_selected_button()
+        self.show_view()
         self.setProperty(BUSY_PROPERTY, request.busy)
 
     def show_results(self, snapshot):

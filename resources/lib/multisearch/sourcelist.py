@@ -34,15 +34,17 @@ class SourceList:
         window.getControl(self.control_id).selectItem(self.items.index(button))
 
     def fill(self, window, view, selected_button):
-        """Fill the list again when the shown buttons change."""
-        items = self.buttons.get_shown_buttons(view)
+        """Fill the list again when the shown buttons change. The selected button is selected even when they do not."""
+        self.refill(window, self.buttons.get_shown_buttons(view))
+        self.select(window, selected_button)
+
+    def refill(self, window, items):
         if items == self.items:
             return
         self.items = items
         control = window.getControl(self.control_id)
         control.reset()
         control.addItems([button.listitem for button in items])
-        self.select(window, selected_button)
 
 
 class NoSourceList(SourceList):
