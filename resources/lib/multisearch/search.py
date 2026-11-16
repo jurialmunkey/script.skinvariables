@@ -87,3 +87,4 @@ class MultiSearch:
     def close(self):
         self.clear()
         self.dispatcher.stop()
+        self.sources.search_cache.stop()

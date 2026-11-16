@@ -63,10 +63,6 @@ class SearchBase:
         """Settings whose tags the tags button lists."""
         return settings
 
-    def get_tag_clearable(self, window):
-        """Whether the tags button offers to clear the selected tag."""
-        return True
-
 
 class SearchDisabled(SearchBase):
     """Stands in for the search when the definition does not enable it."""
@@ -205,39 +201,19 @@ class MixedSearchScope:
     def get_tag_settings(self, window, settings):
         raise NotImplementedError
 
-    def get_search_category_tag(self, window):
-        """Tag that the search category selects when it gains focus. The search default applies when it is empty."""
-        raise NotImplementedError
-
     def onchangesearch(self, window):
         pass
 
 
 class MixedGlobalScope(MixedSearchScope):
-    """Searches every category. Entering a search or tag selects the search category to show the results.
-
-    The search category remembers its tag and selects it again when it regains focus.
-    """
+    """Searches every category. Entering a search or tag selects the search category to show the results."""
 
     toggle_value = 'true'
 
     def get_tag_settings(self, window, settings):
         return settings
 
-    def get_search_category_tag(self, window):
-        return window.remembered_tag
-
-    def is_search_category_tag(self, window):
-        # Other categories only hold a tag when it was just chosen, which moves to the search category with the search.
-        return window.category == self.search.search_category.key or bool(window.search_tag)
-
-    def remember_tag(self, window):
-        if not self.is_search_category_tag(window):
-            return
-        window.remembered_tag = window.search_tag
-
     def onchangesearch(self, window):
-        self.remember_tag(window)
         if not window.settings_search.is_active:
             return
         window.set_category(self.search.search_category.key)
@@ -247,9 +223,6 @@ class MixedLocalScope(MixedSearchScope):
     """Filters the selected category. The search category still filters every category and keeps the search."""
 
     property_value = 'true'
-
-    def get_search_category_tag(self, window):
-        return window.search_tag
 
     def get_tag_settings(self, window, settings):
         return [
@@ -311,24 +284,12 @@ class MixedSearch(GlobalSearch):
         category_condition = f'[{item.category.condition}] + [{self.inactive_condition}]'
         return f'[[{results_condition}] + [{search_condition}]] | [{category_condition}]'
 
-    @cached_property
-    def default_tag(self):
-        """Tag the search category selects when it has no tag. The search category then cannot clear its tag."""
-        return self.get_default_tag()
-
-    def get_default_tag(self):
-        return str(self.meta.get('tags', {}).get('default', ''))
-
     def is_search_category(self, window):
         return window.category == self.search_category.key
-
-    def get_search_category_tag(self, window):
-        return self.get_scope(window).get_search_category_tag(window) or self.default_tag
 
     def onchangecategory(self, window):
         # The search category shows the results so selecting it keeps the search.
         if self.is_search_category(window):
-            window.load_tag(self.get_search_category_tag(window))
             return
         super().onchangecategory(window)
 
@@ -341,9 +302,6 @@ class MixedSearch(GlobalSearch):
 
     def get_tag_settings(self, window, settings):
         return self.get_scope(window).get_tag_settings(window, settings)
-
-    def get_tag_clearable(self, window):
-        return not (self.default_tag and self.is_search_category(window))
 
 
 class SearchEdit(SearchEditControl, DefinitionItem):
@@ -534,10 +492,9 @@ class SettingsTags(SettingsVisibility):
 
     clear_label_id = 231
 
-    def __init__(self, search, settings, window_id, clearable=True):
+    def __init__(self, search, settings, window_id):
         super().__init__(settings, window_id)
         self.search = search
-        self.clearable = clearable
 
     @cached_property
     def tag_settings(self):
@@ -566,7 +523,7 @@ class SettingsTags(SettingsVisibility):
         return self.get_choices()
 
     def get_choices(self):
-        clear = [('', xbmc.getLocalizedString(self.clear_label_id))] if self.clearable and self.search.tag else []
+        clear = [('', xbmc.getLocalizedString(self.clear_label_id))] if self.search.tag else []
         return clear + self.tags
 
     @property

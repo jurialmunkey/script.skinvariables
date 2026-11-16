@@ -119,19 +119,33 @@ class UniqueResults:
 
 
 class CachedFilterDirItems(FilterDirItems):
-    """Directory items read from the search cache when stored there, otherwise looked up and stored."""
+    """Directory items read from the search cache when stored there, otherwise looked up and stored.
+
+    Stale items are returned straight away and looked up again in the background for later searches.
+    """
 
     def __init__(self, paths, search_cache, library=None):
         super().__init__(paths, library=library)
         self.search_cache = search_cache
 
+    def get_lookup_directory(self, path):
+        return super().get_directory(path)
+
     def get_stored_directory(self, path):
-        directory = super().get_directory(path)
+        directory = self.get_lookup_directory(path)
         self.search_cache.set(self.library, path, directory)
         return directory
 
+    def get_cached_directory(self, path, entry):
+        if entry.is_stale:
+            self.search_cache.refresh(self.library, path, self.get_lookup_directory)
+        return entry.directory
+
     def get_directory(self, path):
-        return self.search_cache.get(self.library, path) or self.get_stored_directory(path)
+        entry = self.search_cache.get(self.library, path)
+        if entry is None:
+            return self.get_stored_directory(path)
+        return self.get_cached_directory(path, entry)
 
 
 class SourceResults:

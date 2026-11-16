@@ -15,8 +15,6 @@ class SkinSettingsWindow(ScriptWindow):
         self.definition = definition
         self.search_query = ''
         self.search_tag = ''
-        # Tag of the search category, which some search modes select again when the category regains focus.
-        self.remembered_tag = ''
 
     @property
     def controls(self):
@@ -73,11 +71,6 @@ class SkinSettingsWindow(ScriptWindow):
         self.update_search()
         self.definition.search.onchangesearch(self)
 
-    def load_tag(self, tag):
-        """Select a tag restored by the search rather than chosen, so the search does not handle it as a change."""
-        self.search_tag = tag
-        self.update_search()
-
     def clear_search(self):
         self.search_query = ''
         self.search_tag = ''
@@ -87,8 +80,7 @@ class SkinSettingsWindow(ScriptWindow):
         # Selecting the search view first lets the tags reflect the settings that the search shows.
         self.definition.search.onchoosetag(self)
         tag_settings = self.definition.search.get_tag_settings(self, self.definition.settings)
-        clearable = self.definition.search.get_tag_clearable(self)
-        tags = SettingsTags(self.settings_search, tag_settings, self.window_id, clearable)
+        tags = SettingsTags(self.settings_search, tag_settings, self.window_id)
         position = xbmcgui.Dialog().select(heading, tags.labels, preselect=tags.preselect)
         if position == -1:
             return
