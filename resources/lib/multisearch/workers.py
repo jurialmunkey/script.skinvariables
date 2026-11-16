@@ -6,6 +6,7 @@ from resources.lib.multisearch.progress import NO_PROGRESS
 
 
 BURST_DELAY = 0.15
+SETTLE_DELAY = 0.4
 
 
 class EmptySearchRequest:
@@ -142,14 +143,41 @@ class BurstTimer:
         self.timer.cancel()
 
 
+class SettleTimer:
+    """Calls the callback with the request once the delay passes without another trigger. Each trigger starts over.
+
+    The callback may still receive a request that a later trigger replaced, so it checks the request is still current.
+    """
+
+    def __init__(self, callback, delay=SETTLE_DELAY):
+        self.callback = callback
+        self.delay = delay
+        self.timer = None
+
+    def get_timer(self, request):
+        return threading.Timer(self.delay, self.callback, args=(request,))
+
+    def trigger(self, request):
+        self.cancel()
+        self.timer = self.get_timer(request)
+        self.timer.start()
+
+    def cancel(self):
+        if self.timer is None:
+            return
+        self.timer.cancel()
+        self.timer = None
+
+
 class SourceWorker:
     """Looks up one source with a running lookup, an abandoned lookup and a single slot queue.
 
-    A search starts straight away when the worker is free. When a lookup is running and none is abandoned, the running
-    lookup is abandoned to finish in the background and the search starts straight away. Otherwise the search waits in
-    the slot and replaces any search already waiting there. Once the abandoned lookup finishes, the waiting search is
-    newer than the running lookup, so the running lookup is abandoned in turn and the waiting search starts. The worker
-    never has more than two lookups in progress.
+    A search waits in the slot and replaces any search already waiting there. The waiting search settles once the
+    settle delay passes without a newer search, so searches sent while typing are never looked up. A settled search
+    starts straight away when the worker is free, otherwise it waits for the running lookup to finish. When a lookup
+    is running and none is abandoned, a settled search abandons the running lookup to finish in the background and
+    starts. Once the abandoned lookup finishes, the settled search is newer than the running lookup, so the running
+    lookup is abandoned in turn and the settled search starts. The worker never has more than two lookups in progress.
 
     An abandoned lookup still stores its results, but its search is no longer current so they are not shown.
 
@@ -164,21 +192,44 @@ class SourceWorker:
         self.running = None
         self.abandoned = None
         self.queued = None
+        self.settled = None
+        self.timer = SettleTimer(self.settle)
 
     @property
     def can_start(self):
         """Whether the waiting search can start now. Read while holding the lock."""
-        return self.queued is not None and self.running is None
+        return self.is_settled and self.running is None
+
+    @property
+    def is_settled(self):
+        """Whether the waiting search passed the settle delay without a newer search. Read while holding the lock."""
+        return self.queued is not None and self.queued is self.settled
 
     @property
     def can_abandon(self):
         """Whether the running lookup can be abandoned for the waiting search. Read while holding the lock."""
-        return self.queued is not None and self.running is not None and self.abandoned is None
+        return self.is_settled and self.running is not None and self.abandoned is None
 
     def submit(self, request):
         with self.lock:
             self.track_queued(request)
             self.queued = request
+            self.timer.trigger(request)
+
+    def delay_settle(self):
+        """Wait the settle delay again before the waiting search starts. Nothing waits while the slot is empty."""
+        with self.lock:
+            if self.queued is None:
+                return
+            self.settled = None
+            self.timer.trigger(self.queued)
+
+    def settle(self, request):
+        """Called by the settle timer once the delay passes."""
+        with self.lock:
+            if request is not self.queued:
+                return
+            self.settled = request
             self.dispatch()
 
     def track_queued(self, request):
@@ -190,6 +241,7 @@ class SourceWorker:
 
     def drop_queued(self):
         """Drop the waiting search from the progress. Called while holding the lock."""
+        self.timer.cancel()
         if self.queued is None:
             return
         self.queued = None
@@ -264,6 +316,10 @@ class SearchDispatcher:
     def submit(self, request):
         for source in request.sources:
             self.workers[source].submit(request)
+
+    def delay_settle(self):
+        for worker in self.workers.values():
+            worker.delay_settle()
 
     def clear(self):
         for worker in self.workers.values():

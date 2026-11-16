@@ -26,6 +26,12 @@ HIDE_UNAIRED_ID = 108
 CLOSE_ID = 109
 SORT_PROPERTY = f'{PROPERTY_PREFIX}.SortBy'
 BUSY_PROPERTY = f'{PROPERTY_PREFIX}.Busy'
+MOVE_ACTIONS = (
+    xbmcgui.ACTION_MOVE_LEFT,
+    xbmcgui.ACTION_MOVE_RIGHT,
+    xbmcgui.ACTION_MOVE_UP,
+    xbmcgui.ACTION_MOVE_DOWN,
+)
 
 
 class MultiSearchControl:
@@ -56,6 +62,12 @@ class KeyboardControl(MultiSearchControl):
 
     def onclick(self, window):
         window.press_key()
+
+    def onaction(self, window, action_id):
+        # Moving to the next key holds back the waiting searches as typing would.
+        if action_id not in MOVE_ACTIONS:
+            return
+        window.search.delay_settle()
 
 
 class SourcesButton(MultiSearchControl):
