@@ -15,6 +15,8 @@ class SkinSettingsWindow(ScriptWindow):
         self.definition = definition
         self.search_query = ''
         self.search_tag = ''
+        # Tag of the search category, which some search modes select again when the category regains focus.
+        self.remembered_tag = ''
 
     @property
     def controls(self):
@@ -23,9 +25,16 @@ class SkinSettingsWindow(ScriptWindow):
     def set_description(self, text):
         self.getControl(DESCRIPTION_CONTROL_ID).setText(text)
 
+    @property
+    def category(self):
+        """Key of the selected category."""
+        return self.getProperty(CATEGORY_PROPERTY)
+
     def set_category(self, key):
-        # Returning focus to the selected category is not a change so it keeps the search text.
-        if self.getProperty(CATEGORY_PROPERTY) == key:
+        # Returning focus to the selected category is not a change so the search mode decides whether it keeps the
+        # search.
+        if self.category == key:
+            self.definition.search.onreturncategory(self)
             return
         self.setProperty(CATEGORY_PROPERTY, key)
         self.definition.search.onchangecategory(self)
@@ -57,8 +66,15 @@ class SkinSettingsWindow(ScriptWindow):
     def set_search(self, query):
         self.search_query = query
         self.update_search()
+        self.definition.search.onchangesearch(self)
 
     def set_tag(self, tag):
+        self.search_tag = tag
+        self.update_search()
+        self.definition.search.onchangesearch(self)
+
+    def load_tag(self, tag):
+        """Select a tag restored by the search rather than chosen, so the search does not handle it as a change."""
         self.search_tag = tag
         self.update_search()
 
@@ -70,7 +86,9 @@ class SkinSettingsWindow(ScriptWindow):
     def choose_tag(self, heading):
         # Selecting the search view first lets the tags reflect the settings that the search shows.
         self.definition.search.onchoosetag(self)
-        tags = SettingsTags(self.settings_search, self.window_id)
+        tag_settings = self.definition.search.get_tag_settings(self, self.definition.settings)
+        clearable = self.definition.search.get_tag_clearable(self)
+        tags = SettingsTags(self.settings_search, tag_settings, self.window_id, clearable)
         position = xbmcgui.Dialog().select(heading, tags.labels, preselect=tags.preselect)
         if position == -1:
             return
