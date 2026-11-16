@@ -19,14 +19,15 @@ class SkinSettingsTemplate(ScriptWindowTemplate):
         'edit': '12',
         # Kodi's sliderex at 13 cannot be read by scripts so the plain slider has its own template id.
         'slider': '16',
+        'tags': '17',
     }
     # Slider templates can group the slider with labels so the generated id goes on the slider.
     target_types = {
         'slider': 'slider',
     }
     # Kodi hides its default template controls in native settings windows so the script removes them.
-    # The script removes its own slider template too.
-    default_ids = ('7', '8', '9', '10', '11', '12', '13', '14', '15', '16')
+    # The script removes its own slider template too, and its tags button when the definition does not use it.
+    default_ids = ('7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17')
 
     def __init__(self, folder, definition):
         super().__init__(folder)

@@ -4,7 +4,7 @@ import xbmcgui
 from jurialmunkey.ftools import cached_property
 from resources.lib.scriptwindow.window import ScriptWindow
 from resources.lib.skinsettings.items import CATEGORY_PROPERTY
-from resources.lib.skinsettings.search import SettingsSearch, SettingsViewBounds
+from resources.lib.skinsettings.search import SettingsSearch, SettingsTags, SettingsViewBounds
 
 
 DESCRIPTION_CONTROL_ID = 6
@@ -13,6 +13,8 @@ DESCRIPTION_CONTROL_ID = 6
 class SkinSettingsWindow(ScriptWindow):
     def __init__(self, *args, definition=None, **kwargs):
         self.definition = definition
+        self.search_query = ''
+        self.search_tag = ''
 
     @property
     def controls(self):
@@ -45,8 +47,34 @@ class SkinSettingsWindow(ScriptWindow):
         for setting in self.definition.settings:
             setting.onrefresh(self)
 
+    @property
+    def settings_search(self):
+        return SettingsSearch(self.search_query, self.search_tag, self.definition.groups, self.definition.settings)
+
+    def update_search(self):
+        self.set_properties(self.settings_search.properties)
+
     def set_search(self, query):
-        self.set_properties(SettingsSearch(query, self.definition.groups, self.definition.settings).properties)
+        self.search_query = query
+        self.update_search()
+
+    def set_tag(self, tag):
+        self.search_tag = tag
+        self.update_search()
+
+    def clear_search(self):
+        self.search_query = ''
+        self.search_tag = ''
+        self.update_search()
+
+    def choose_tag(self, heading):
+        # Selecting the search view first lets the tags reflect the settings that the search shows.
+        self.definition.search.onchoosetag(self)
+        tags = SettingsTags(self.settings_search, self.window_id)
+        position = xbmcgui.Dialog().select(heading, tags.labels, preselect=tags.preselect)
+        if position == -1:
+            return
+        self.set_tag(tags.get_tag(position))
 
     @cached_property
     def window_id(self):
