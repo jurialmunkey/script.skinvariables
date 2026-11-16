@@ -63,6 +63,13 @@ class SearchBase:
         """Settings whose tags the tags button lists."""
         return settings
 
+    def get_state_properties(self, window):
+        """Window properties of the search mode that a reloaded view restores."""
+        return {}
+
+    def onrestore(self, window):
+        pass
+
 
 class SearchDisabled(SearchBase):
     """Stands in for the search when the definition does not enable it."""
@@ -120,6 +127,9 @@ class SearchCategory(SearchEditControl, SearchMode, SkinSettingsCategory):
         # Matching settings only show in the search category so choosing a tag selects it.
         window.set_category(self.key)
 
+    def onrestore(self, window):
+        window.set_text(self.control_id, window.search_query)
+
 
 class LocalSearch(SearchMode):
     """Edit control at the top of every category that filters the settings of the selected category."""
@@ -146,6 +156,9 @@ class LocalSearch(SearchMode):
     def onchangecategory(self, window):
         window.set_text(self.edit.control_id, '')
         window.clear_search()
+
+    def onrestore(self, window):
+        window.set_text(self.edit.control_id, window.search_query)
 
 
 class GlobalSearch(LocalSearch):
@@ -302,6 +315,9 @@ class MixedSearch(GlobalSearch):
 
     def get_tag_settings(self, window, settings):
         return self.get_scope(window).get_tag_settings(window, settings)
+
+    def get_state_properties(self, window):
+        return {SCOPE_PROPERTY: window.getProperty(SCOPE_PROPERTY)}
 
 
 class SearchEdit(SearchEditControl, DefinitionItem):

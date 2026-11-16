@@ -2,37 +2,15 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import xbmc
 from jurialmunkey.ftools import cached_property
+from resources.lib.skinsettings.commands import BuiltinAction, get_setting_action
 from resources.lib.skinsettings.items import PROPERTY_PREFIX, SkinSetting, get_label_text
 
 
-class SliderAction:
-    """Builtin run when its slider step is chosen. Actions without a condition always run."""
-
-    def __init__(self, meta):
-        self.meta = meta
-
-    @property
-    def action(self):
-        return self.meta['action']
-
-    @property
-    def condition(self):
-        return self.meta.get('condition', '')
-
-    @property
-    def is_active(self):
-        return not self.condition or xbmc.getCondVisibility(self.condition)
-
-    def run(self):
-        # Conditions are checked as each action runs so they see the changes made by earlier actions.
-        if not self.is_active:
-            return
-        # Waiting lets later conditions and the selected step see the changes made by this action.
-        xbmc.executebuiltin(self.action, True)
-
-
 class SliderStep:
-    """Slider position with its own label, selected condition and actions."""
+    """Slider position with its own label, selected condition and builtins.
+
+    Sliders click on every move so steps only run builtins and not $COMMAND actions.
+    """
 
     def __init__(self, meta, rank):
         self.meta = meta
@@ -55,17 +33,18 @@ class SliderStep:
         return self.get_actions()
 
     def get_actions(self):
-        return [SliderAction(meta) for meta in self.meta.get('onclick', [])]
+        return [BuiltinAction(meta) for meta in self.meta.get('onclick', [])]
 
-    def run(self):
+    def run(self, window, setting):
         for action in self.actions:
-            action.run()
+            action.run(window, setting)
 
 
 class SliderSetting(SkinSetting):
     """Setting that moves through its steps on a plain slider. The slider positions are the step ranks.
 
     The selected step is the first step whose selected condition is true, otherwise the last step chosen.
+    Onunclick actions run when select is pressed on the slider and can include $COMMAND actions.
     """
 
     template = 'slider'
@@ -77,6 +56,13 @@ class SliderSetting(SkinSetting):
 
     def get_steps(self):
         return [SliderStep(meta, rank) for rank, meta in enumerate(self.meta['steps'])]
+
+    @cached_property
+    def onunclick_actions(self):
+        return self.get_onunclick_actions()
+
+    def get_onunclick_actions(self):
+        return [get_setting_action(meta) for meta in self.meta.get('onunclick', [])]
 
     @property
     def maximum(self):
@@ -108,5 +94,10 @@ class SliderSetting(SkinSetting):
     def onclick(self, window):
         # Sliders send a click each time they move.
         step = self.steps[window.get_slider_value(self.control_id)]
-        step.run()
+        step.run(window, self)
         self.show_step(window, step)
+
+    def onselect(self, window):
+        # Kodi sliders do not click when select is pressed so the window passes the select action instead.
+        for action in self.onunclick_actions:
+            action.run(window, self)

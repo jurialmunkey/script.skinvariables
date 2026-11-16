@@ -56,3 +56,6 @@ class ScriptWindowItem:
 
     def onclick(self, window):
         pass
+
+    def onselect(self, window):
+        """Select pressed on the control. Windows that pass select actions to their items call this."""

@@ -5,16 +5,20 @@ from jurialmunkey.ftools import cached_property
 from resources.lib.scriptwindow.window import ScriptWindow
 from resources.lib.skinsettings.items import CATEGORY_PROPERTY
 from resources.lib.skinsettings.search import SettingsSearch, SettingsTags, SettingsViewBounds
+from resources.lib.skinsettings.state import ReloadedViewState
 
 
 DESCRIPTION_CONTROL_ID = 6
 
 
 class SkinSettingsWindow(ScriptWindow):
-    def __init__(self, *args, definition=None, **kwargs):
+    def __init__(self, *args, definition=None, view_state=None, **kwargs):
         self.definition = definition
+        self.view_state = view_state
         self.search_query = ''
         self.search_tag = ''
+        # View to reopen after the controller reloads the skin. Set by the reload command.
+        self.reload_state = None
 
     @property
     def controls(self):
@@ -76,6 +80,25 @@ class SkinSettingsWindow(ScriptWindow):
         self.search_tag = ''
         self.update_search()
 
+    def restore_view(self, category, query, tag, properties):
+        # Sets the category directly because changing it would clear the search that the view restores.
+        self.set_properties({**properties, CATEGORY_PROPERTY: category})
+        self.search_query = query
+        self.search_tag = tag
+        self.update_search()
+        self.definition.search.onrestore(self)
+
+    def reload(self, focus_id):
+        """Close so the controller can reload the skin and reopen this view with focus on the control."""
+        self.reload_state = ReloadedViewState(
+            self.category,
+            self.search_query,
+            self.search_tag,
+            self.definition.search.get_state_properties(self),
+            focus_id,
+        )
+        self.close()
+
     def choose_tag(self, heading):
         # Selecting the search view first lets the tags reflect the settings that the search shows.
         self.definition.search.onchoosetag(self)
@@ -99,6 +122,7 @@ class SkinSettingsWindow(ScriptWindow):
 
     def onInit(self):
         self.refresh_settings()
+        self.view_state.apply(self)
 
     def onFocus(self, control_id):
         # Settings can change while a dialog opened by a click is shown so moving focus also refreshes the view.
@@ -110,3 +134,9 @@ class SkinSettingsWindow(ScriptWindow):
         # Clicks change the search text or skin settings that the settings visibility can depend on.
         super().onClick(control_id)
         self.definition.search.onchangeview(self)
+
+    def onAction(self, action):
+        # Kodi sends no click for some controls when select is pressed, such as sliders, so items receive it here.
+        if action.getId() == xbmcgui.ACTION_SELECT_ITEM:
+            self.get_item(self.getFocusId()).onselect(self)
+        super().onAction(action)

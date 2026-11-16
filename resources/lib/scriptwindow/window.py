@@ -15,6 +15,9 @@ class UnmanagedControl:
     def onclick(self, window):
         pass
 
+    def onselect(self, window):
+        pass
+
 
 UNMANAGED_CONTROL = UnmanagedControl()
 

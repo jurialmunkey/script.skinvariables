@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+import xbmc
 from jurialmunkey.ftools import cached_property
 from resources.lib.scriptwindow.controller import ScriptWindowController, ScriptWindowFile
 from resources.lib.skinsettings.definition import SkinSettingsDefinition
+from resources.lib.skinsettings.state import SkinSettingsViewState
 from resources.lib.skinsettings.template import get_skinsettings_template
 from resources.lib.skinsettings.window import SkinSettingsWindow
 
@@ -35,6 +37,17 @@ class SkinSettingsController(ScriptWindowController):
 
     def get_window_kwargs(self):
         return {'definition': self.definition}
+
+    def get_result(self, window):
+        return window.reload_state
+
+    def run(self):
+        # Kodi deletes script windows when the skin reloads so the window closes first and reopens the saved view.
+        self.write()
+        view_state = self.show(view_state=SkinSettingsViewState())
+        while view_state:
+            xbmc.executebuiltin('ReloadSkin()', True)
+            view_state = self.show(view_state=view_state)
 
 
 def run_skinsettings(run_skinsettings, **kwargs):

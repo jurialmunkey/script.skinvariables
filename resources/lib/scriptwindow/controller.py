@@ -80,17 +80,21 @@ class ScriptWindowController:
         for window_file in self.window_files:
             window_file.write()
 
-    def get_window(self):
+    def get_window(self, **kwargs):
         filename = self.window_file_class.filename
-        return self.window_class(filename, self.scriptpath, 'Default', '1080i', **self.window_kwargs)
+        return self.window_class(filename, self.scriptpath, 'Default', '1080i', **self.window_kwargs, **kwargs)
 
     def get_result(self, window):
         return None
 
-    def run(self):
-        self.write()
-        window = self.get_window()
+    def show(self, **kwargs):
+        """Show the window with the keyword arguments added to the window kwargs and return its result."""
+        window = self.get_window(**kwargs)
         window.doModal()
         result = self.get_result(window)
         del window
         return result
+
+    def run(self):
+        self.write()
+        return self.show()
