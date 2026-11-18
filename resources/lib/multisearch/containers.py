@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+import re
 from collections import Counter
+from xbmc import getInfoLabel
 from jurialmunkey.ftools import cached_property
 from resources.lib.multisearch.constants import PROPERTY_PREFIX
 from resources.lib.multisearch.filters import MediaTypeFilter
@@ -11,6 +13,7 @@ CONTAINERS_FILE = 'special://skin/shortcuts/skinvariables-multisearch-containers
 STYLES_FILE = 'special://skin/shortcuts/skinvariables-multisearch-styles.json'
 FALLBACK_ID = 50
 CONTAINER_PROPERTY = f'{PROPERTY_PREFIX}.Container'
+INFOLABEL_STYLE = re.compile(r'\$INFO\[(.+)\]')
 
 
 class MediaTypeStyles:
@@ -18,6 +21,12 @@ class MediaTypeStyles:
 
     Results with a content type that has no style use the widget style of their source. Results that are not one of
     the known content types use the style of the other type. Skins without the file style every result by its source.
+
+    A style can be an infolabel such as "$INFO[Skin.String(SearchStyle.Movie)]" so that users can choose it. A content
+    type whose infolabel is empty has no style.
+
+    A style that names another entry of the file uses the style of that entry, e.g. {"default": "poster",
+    "movie": "default"}, so that a content type can follow a style the user chose for several types.
     """
 
     def __init__(self, filepath=None):
@@ -34,7 +43,18 @@ class MediaTypeStyles:
         return self.get_items()
 
     def get_items(self):
-        return read_meta_from_file(self.filepath) or {}
+        styles = {
+            mediatype: self.get_item_style(style)
+            for mediatype, style in (read_meta_from_file(self.filepath) or {}).items()
+        }
+        styles = {mediatype: styles.get(style, style) for mediatype, style in styles.items()}
+        return {mediatype: style for mediatype, style in styles.items() if style}
+
+    @staticmethod
+    def get_item_style(style):
+        """Style of the file, or the value of its infolabel when it is one."""
+        match = INFOLABEL_STYLE.fullmatch(style)
+        return getInfoLabel(match.group(1)) if match else style
 
     def get(self, mediatype):
         return self.items[mediatype]
