@@ -138,6 +138,9 @@ class LocalSearch(SearchMode):
     inactive_condition = (
         f'String.IsEmpty(Window.Property({QUERY_PROPERTY})) + String.IsEmpty(Window.Property({TAG_PROPERTY}))'
     )
+    active_condition = (
+        f'!String.IsEmpty(Window.Property({QUERY_PROPERTY})) | !String.IsEmpty(Window.Property({TAG_PROPERTY}))'
+    )
 
     def __init__(self, meta):
         self.meta = meta
@@ -202,6 +205,24 @@ class SearchAllCategory(SkinSettingsCategory):
         return str(self.meta.get('label', self.default_label))
 
 
+class SearchActiveCategory(SearchAllCategory):
+    """Search category hidden until a search or tag is active. Stays shown while selected so the view keeps it."""
+
+    def __init__(self, meta, search):
+        super().__init__(meta)
+        self.search = search
+
+    @cached_property
+    def visible(self):
+        return self.get_visible()
+
+    def get_visible(self):
+        return f'[{self.search.active_condition}] | [{self.condition}]'
+
+    def get_overrides(self):
+        return super().get_overrides() + [('visible', self.visible, {})]
+
+
 class MixedSearchScope:
     """Scope of the mixed search, stored as a window property value so the skin conditions can follow it."""
 
@@ -259,7 +280,13 @@ class MixedSearch(GlobalSearch):
 
     @cached_property
     def search_category(self):
-        return SearchAllCategory(self.meta.get('category', {}))
+        return self.get_search_category()
+
+    def get_search_category(self):
+        meta = self.meta.get('category', {})
+        if meta.get('autohide'):
+            return SearchActiveCategory(meta, self)
+        return SearchAllCategory(meta)
 
     @property
     def categories(self):
