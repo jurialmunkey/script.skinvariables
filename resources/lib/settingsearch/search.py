@@ -88,6 +88,3 @@ class SettingSearchMatches(SettingsSearch):
 
     def is_match(self, setting):
         return setting.is_listed(self.level.rank) and super().is_match(setting)
-
-    def get_matched_groups(self):
-        return [setting.heading for setting in self.matched_settings]

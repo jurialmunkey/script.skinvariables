@@ -12,6 +12,7 @@ from resources.lib.settingsearch.items import (
 from resources.lib.settingsearch.kodisettings import KodiSettingsTree
 from resources.lib.settingsearch.search import SettingSearchMode
 from resources.lib.skinsettings.definition import SkinSettingsDefinition
+from resources.lib.skinsettings.items import link_settings
 
 
 class SearchSkinSettingsDefinition(SkinSettingsDefinition):
@@ -86,10 +87,10 @@ class SettingSearchDefinition:
         return self.get_kodi_settings()
 
     def get_kodi_settings(self):
-        return [
+        return link_settings([
             get_kodi_setting_item(setting, rank, heading, self.search)
             for rank, (heading, setting) in enumerate(self.kodi_entries)
-        ]
+        ])
 
     @cached_property
     def skin_definition(self):

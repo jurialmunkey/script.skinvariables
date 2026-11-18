@@ -9,6 +9,7 @@ from resources.lib.skinsettings.items import (
     RadioButtonSetting,
     SkinSettingsCategory,
     SkinSettingsGroup,
+    link_settings,
 )
 from resources.lib.skinsettings.search import SearchDisabled, get_search
 from resources.lib.skinsettings.slider import SliderSetting
@@ -78,10 +79,10 @@ class SkinSettingsDefinition:
         return self.get_settings()
 
     def get_settings(self):
-        return [
+        return link_settings([
             self.setting_classes[meta['control']](key, meta, rank, self.groups_by_key[meta['group']], self.search)
             for rank, (key, meta) in self.get_entries('settings')
-        ]
+        ])
 
     @cached_property
     def layout(self):

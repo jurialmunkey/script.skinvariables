@@ -499,7 +499,7 @@ class SettingsSearch:
         return self.get_matched_groups()
 
     def get_matched_groups(self):
-        return [setting.group for setting in self.matched_settings]
+        return [setting.label_item for setting in self.matched_settings]
 
     @cached_property
     def matched_items(self):

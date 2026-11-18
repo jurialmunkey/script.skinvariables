@@ -165,15 +165,45 @@ class SettingsListItem(DefinitionItem):
     def visible(self):
         return self.get_visible()
 
+    def get_visible_conditions(self):
+        return [self.shown_condition] + ([self.meta['visible']] if 'visible' in self.meta else [])
+
     def get_visible(self):
-        conditions = [self.shown_condition] + ([self.meta['visible']] if 'visible' in self.meta else [])
-        return ' + '.join(f'[{condition}]' for condition in conditions)
+        return ' + '.join(f'[{condition}]' for condition in self.get_visible_conditions())
 
     def get_overrides(self):
         return super().get_overrides() + [('visible', self.visible, {})]
 
 
-class SkinSettingsGroup(SettingsListItem):
+class SettingsLabel(SettingsListItem):
+    """Label shown above its settings. Hidden while none of its settings are visible."""
+
+    def __init__(self, key, meta, rank, parent, search):
+        super().__init__(key, meta, rank, parent, search)
+        self.settings = []
+
+    def add_setting(self, setting):
+        self.settings.append(setting)
+
+    @cached_property
+    def settings_condition(self):
+        return self.get_settings_condition()
+
+    def get_settings_condition(self):
+        return ' | '.join(f'[{setting.visible}]' for setting in self.settings) or 'false'
+
+    def get_visible_conditions(self):
+        return super().get_visible_conditions() + [self.settings_condition]
+
+
+def link_settings(settings):
+    """Add each setting to the label listed above it. Returns the settings."""
+    for setting in settings:
+        setting.label_item.add_setting(setting)
+    return settings
+
+
+class SkinSettingsGroup(SettingsLabel):
     control_id_start = GROUP_ID_START
     template = 'group'
 
@@ -190,6 +220,11 @@ class SkinSetting(SettingsListItem):
     @property
     def group(self):
         return self.parent
+
+    @property
+    def label_item(self):
+        """Label listed above the setting."""
+        return self.group
 
     @property
     def category(self):

@@ -8,6 +8,7 @@ from resources.lib.settingsearch.values import MissingValue, get_setting_value
 from resources.lib.skinsettings.items import (
     ButtonSetting,
     RadioButtonSetting,
+    SettingsLabel,
     SettingsListItem,
     PROPERTY_PREFIX,
     get_label_info,
@@ -21,7 +22,7 @@ KODI_SETTING_ID_START = -500000
 SKIN_LABEL_ID = 166
 
 
-class SettingHeading(SettingsListItem):
+class SettingHeading(SettingsLabel):
     """Label written as "Window > Category" above the matching settings of a category.
 
     Its tags are the window and category labels so its settings can be filtered by either.
@@ -36,9 +37,9 @@ class SettingHeading(SettingsListItem):
     def get_order(self):
         return (self.rank,)
 
-    def get_visible(self):
-        # Headings show while one of their settings matches the search.
-        return self.shown_condition
+    def get_visible_conditions(self):
+        # Headings show while one of their settings matches the search and is visible.
+        return [self.shown_condition, self.settings_condition]
 
 
 class KodiHeading(SettingHeading):
@@ -75,6 +76,10 @@ class SearchResult:
     @property
     def heading(self):
         raise NotImplementedError
+
+    @property
+    def label_item(self):
+        return self.heading
 
     def get_tags(self):
         return self.heading.tags
