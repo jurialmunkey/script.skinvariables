@@ -21,6 +21,8 @@ SCOPE_BUTTON_ID = 18
 QUERY_PROPERTY = f'{SEARCH_PROPERTY_PREFIX}.Query'
 TAG_PROPERTY = f'{SEARCH_PROPERTY_PREFIX}.Tag'
 SCOPE_PROPERTY = f'{SEARCH_PROPERTY_PREFIX}.Local'
+STORED_QUERY_PROPERTY = f'{SEARCH_PROPERTY_PREFIX}.StoredQuery'
+STORED_TAG_PROPERTY = f'{SEARCH_PROPERTY_PREFIX}.StoredTag'
 TOP_CONTROL_PROPERTY = f'{PROPERTY_PREFIX}.TopControlID'
 BOTTOM_CONTROL_PROPERTY = f'{PROPERTY_PREFIX}.BottomControlID'
 WINDOW_PROPERTY_REGEX = re.compile(r'\bWindow\.Property\(', re.IGNORECASE)
@@ -204,9 +206,23 @@ class SearchAllCategory(SkinSettingsCategory):
     def label(self):
         return str(self.meta.get('label', self.default_label))
 
+    def onchangecategory(self, window):
+        """Called by the mixed search when the selected category changes, before it clears the search."""
+
+    def get_state_properties(self, window):
+        """Window properties of the category that a reloaded view restores."""
+        return {}
+
 
 class SearchActiveCategory(SearchAllCategory):
-    """Search category hidden until a search or tag is active. Stays shown while selected so the view keeps it."""
+    """Search category hidden until a search or tag is active. Stays shown while selected so the view keeps it.
+
+    Changing category stores an active search and keeps the category shown. Selecting it again restores the stored
+    search unless a new search selected it.
+    """
+
+    stored_properties = (STORED_QUERY_PROPERTY, STORED_TAG_PROPERTY)
+    stored_condition = ' | '.join(f'!String.IsEmpty(Window.Property({name}))' for name in stored_properties)
 
     def __init__(self, meta, search):
         super().__init__(meta)
@@ -217,10 +233,34 @@ class SearchActiveCategory(SearchAllCategory):
         return self.get_visible()
 
     def get_visible(self):
-        return f'[{self.search.active_condition}] | [{self.condition}]'
+        return f'[{self.search.active_condition}] | [{self.condition}] | [{self.stored_condition}]'
 
     def get_overrides(self):
         return super().get_overrides() + [('visible', self.visible, {})]
+
+    def set_stored(self, window, query, tag):
+        window.set_properties(dict(zip(self.stored_properties, (query, tag))))
+
+    def store_search(self, window):
+        if not window.settings_search.is_active:
+            return
+        self.set_stored(window, window.search_query, window.search_tag)
+
+    def restore_search(self, window):
+        query, tag = (window.getProperty(name) for name in self.stored_properties)
+        self.set_stored(window, '', '')
+        if window.settings_search.is_active:
+            return
+        window.restore_search(query, tag)
+
+    def onchangecategory(self, window):
+        if window.category == self.key:
+            self.restore_search(window)
+            return
+        self.store_search(window)
+
+    def get_state_properties(self, window):
+        return {name: window.getProperty(name) for name in self.stored_properties}
 
 
 class MixedSearchScope:
@@ -328,6 +368,7 @@ class MixedSearch(GlobalSearch):
         return window.category == self.search_category.key
 
     def onchangecategory(self, window):
+        self.search_category.onchangecategory(window)
         # The search category shows the results so selecting it keeps the search.
         if self.is_search_category(window):
             return
@@ -344,7 +385,7 @@ class MixedSearch(GlobalSearch):
         return self.get_scope(window).get_tag_settings(window, settings)
 
     def get_state_properties(self, window):
-        return {SCOPE_PROPERTY: window.getProperty(SCOPE_PROPERTY)}
+        return {SCOPE_PROPERTY: window.getProperty(SCOPE_PROPERTY), **self.search_category.get_state_properties(window)}
 
 
 class SearchEdit(SearchEditControl, DefinitionItem):

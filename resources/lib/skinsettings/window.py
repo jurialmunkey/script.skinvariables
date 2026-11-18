@@ -83,6 +83,10 @@ class SkinSettingsWindow(ScriptWindow):
     def restore_view(self, category, query, tag, properties):
         # Sets the category directly because changing it would clear the search that the view restores.
         self.set_properties({**properties, CATEGORY_PROPERTY: category})
+        self.restore_search(query, tag)
+
+    def restore_search(self, query, tag):
+        """Show the search without the search mode reacting to it as a new search."""
         self.search_query = query
         self.search_tag = tag
         self.update_search()
