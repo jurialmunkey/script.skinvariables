@@ -50,6 +50,8 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.methods.settings', 'set_kodisetting')(**kwargs),
         'run_skinsettings':
             lambda **kwargs: importmodule('resources.lib.skinsettings.controller', 'run_skinsettings')(**kwargs),
+        'run_settingsearch':
+            lambda **kwargs: importmodule('resources.lib.settingsearch.controller', 'run_settingsearch')(**kwargs),
         'run_multisearch':
             lambda **kwargs: importmodule('resources.lib.multisearch.controller', 'run_multisearch')(**kwargs),
         'add_skinstring_history':

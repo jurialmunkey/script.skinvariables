@@ -2,7 +2,7 @@
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 import xbmcgui
 from jurialmunkey.ftools import cached_property
-from resources.lib.scriptwindow.window import ScriptWindow
+from resources.lib.scriptwindow.window import ScriptWindow, ScriptWindowMixin
 from resources.lib.skinsettings.items import CATEGORY_PROPERTY
 from resources.lib.skinsettings.search import SettingsSearch, SettingsTags, SettingsViewBounds
 from resources.lib.skinsettings.state import ReloadedViewState
@@ -11,7 +11,9 @@ from resources.lib.skinsettings.state import ReloadedViewState
 DESCRIPTION_CONTROL_ID = 6
 
 
-class SkinSettingsWindow(ScriptWindow):
+class SettingsWindowMixin(ScriptWindowMixin):
+    """Lists settings from a definition and searches them in a window or dialog. Subclasses arrange the view."""
+
     def __init__(self, *args, definition=None, view_state=None, **kwargs):
         self.definition = definition
         self.view_state = view_state
@@ -26,21 +28,6 @@ class SkinSettingsWindow(ScriptWindow):
 
     def set_description(self, text):
         self.getControl(DESCRIPTION_CONTROL_ID).setText(text)
-
-    @property
-    def category(self):
-        """Key of the selected category."""
-        return self.getProperty(CATEGORY_PROPERTY)
-
-    def set_category(self, key):
-        # Returning focus to the selected category is not a change so the search mode decides whether it keeps the
-        # search.
-        if self.category == key:
-            self.definition.search.onreturncategory(self)
-            return
-        self.setProperty(CATEGORY_PROPERTY, key)
-        self.definition.search.onchangecategory(self)
-        self.definition.search.onchangeview(self)
 
     def get_text(self, control_id):
         return self.getControl(control_id).getText()
@@ -60,7 +47,7 @@ class SkinSettingsWindow(ScriptWindow):
 
     @property
     def settings_search(self):
-        return SettingsSearch(self.search_query, self.search_tag, self.definition.groups, self.definition.settings)
+        raise NotImplementedError
 
     def update_search(self):
         self.set_properties(self.settings_search.properties)
@@ -80,11 +67,6 @@ class SkinSettingsWindow(ScriptWindow):
         self.search_tag = ''
         self.update_search()
 
-    def restore_view(self, category, query, tag, properties):
-        # Sets the category directly because changing it would clear the search that the view restores.
-        self.set_properties({**properties, CATEGORY_PROPERTY: category})
-        self.restore_search(query, tag)
-
     def restore_search(self, query, tag):
         """Show the search without the search mode reacting to it as a new search."""
         self.search_query = query
@@ -92,15 +74,12 @@ class SkinSettingsWindow(ScriptWindow):
         self.update_search()
         self.definition.search.onrestore(self)
 
+    def get_reload_state(self, focus_id):
+        raise NotImplementedError
+
     def reload(self, focus_id):
         """Close so the controller can reload the skin and reopen this view with focus on the control."""
-        self.reload_state = ReloadedViewState(
-            self.category,
-            self.search_query,
-            self.search_tag,
-            self.definition.search.get_state_properties(self),
-            focus_id,
-        )
+        self.reload_state = self.get_reload_state(focus_id)
         self.close()
 
     def choose_tag(self, heading):
@@ -121,8 +100,13 @@ class SkinSettingsWindow(ScriptWindow):
     def get_window_id(self):
         return xbmcgui.getCurrentWindowId()
 
+    @property
+    def view_settings(self):
+        """Settings in list order that can be in view. The view bounds look for the focusable settings among them."""
+        return self.definition.ordered_settings
+
     def set_view_bounds(self):
-        self.set_properties(SettingsViewBounds(self.definition.ordered_settings, self.window_id).properties)
+        self.set_properties(SettingsViewBounds(self.view_settings, self.window_id).properties)
 
     def onInit(self):
         self.refresh_settings()
@@ -144,3 +128,40 @@ class SkinSettingsWindow(ScriptWindow):
         if action.getId() == xbmcgui.ACTION_SELECT_ITEM:
             self.get_item(self.getFocusId()).onselect(self)
         super().onAction(action)
+
+
+class SkinSettingsWindow(SettingsWindowMixin, ScriptWindow):
+    """Settings window that shows the settings of the selected category."""
+
+    @property
+    def category(self):
+        """Key of the selected category."""
+        return self.getProperty(CATEGORY_PROPERTY)
+
+    def set_category(self, key):
+        # Returning focus to the selected category is not a change so the search mode decides whether it keeps the
+        # search.
+        if self.category == key:
+            self.definition.search.onreturncategory(self)
+            return
+        self.setProperty(CATEGORY_PROPERTY, key)
+        self.definition.search.onchangecategory(self)
+        self.definition.search.onchangeview(self)
+
+    @property
+    def settings_search(self):
+        return SettingsSearch(self.search_query, self.search_tag, self.definition.groups, self.definition.settings)
+
+    def restore_view(self, category, query, tag, properties):
+        # Sets the category directly because changing it would clear the search that the view restores.
+        self.set_properties({**properties, CATEGORY_PROPERTY: category})
+        self.restore_search(query, tag)
+
+    def get_reload_state(self, focus_id):
+        return ReloadedViewState(
+            self.category,
+            self.search_query,
+            self.search_tag,
+            self.definition.search.get_state_properties(self),
+            focus_id,
+        )

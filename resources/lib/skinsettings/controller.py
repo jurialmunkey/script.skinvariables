@@ -41,10 +41,14 @@ class SkinSettingsController(ScriptWindowController):
     def get_result(self, window):
         return window.reload_state
 
+    def get_view_state(self):
+        """View of the newly opened window."""
+        return SkinSettingsViewState()
+
     def run(self):
         # Kodi deletes script windows when the skin reloads so the window closes first and reopens the saved view.
         self.write()
-        view_state = self.show(view_state=SkinSettingsViewState())
+        view_state = self.show(view_state=self.get_view_state())
         while view_state:
             xbmc.executebuiltin('ReloadSkin()', True)
             view_state = self.show(view_state=view_state)

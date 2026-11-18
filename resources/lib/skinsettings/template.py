@@ -49,11 +49,19 @@ class SkinSettingsTemplate(ScriptWindowTemplate):
     def get_settings_elements(self):
         return [self.get_element(item) for item in self.definition.layout]
 
+    @cached_property
+    def placed_items(self):
+        """Items the search places at the template controls positioned by the skin."""
+        return self.get_placed_items()
+
+    def get_placed_items(self):
+        return self.definition.search.placed_items
+
     def get_placed_ids(self):
-        return {self.template_ids[item.template] for item in self.definition.search.placed_items}
+        return {self.template_ids[item.template] for item in self.placed_items}
 
     def configure_placed_items(self):
-        for item in self.definition.search.placed_items:
+        for item in self.placed_items:
             self.get_template(item.template).configure(item)
 
     def get_document(self):
