@@ -5,7 +5,7 @@ from jurialmunkey.ftools import cached_property
 from resources.lib.scriptwindow.window import ScriptWindow, ScriptWindowMixin
 from resources.lib.skinsettings.items import CATEGORY_PROPERTY
 from resources.lib.skinsettings.search import SettingsSearch, SettingsTags, SettingsViewBounds
-from resources.lib.skinsettings.state import ReloadedViewState
+from resources.lib.skinsettings.state import SavedViewState
 
 
 DESCRIPTION_CONTROL_ID = 6
@@ -19,8 +19,6 @@ class SettingsWindowMixin(ScriptWindowMixin):
         self.view_state = view_state
         self.search_query = ''
         self.search_tag = ''
-        # View to reopen after the controller reloads the skin. Set by the reload command.
-        self.reload_state = None
 
     @property
     def controls(self):
@@ -73,14 +71,6 @@ class SettingsWindowMixin(ScriptWindowMixin):
         self.search_tag = tag
         self.update_search()
         self.definition.search.onrestore(self)
-
-    def get_reload_state(self, focus_id):
-        raise NotImplementedError
-
-    def reload(self, focus_id):
-        """Close so the controller can reload the skin and reopen this view with focus on the control."""
-        self.reload_state = self.get_reload_state(focus_id)
-        self.close()
 
     def choose_tag(self, heading):
         # Selecting the search view first lets the tags reflect the settings that the search shows.
@@ -157,11 +147,27 @@ class SkinSettingsWindow(SettingsWindowMixin, ScriptWindow):
         self.set_properties({**properties, CATEGORY_PROPERTY: category})
         self.restore_search(query, tag)
 
-    def get_reload_state(self, focus_id):
-        return ReloadedViewState(
+    def get_saved_view(self, focus_id):
+        return SavedViewState(
             self.category,
             self.search_query,
             self.search_tag,
             self.definition.search.get_state_properties(self),
             focus_id,
         )
+
+    def save_view(self, control_id):
+        """Save the view that the window shows again when it initialises, such as after a skin reload."""
+        self.view_state = self.get_saved_view(control_id)
+
+    def onClick(self, control_id):
+        # Skin reloads start from a click. Kodi focuses its first category when the window initialises after a
+        # reload, so the view is saved here before that focus can change the category.
+        self.save_view(control_id)
+        super().onClick(control_id)
+
+    def onAction(self, action):
+        # Sliders run their actions when select is pressed rather than when clicked.
+        if action.getId() == xbmcgui.ACTION_SELECT_ITEM:
+            self.save_view(self.getFocusId())
+        super().onAction(action)

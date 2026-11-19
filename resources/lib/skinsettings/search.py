@@ -66,7 +66,7 @@ class SearchBase:
         return settings
 
     def get_state_properties(self, window):
-        """Window properties of the search mode that a reloaded view restores."""
+        """Window properties of the search mode that a saved view restores."""
         return {}
 
     def onrestore(self, window):
@@ -210,7 +210,7 @@ class SearchAllCategory(SkinSettingsCategory):
         """Called by the mixed search when the selected category changes, before it clears the search."""
 
     def get_state_properties(self, window):
-        """Window properties of the category that a reloaded view restores."""
+        """Window properties of the category that a saved view restores."""
         return {}
 
 

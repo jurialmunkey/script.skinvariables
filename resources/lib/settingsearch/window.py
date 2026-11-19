@@ -7,7 +7,6 @@ from resources.lib.settingsearch.closeactions import NoCloseAction
 from resources.lib.settingsearch.kodisettings import KodiSettingValues
 from resources.lib.settingsearch.parent import ParentSearchState
 from resources.lib.settingsearch.search import SettingSearchMatches
-from resources.lib.settingsearch.state import SettingSearchReloadedViewState
 from resources.lib.skinsettings.window import SettingsWindowMixin
 
 
@@ -70,15 +69,6 @@ class SettingSearchDialog(SettingsWindowMixin, ScriptDialog):
         self.set_properties(properties)
         self.set_level(level)
         self.restore_search(query, tag)
-
-    def get_reload_state(self, focus_id):
-        return SettingSearchReloadedViewState(
-            self.level,
-            self.search_query,
-            self.search_tag,
-            self.definition.search.get_state_properties(self),
-            focus_id,
-        )
 
     def close_with(self, close_action):
         """Close so the controller can run the action once no modal dialog is open."""

@@ -9,8 +9,9 @@ class SkinSettingsViewState:
         pass
 
 
-class ReloadedViewState(SkinSettingsViewState):
-    """View saved before the skin reloads. The reopened settings show it again with focus on the setting."""
+class SavedViewState(SkinSettingsViewState):
+    """View saved when a setting is clicked. The settings show it again with focus on the setting when the window
+    initialises, such as after a skin reload."""
 
     def __init__(self, category, query, tag, properties, focus_id):
         self.category = category

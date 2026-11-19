@@ -3,7 +3,7 @@
 import xbmc
 from jurialmunkey.ftools import cached_property
 from resources.lib.scriptwindow.items import ScriptWindowItem
-from resources.lib.skinsettings.commands import get_setting_action
+from resources.lib.skinsettings.actions import SettingAction
 
 
 PROPERTY_PREFIX = 'SkinVariables.SkinSettings'
@@ -265,7 +265,7 @@ class SkinSetting(SettingsListItem):
 
 
 class ButtonSetting(SkinSetting):
-    """Setting whose builtins the skin runs as onclicks. The script runs its $COMMAND actions when clicked."""
+    """Setting whose builtins the skin runs as onclicks."""
 
     template = 'button'
 
@@ -274,28 +274,17 @@ class ButtonSetting(SkinSetting):
         return self.get_onclick_actions()
 
     def get_onclick_actions(self):
-        return [get_setting_action(meta) for meta in self.meta.get('onclick', [])]
+        return [SettingAction(meta) for meta in self.meta.get('onclick', [])]
 
     @cached_property
     def onclick_overrides(self):
         return self.get_onclick_overrides()
 
     def get_onclick_overrides(self):
-        return [action.override for action in self.onclick_actions if not action.is_command]
-
-    @cached_property
-    def onclick_commands(self):
-        return self.get_onclick_commands()
-
-    def get_onclick_commands(self):
-        return [action for action in self.onclick_actions if action.is_command]
+        return [action.override for action in self.onclick_actions]
 
     def get_overrides(self):
         return super().get_overrides() + self.onclick_overrides
-
-    def onclick(self, window):
-        for command in self.onclick_commands:
-            command.run(window, self)
 
 
 class RadioButtonSetting(ButtonSetting):
