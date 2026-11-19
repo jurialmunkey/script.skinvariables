@@ -17,6 +17,9 @@ class MultiSearch:
     """Search settings of the window and the searches sent to the workers.
 
     Only the most recently submitted search is current so results from searches that finish later are discarded.
+
+    The searches send their results to the search, which passes them on to the window callback. Searches never hold the
+    callback themselves, so once the search closes nothing they leave behind keeps the window alive.
     """
 
     def __init__(self, sources, limit=RESULTS_LIMIT, progress=NO_PROGRESS):
@@ -25,6 +28,7 @@ class MultiSearch:
         self.sort_position = 0
         self.filters = ResultFilters()
         self.current = None
+        self.callback = None
         self.dispatcher = SearchDispatcher(sources, progress)
 
     @property
@@ -57,10 +61,10 @@ class MultiSearch:
         """Whether an enabled source searches for the text. Otherwise the results are emptied."""
         return bool(self.get_sources(SearchQuery(text), self.get_options()))
 
-    def get_request(self, text, callback):
+    def get_request(self, text):
         query = SearchQuery(text)
         options = self.get_options()
-        return SearchRequest(query, options, self.get_sources(query, options), callback)
+        return SearchRequest(query, options, self.get_sources(query, options), self.send_results)
 
     def get_view(self, request):
         """Results of the search with the current filters, sort method and limit.
@@ -74,8 +78,16 @@ class MultiSearch:
         return ResultsView(request, self.filters, self.sort_method, self.limit)
 
     def submit(self, text, callback):
-        self.current = self.get_request(text, callback)
+        self.callback = callback
+        self.current = self.get_request(text)
         self.dispatcher.submit(self.current)
+
+    def send_results(self, snapshot):
+        """Called by the searches with their results. Results sent after the search closes are dropped."""
+        callback = self.callback
+        if callback is None:
+            return
+        callback(snapshot)
 
     def delay_settle(self):
         """Wait the settle delay again before the waiting searches start."""
@@ -89,6 +101,8 @@ class MultiSearch:
         self.dispatcher.clear()
 
     def close(self):
+        """Stop searching and drop the window callback so the closed window can be freed."""
         self.clear()
         self.dispatcher.stop()
         self.sources.search_cache.stop()
+        self.callback = None
