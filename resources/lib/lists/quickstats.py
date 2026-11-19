@@ -93,6 +93,24 @@ class ListGetQuickStatsRangeItems(ListGetQuickStatsItems):
             for division in self.unique_divisions
         }
 
+    def get_range_start(self, k):
+        try:
+            return str(int(k))
+        except ValueError:
+            return ''
+
+    def get_range_end(self, k):
+        try:
+            return str(int(k) + self.divisor - 1)
+        except ValueError:
+            return ''
+
+    def get_listitem(self, k, *args):
+        listitem = super().get_listitem(k, *args)
+        listitem.setProperty('range_start', self.get_range_start(k))
+        listitem.setProperty('range_end', self.get_range_end(k))
+        return listitem
+
 
 class ListGetQuickStats(ContainerDirectory):
 
