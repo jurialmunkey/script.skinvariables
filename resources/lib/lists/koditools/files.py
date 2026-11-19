@@ -4,6 +4,7 @@ import xbmcvfs
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.litems import ContainerDirectory
 from resources.lib.lists.koditools.common import WindowProperties, clear_windowprops_decorator
+from resources.lib.lists.koditools.scripts import ScriptContainerDirectory
 
 
 class FileExistsItem:
@@ -16,11 +17,24 @@ class FileExistsItem:
     def item(self):
         return self.get_item()
 
+    @cached_property
+    def value(self):
+        return self.get_value()
+
+    def get_value(self):
+        return self.path if xbmcvfs.exists(self.path) else ''
+
     def get_item(self):
-        value = self.path if xbmcvfs.exists(self.path) else ''
         item = ContainerDirectory.get_list_item(self.path)
-        self.properties.set(self.index, value)
+        self.properties.set(self.index, self.value)
         return item
+
+    @cached_property
+    def script_values(self):
+        return self.get_script_values()
+
+    def get_script_values(self):
+        return {'Label': self.path, 'Property(FileExists)': self.value}
 
 
 class FileSizeItem:
@@ -67,19 +81,28 @@ class FileSizeItem:
             self.properties.set(f'{self.index}.{unit}', label)
         return item
 
+    @cached_property
+    def script_values(self):
+        return self.get_script_values()
 
-class ListGetFileExists(ContainerDirectory):
+    def get_script_values(self):
+        return {'Label': self.path, **{f'Property(FileSize.{unit})': label for unit, label in self.labels.items()}}
+
+
+class ListGetFileExists(ScriptContainerDirectory):
     @clear_windowprops_decorator
     def get_directory(self, paths, window_prop=None, window_id=None, **kwargs):
         if not paths:
             return
         properties = WindowProperties(window_prop, window_id)
-        items = [FileExistsItem(path, index, properties).item for index, path in enumerate(paths)]
+        files = [FileExistsItem(path, index, properties) for index, path in enumerate(paths)]
+        items = [file.item for file in files]
         properties.store_count(len(items))
         self.add_items(items)
+        self.run_item_script([file.script_values for file in files])
 
 
-class ListGetFileSize(ContainerDirectory):
+class ListGetFileSize(ScriptContainerDirectory):
     @clear_windowprops_decorator
     def get_directory(self, paths, window_prop=None, window_id=None, **kwargs):
         if not paths:
@@ -89,3 +112,4 @@ class ListGetFileSize(ContainerDirectory):
         items = [file.item for file in files]
         properties.store_keys(key for file in files for key in file.keys)
         self.add_items(items)
+        self.run_item_script([file.script_values for file in files])

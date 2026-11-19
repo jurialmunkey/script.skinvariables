@@ -5,6 +5,7 @@ from xbmc import getInfoLabel
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.litems import ContainerDirectory
 from resources.lib.lists.koditools.common import WindowProperties, clear_windowprops_decorator
+from resources.lib.lists.koditools.scripts import ScriptContainerDirectory
 
 
 class StringItems:
@@ -22,8 +23,14 @@ class StringItems:
     def get_label(self, value):
         return value
 
-    def get_item(self, index, value):
-        label = self.get_label(value)
+    @cached_property
+    def labels(self):
+        return self.get_labels()
+
+    def get_labels(self):
+        return [self.get_label(value) for value in self.values]
+
+    def get_item(self, index, label):
         item = ContainerDirectory.get_list_item(label)
         self.properties.set(index, label)
         return item
@@ -33,7 +40,14 @@ class StringItems:
         return self.get_items()
 
     def get_items(self):
-        return [self.get_item(index, value) for index, value in enumerate(self.values)]
+        return [self.get_item(index, label) for index, label in enumerate(self.labels)]
+
+    @cached_property
+    def script_values(self):
+        return self.get_script_values()
+
+    def get_script_values(self):
+        return [{'Label': label} for label in self.labels]
 
 
 class SplitStringItems(StringItems):
@@ -53,7 +67,7 @@ class EncodedStringItems(StringItems):
         return quote_plus(value)
 
 
-class ListGetSplitString(ContainerDirectory):
+class ListGetSplitString(ScriptContainerDirectory):
     @clear_windowprops_decorator
     def get_directory(self, values=None, infolabel=None, separator='|', window_prop=None, window_id=None, **kwargs):
         values = getInfoLabel(infolabel) if infolabel else values
@@ -64,9 +78,10 @@ class ListGetSplitString(ContainerDirectory):
         items = result.items
         properties.store_count(len(items))
         self.add_items(items)
+        self.run_item_script(result.script_values)
 
 
-class ListGetEncodedString(ContainerDirectory):
+class ListGetEncodedString(ScriptContainerDirectory):
     @clear_windowprops_decorator
     def get_directory(self, paths=None, window_prop=None, window_id=None, **kwargs):
         if not paths:
@@ -76,3 +91,4 @@ class ListGetEncodedString(ContainerDirectory):
         items = result.items
         properties.store_count(len(items))
         self.add_items(items)
+        self.run_item_script(result.script_values)

@@ -4,6 +4,7 @@ from jurialmunkey.ftools import cached_property
 from jurialmunkey.jsnrpc import get_jsonrpc
 from jurialmunkey.litems import ContainerDirectory
 from resources.lib.lists.koditools.common import WindowProperties, clear_windowprops_decorator
+from resources.lib.lists.koditools.scripts import ScriptContainerDirectory
 
 
 class JSONRPCProperties:
@@ -31,12 +32,20 @@ class JSONRPCProperties:
         self.properties.store_keys(self.result)
         return item
 
+    @cached_property
+    def script_values(self):
+        return self.get_script_values()
 
-class ListGetJSONRPC(ContainerDirectory):
+    def get_script_values(self):
+        return {'Label': self.method, **{f'Property({key})': value for key, value in self.result.items()}}
+
+
+class ListGetJSONRPC(ScriptContainerDirectory):
     @clear_windowprops_decorator
     def get_directory(self, info, method, window_prop=None, window_id=None, **kwargs):
         result = JSONRPCProperties(method, kwargs, WindowProperties(window_prop, window_id))
         if not result.result:
             return
         self.add_items([result.item])
+        self.run_item_script([result.script_values])
         return result.result

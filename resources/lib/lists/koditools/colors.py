@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
 from jurialmunkey.ftools import cached_property
-from jurialmunkey.litems import ContainerDirectory
 from resources.lib.lists.koditools.common import WindowProperties, clear_windowprops_decorator
+from resources.lib.lists.koditools.scripts import ScriptContainerDirectory
 from resources.lib.methods.controls import set_slider
 
 
@@ -82,8 +82,15 @@ class ARGBColor:
             self.sliders.update(channel)
         return properties
 
+    @cached_property
+    def script_values(self):
+        return self.get_script_values()
 
-class ListGetARGBColors(ContainerDirectory):
+    def get_script_values(self):
+        return {'Label': self.colorhex, **{f'Property({key})': value for key, value in self.properties.items()}}
+
+
+class ListGetARGBColors(ScriptContainerDirectory):
     @clear_windowprops_decorator
     def get_directory(self, colorhex=None, window_prop=None, window_id=None, slider_window_id=None, **kwargs):
         if not colorhex:
@@ -94,3 +101,4 @@ class ListGetARGBColors(ContainerDirectory):
         item[1].setProperties(infoproperties)
         WindowProperties(window_prop, window_id).write(infoproperties)
         self.add_items([item])
+        self.run_item_script([color.script_values])

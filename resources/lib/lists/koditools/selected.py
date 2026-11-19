@@ -3,6 +3,7 @@
 from jurialmunkey.ftools import cached_property
 from jurialmunkey.litems import ContainerDirectory
 from resources.lib.lists.koditools.common import WindowProperties
+from resources.lib.lists.koditools.scripts import ScriptContainerDirectory
 from resources.lib.lists.labelgetter import ListInfoLabelGetter
 
 
@@ -51,8 +52,16 @@ class SelectedItem:
         item[1].setArt(artwork)
         return item
 
+    @cached_property
+    def script_values(self):
+        return self.get_script_values()
 
-class ListGetSelectedItem(ContainerDirectory):
+    def get_script_values(self):
+        artwork = {f'Art({key})': value for key, value in self.artwork.items()}
+        return {'Label': self.label, **self.properties, **artwork}
+
+
+class ListGetSelectedItem(ScriptContainerDirectory):
     def get_directory(
         self,
         container,
@@ -72,3 +81,4 @@ class ListGetSelectedItem(ContainerDirectory):
             properties = WindowProperties(window_prop, window_id)
             properties.set_values(result.properties)
             properties.set_values(result.artwork)
+        self.run_item_script([result.script_values])
