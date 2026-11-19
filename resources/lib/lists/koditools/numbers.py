@@ -61,7 +61,7 @@ class ListGetSliderRuler(DelayValue, ScriptContainerDirectory):
     """
     Items for drawing a slider value along a ruler: one item per step from minimum to maximum,
     with pad blank items on each side. Values outside the range pin the nib to the nearest end.
-    Properties: fill is full, left or right where the fill from zero to the nib crosses the item.
+    Properties: fill is full, left or right where the fill from origin (default zero) to the nib crosses the item.
     The nib item has nib=true and the value in milliseconds as its label (for example "−150 ms").
     """
 
@@ -78,14 +78,14 @@ class ListGetSliderRuler(DelayValue, ScriptContainerDirectory):
             return 'left'
         return ''
 
-    def get_directory(self, value='', minimum='-1', maximum='1', steps='80', pad='0', **kwargs):
-        minimum, maximum, steps, pad = float(minimum), float(maximum), int(steps), int(pad)
+    def get_directory(self, value='', minimum='-1', maximum='1', steps='80', pad='0', origin='0', **kwargs):
+        minimum, maximum, steps, pad, origin = float(minimum), float(maximum), int(steps), int(pad), float(origin)
         number = self.get_number(value)
 
         def get_position(x):
             return max(0, min(steps, round((x - minimum) / (maximum - minimum) * steps)))
 
-        zero, nib = get_position(0), get_position(number)
+        zero, nib = get_position(origin), get_position(number)
         items = []
         for index in range(-pad, steps + pad + 1):
             path, listitem, is_folder = self.get_list_item(self.get_label(number) if index == nib else '', is_folder=False)
