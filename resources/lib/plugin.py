@@ -32,6 +32,12 @@ class Plugin():
         'get_number_sum': {
             'module_name': 'resources.lib.lists.koditools.numbers',
             'import_attr': 'ListGetNumberSum'},
+        'get_delay_label': {
+            'module_name': 'resources.lib.lists.koditools.numbers',
+            'import_attr': 'ListGetDelayLabel'},
+        'get_slider_ruler': {
+            'module_name': 'resources.lib.lists.koditools.numbers',
+            'import_attr': 'ListGetSliderRuler'},
         'get_refresh_counter': {
             'module_name': 'resources.lib.lists.koditools.numbers',
             'import_attr': 'ListGetRefreshCounter'},
