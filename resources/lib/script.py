@@ -28,6 +28,8 @@ class Script(object):
             lambda **kwargs: importmodule('resources.lib.methods.controls', 'set_animation')(**kwargs),
         'set_slider':
             lambda **kwargs: importmodule('resources.lib.methods.controls', 'set_slider')(**kwargs),
+        'run_sliderruler':
+            lambda **kwargs: importmodule('resources.lib.sliderruler.monitor', 'run_sliderruler')(**kwargs),
         'run_executebuiltin':
             lambda **kwargs: importmodule('resources.lib.methods.builtins', 'run_executebuiltin')(**kwargs),
         'run_dialog':
