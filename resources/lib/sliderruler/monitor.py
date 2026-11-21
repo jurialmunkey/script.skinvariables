@@ -7,42 +7,84 @@ from jurialmunkey.ftools import cached_property
 from resources.lib.sliderruler.properties import SliderRulerProperties
 from resources.lib.sliderruler.scale import SliderRulerScale
 
+PREFIX = 'SkinVariables.SliderRuler'
+
+
+class SliderRulerReading:
+    """Ruler value, range and owner read together in one joined label.
+    The value comes first so it may contain the separator."""
+
+    separator = '|'
+
+    def __init__(self, label, steps):
+        self.label = label
+        self.steps = steps
+
+    @cached_property
+    def parts(self):
+        return self.get_parts()
+
+    def get_parts(self):
+        value, minimum, maximum, origin, owner = self.label.rsplit(self.separator, 4)
+        return {'value': value, 'minimum': minimum, 'maximum': maximum, 'origin': origin, 'owner': owner}
+
+    @cached_property
+    def owner(self):
+        return self.parts['owner']
+
+    @cached_property
+    def scale(self):
+        return self.get_scale()
+
+    def get_scale(self):
+        return SliderRulerScale(
+            self.parts['value'],
+            self.parts['minimum'] or '-1',
+            self.parts['maximum'] or '1',
+            self.steps,
+            self.parts['origin'] or '0',
+        )
+
 
 class SliderRulerSource:
-    """Skin variables that give the ruler value and range. Read again on each poll so they follow the dialog."""
+    """Skin variables that give the ruler value and range. Read with the owner property in one call on each poll,
+    as each call from Python waits for Kodi to finish drawing the current frame."""
 
     def __init__(self, value, minimum, maximum, origin, steps):
         self.variables = (value, minimum, maximum, origin)
         self.steps = steps
 
-    @staticmethod
-    def get_label(variable):
-        return xbmc.getInfoLabel(f'$VAR[{variable}]')
+    @cached_property
+    def infolabel(self):
+        return self.get_infolabel()
 
-    @property
-    def scale(self):
-        return self.get_scale()
+    def get_infolabel(self):
+        labels = [f'$VAR[{variable}]' for variable in self.variables]
+        return SliderRulerReading.separator.join((*labels, f'$INFO[Window(Home).Property({PREFIX}.Owner)]'))
 
-    def get_scale(self):
-        value, minimum, maximum, origin = (self.get_label(variable) for variable in self.variables)
-        return SliderRulerScale(value, minimum or '-1', maximum or '1', self.steps, origin or '0')
+    def read(self):
+        return SliderRulerReading(xbmc.getInfoLabel(self.infolabel), self.steps)
 
 
 class SliderRulerMonitor:
     """
-    Sets the ruler properties on the home window while the slider window is visible.
-    Static ruler items read SkinVariables.SliderRuler.{index}.Fill, .{index}.Nib and .Label from these properties.
-    Ready is set once the first values are written. Only changed values are written on each poll.
-    Owner names the running monitor so a monitor for a window opened again stops the previous one.
+    Sets the ruler properties on the home window while the slider window is open.
+    Static ruler items compare their step index with SkinVariables.SliderRuler.Lower, .Upper and .Nib, and show .Label.
+    Ready is set with the first values. Only changed values are written on each poll, through builtins that Kodi
+    applies together on its next frame without making the script wait.
+    Owner names the running monitor. The skin clears it when the window closes, and a monitor started for a window
+    opened again replaces it, so the monitor stops once Owner is no longer its own.
+    Visibility is also checked every few polls in case the window closes without clearing Owner.
     """
 
-    prefix = 'SkinVariables.SliderRuler'
+    visibility_polls = 20
 
     def __init__(self, window, source, polling):
         self.window = window
         self.source = source
         self.polling = polling
         self.values = {}
+        self.polls = 0
 
     @cached_property
     def home(self):
@@ -56,50 +98,58 @@ class SliderRulerMonitor:
     def owner(self):
         return uuid.uuid4().hex
 
-    def get_property(self, key):
-        return self.home.getProperty(f'{self.prefix}.{key}')
+    @classmethod
+    def set_property(cls, key, value):
+        if not value:
+            return cls.clear_property(key)
+        xbmc.executebuiltin(f'SetProperty({PREFIX}.{key},{value},home)')
 
-    def set_property(self, key, value):
-        self.home.setProperty(f'{self.prefix}.{key}', value)
-
-    def clear_property(self, key):
-        self.home.clearProperty(f'{self.prefix}.{key}')
-
-    @property
-    def is_owner(self):
-        return self.get_property('Owner') == self.owner
+    @classmethod
+    def clear_property(cls, key):
+        xbmc.executebuiltin(f'ClearProperty({PREFIX}.{key},home)')
 
     @property
     def is_visible(self):
         return xbmc.getCondVisibility(f'Window.IsVisible({self.window})')
 
     @property
-    def is_active(self):
-        return self.is_owner and self.is_visible
+    def is_checking_visibility(self):
+        return self.polls % self.visibility_polls == 0
 
-    def wait(self):
-        """True while the window stays open after waiting for the next poll"""
-        return not self.monitor.waitForAbort(self.polling) and self.is_active
+    def is_active(self, reading):
+        if reading.owner != self.owner:
+            return False
+        return not self.is_checking_visibility or self.is_visible
 
-    def update(self):
-        properties = SliderRulerProperties(self.source.scale)
+    def update(self, reading):
+        properties = SliderRulerProperties(reading.scale)
         for key, value in properties.get_changes(self.values).items():
             self.set_property(key, value)
         self.values = properties.values
 
-    def clear(self):
-        if not self.is_owner:
+    def wait(self):
+        """The next reading while the window stays open, otherwise None"""
+        self.polls += 1
+        if self.monitor.waitForAbort(self.polling):
             return
-        for key in (*self.values, 'Ready', 'Owner'):
+        reading = self.source.read()
+        return reading if self.is_active(reading) else None
+
+    def clear(self):
+        owner = self.home.getProperty(f'{PREFIX}.Owner')
+        if owner not in (self.owner, ''):
+            return
+        for key in (*(key for key, value in self.values.items() if value), 'Ready', 'Owner'):
             self.clear_property(key)
 
     def run(self):
-        self.set_property('Owner', self.owner)
+        # Set directly rather than through a builtin so the first reading already sees it.
+        self.home.setProperty(f'{PREFIX}.Owner', self.owner)
         try:
-            self.update()
+            self.update(self.source.read())
             self.set_property('Ready', 'true')
-            while self.wait():
-                self.update()
+            for reading in iter(self.wait, None):
+                self.update(reading)
         finally:
             self.clear()
 
