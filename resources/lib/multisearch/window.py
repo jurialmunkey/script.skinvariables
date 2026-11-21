@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+import json
 import threading
 import xbmc
 import xbmcgui
@@ -32,6 +33,11 @@ MOVE_ACTIONS = (
     xbmcgui.ACTION_MOVE_UP,
     xbmcgui.ACTION_MOVE_DOWN,
 )
+ACTION_CONTEXT_MENU = 117
+VIDEO_SELECT_ACTION_CHOOSE = 0
+VIDEO_SELECT_ACTION_INFO = 3
+VIDEO_SELECT_ACTION_QUEUE = 7
+VIDEO_SELECT_ACTION_PLAY = 8
 
 
 class MultiSearchControl:
@@ -174,8 +180,9 @@ class ResultsControl(MultiSearchControl):
         window.open_result(self.control_id)
 
     def onaction(self, window, action_id):
-        # Python windows skip the media window actions so Kodi does not open the info dialog itself.
-        if action_id == xbmcgui.ACTION_SHOW_INFO:
+        if action_id == ACTION_CONTEXT_MENU:
+            window.show_context_menu(self.control_id)
+        elif action_id == xbmcgui.ACTION_SHOW_INFO:
             window.show_info(self.control_id)
 
 
@@ -525,7 +532,72 @@ class MultiSearchWindow(ScriptWindow):
 
     def open_result(self, control_id):
         self.opened_result = OpenedResult(self.lists.get(control_id), self.getControl(control_id).getSelectedPosition())
-        xbmc.executebuiltin(self.get_selected_result(control_id).builtin)
+        result = self.get_selected_result(control_id)
+        if result.item.is_folder or result.item.infolabels.get('mediatype') != 'movie':
+            xbmc.executebuiltin(result.builtin)
+            return
+
+        select_action = self.get_video_select_action()
+        if select_action == VIDEO_SELECT_ACTION_CHOOSE:
+            self.show_context_menu(control_id)
+        elif select_action == VIDEO_SELECT_ACTION_INFO:
+            self.show_info(control_id)
+        elif select_action == VIDEO_SELECT_ACTION_QUEUE:
+            xbmc.PlayList(xbmc.PLAYLIST_VIDEO).add(result.item.path, result.listitem)
+        else:
+            xbmc.executebuiltin(result.builtin)
+
+    @staticmethod
+    def get_video_select_action():
+        request = json.dumps({
+            'jsonrpc': '2.0',
+            'method': 'Settings.GetSettingValue',
+            'params': {'setting': 'myvideos.selectaction'},
+            'id': 1,
+        })
+        try:
+            response = json.loads(xbmc.executeJSONRPC(request))
+        except (TypeError, ValueError) as error:
+            xbmc.log(
+                f'Could not read Kodi video select action: {error}',
+                xbmc.LOGERROR,
+            )
+            return VIDEO_SELECT_ACTION_PLAY
+        if not isinstance(response, dict):
+            xbmc.log(
+                'Kodi returned an invalid response for the video select action lookup',
+                xbmc.LOGERROR,
+            )
+            return VIDEO_SELECT_ACTION_PLAY
+
+        if response.get('error'):
+            xbmc.log(
+                f'Kodi rejected video select action lookup: {response["error"]}',
+                xbmc.LOGERROR,
+            )
+            return VIDEO_SELECT_ACTION_PLAY
+
+        result = response.get('result')
+        if not isinstance(result, dict):
+            xbmc.log(
+                'Kodi returned no value for the video select action lookup',
+                xbmc.LOGERROR,
+            )
+            return VIDEO_SELECT_ACTION_PLAY
+
+        select_action = result.get('value')
+        if select_action not in (
+            VIDEO_SELECT_ACTION_CHOOSE,
+            VIDEO_SELECT_ACTION_INFO,
+            VIDEO_SELECT_ACTION_QUEUE,
+            VIDEO_SELECT_ACTION_PLAY,
+        ):
+            xbmc.log(
+                f'Unsupported Kodi video select action: {select_action!r}',
+                xbmc.LOGERROR,
+            )
+            return VIDEO_SELECT_ACTION_PLAY
+        return select_action
 
     def show_info(self, control_id):
         try:
@@ -533,6 +605,39 @@ class MultiSearchWindow(ScriptWindow):
         except (IndexError, KeyError):  # Focus can stay on a results list emptied by a new search or another style.
             return
         xbmcgui.Dialog().info(result.listitem)
+
+    def show_context_menu(self, control_id):
+        try:
+            result = self.get_selected_result(control_id)
+        except (IndexError, KeyError):  # Focus can stay on a results list emptied by a new search or another style.
+            return
+
+        item = result.item
+        menu = list(result.context_menu)
+        menu.append((xbmc.getLocalizedString(19033) or 'Information', 'show_info'))
+
+        item_type = item.infolabels.get('mediatype') or ''
+        if item.is_folder and item_type == 'tvshow':
+            menu.append((
+                xbmc.getLocalizedString(13349) or 'Scan for new content',
+                f'UpdateLibrary(video,"{item.path}")',
+            ))
+        if item.is_folder or item_type == 'movie':
+            label = (item.infolabels.get('title') or item.label or '').replace('"', '\\"')
+            path = (item.path or '').replace('"', '\\"')
+            menu.append((
+                xbmc.getLocalizedString(14076) or 'Add to favourites',
+                f'AddToFavourites("{label}","{path}")',
+            ))
+
+        selected = xbmcgui.Dialog().contextmenu([label for label, action in menu])
+        if selected < 0:
+            return
+        action = menu[selected][1]
+        if action == 'show_info':
+            xbmcgui.Dialog().info(result.listitem)
+        else:
+            xbmc.executebuiltin(action)
 
     def stop(self):
         """Store the search text for the session, drop the queued searches and wait for the running searches."""

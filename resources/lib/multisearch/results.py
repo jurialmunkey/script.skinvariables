@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 # License: GPL v.3 https://www.gnu.org/copyleft/gpl.html
+from urllib.parse import parse_qs, parse_qsl, quote, urlencode, urlsplit
+import xbmc
+import xbmcaddon
 from jurialmunkey.ftools import cached_property
 from resources.lib.filterdir.items import FilterDirItems
 from resources.lib.filterdir.paths import FilterDirPaths
@@ -49,6 +52,137 @@ class SearchResult:
         listitem = self.item.listitem
         listitem.setProperties(self.properties)
         return listitem
+
+    @cached_property
+    def context_menu(self):
+        if self.source.origin != 'plugin.video.themoviedb.helper':
+            return ()
+
+        addon = xbmcaddon.Addon('plugin.video.themoviedb.helper')
+        item_type = self.item.infolabels.get('mediatype') or ''
+        query_type = parse_qs(urlsplit(self.source.template).query).get('tmdb_type', [''])[0]
+        type_map = {
+            'movie': 'movie',
+            'tv': 'tv',
+            'tvshow': 'tv',
+            'season': 'tv',
+            'episode': 'tv',
+            'set': 'collection',
+            'collection': 'collection',
+            'actor': 'person',
+            'person': 'person',
+            'keyword': 'keyword',
+        }
+        tmdb_type = type_map.get(item_type) or type_map.get(query_type) or query_type or item_type
+        tmdb_id = (
+            self.item.infoproperties.get('tvshow.tmdb_id')
+            if item_type in ('season', 'episode')
+            else None
+        ) or self.item.uniqueids.get('tmdb') or self.item.infoproperties.get('tmdb_id')
+        tmdb_id = str(tmdb_id or '').strip()
+        if not tmdb_id.isdigit() or not tmdb_type:
+            return ()
+
+        season = str(self.item.infolabels.get('season') or '').strip()
+        episode = str(self.item.infolabels.get('episode') or '').strip()
+        context_menu = []
+        if item_type in ('movie', 'tvshow', 'season', 'episode'):
+            title = self.item.infolabels.get('title') or self.item.label
+            params = f'set_chosenplayer={title},tmdb_type={tmdb_type},tmdb_id={tmdb_id}'
+            if item_type in ('season', 'episode'):
+                params += f',season={season}'
+                if item_type == 'episode':
+                    params += f',episode={episode}'
+            label = addon.getLocalizedString(32476)
+            if label:
+                context_menu.append((
+                    label,
+                    f'RunScript(plugin.video.themoviedb.helper,{params})',
+                ))
+
+        options = (
+            ('contextmenu_related_lists', 32235, 'related_lists', True),
+            ('contextmenu_sync_options', 32549, 'sync_options', True),
+            ('contextmenu_refresh_details', 32233, 'refresh_details', True),
+            (
+                'contextmenu_modify_artwork',
+                32118,
+                'modify_artwork',
+                item_type in ('movie', 'tvshow', 'season', 'episode'),
+            ),
+            (
+                'contextmenu_add_to_library',
+                20444,
+                'add_to_library',
+                item_type in ('movie', 'tvshow', 'season', 'episode'),
+            ),
+        )
+        for setting, label_id, method, eligible in options:
+            if item_type in ('season', 'episode') and method != 'add_to_library':
+                eligible = eligible and bool(season) and (item_type != 'episode' or bool(episode))
+            if not eligible or addon.getSetting(setting).lower() != 'true':
+                continue
+
+            option_type = 'tv' if item_type in ('season', 'episode') else tmdb_type
+            params = f'tmdb_type={option_type},tmdb_id={tmdb_id}'
+            if method != 'add_to_library' and item_type in ('season', 'episode'):
+                params += f',season={season}'
+                if item_type == 'episode':
+                    params += f',episode={episode}'
+            label = (
+                addon.getLocalizedString(label_id)
+                if label_id != 20444
+                else xbmc.getLocalizedString(label_id)
+            )
+            if label:
+                context_menu.append((label, f'RunScript(plugin.video.themoviedb.helper,{method},{params})'))
+
+        if addon.getSetting('contextmenu_play_random').lower() == 'true':
+            play_random = self.get_play_random_context_item(addon)
+            if play_random:
+                context_menu.append(play_random)
+        return tuple(context_menu)
+
+    def get_play_random_context_item(self, addon):
+        if not self.item.is_folder or self.item.infoproperties.get('specialseason'):
+            return
+
+        path = self.item.path
+        if path.partition('?')[0].rstrip('/') != 'plugin://plugin.video.themoviedb.helper':
+            return
+
+        query_parts = path.partition('?')[2].split('&&')
+        params = dict(parse_qsl(query_parts[0], keep_blank_values=True))
+        route = params.get('info')
+        excluded_routes = (
+            'dir_settings',
+            'user_discover',
+            'trakt_authenticate',
+            'trakt_discover',
+            'fanart',
+            'posters',
+            'images',
+            'episode_thumbs',
+            'reviews',
+            'videos',
+        )
+        search_routes = ('search', 'trakt_searchlists', 'mdblist_searchlists')
+        if route in excluded_routes or route in ('play', 'details'):
+            return
+        if params.get('clear_cache') or params.get('method'):
+            return
+        if route in search_routes and not params.get('query'):
+            return
+
+        if route == 'flatseasons':
+            params['info'] = 'seasons'
+        for key in ('widget', 'reload', 'update_listing'):
+            params.pop(key, None)
+        query = '&&'.join([urlencode(sorted(params.items())), *query_parts[1:]])
+        path = quote(f'plugin://plugin.video.themoviedb.helper/?{query}', safe='')
+        label = addon.getLocalizedString(32767)
+        if label:
+            return label, f'RunScript(plugin.video.themoviedb.helper,play_random={path})'
 
     def get_sort_value(self, key):
         value = self.item.infolabels.get(key) or ''
