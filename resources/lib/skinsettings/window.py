@@ -3,7 +3,7 @@
 import xbmcgui
 from jurialmunkey.ftools import cached_property
 from resources.lib.scriptwindow.window import ScriptWindow, ScriptWindowMixin
-from resources.lib.skinsettings.items import CATEGORY_PROPERTY
+from resources.lib.skinsettings.items import CATEGORY_LABEL_PROPERTY, CATEGORY_PROPERTY
 from resources.lib.skinsettings.search import SettingsSearch, SettingsTags, SettingsViewBounds
 from resources.lib.skinsettings.state import SavedViewState
 
@@ -128,13 +128,18 @@ class SkinSettingsWindow(SettingsWindowMixin, ScriptWindow):
         """Key of the selected category."""
         return self.getProperty(CATEGORY_PROPERTY)
 
+    def get_category_properties(self, key):
+        # A view saved before any category had focus has no category to label.
+        category = self.definition.categories_by_key.get(key)
+        return {CATEGORY_PROPERTY: key, CATEGORY_LABEL_PROPERTY: category.label_text if category else ''}
+
     def set_category(self, key):
         # Returning focus to the selected category is not a change so the search mode decides whether it keeps the
         # search.
         if self.category == key:
             self.definition.search.onreturncategory(self)
             return
-        self.setProperty(CATEGORY_PROPERTY, key)
+        self.set_properties(self.get_category_properties(key))
         self.definition.search.onchangecategory(self)
         self.definition.search.onchangeview(self)
 
@@ -144,7 +149,7 @@ class SkinSettingsWindow(SettingsWindowMixin, ScriptWindow):
 
     def restore_view(self, category, query, tag, properties):
         # Sets the category directly because changing it would clear the search that the view restores.
-        self.set_properties({**properties, CATEGORY_PROPERTY: category})
+        self.set_properties({**properties, **self.get_category_properties(category)})
         self.restore_search(query, tag)
 
     def get_saved_view(self, focus_id):

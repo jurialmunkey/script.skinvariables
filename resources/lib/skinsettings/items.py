@@ -8,6 +8,7 @@ from resources.lib.skinsettings.actions import SettingAction
 
 PROPERTY_PREFIX = 'SkinVariables.SkinSettings'
 CATEGORY_PROPERTY = f'{PROPERTY_PREFIX}.Category'
+CATEGORY_LABEL_PROPERTY = f'{CATEGORY_PROPERTY}.Label'
 SEARCH_PROPERTY_PREFIX = f'{PROPERTY_PREFIX}.Search'
 
 # Category ids match Kodi's native category buttons so skin navigation such as SetFocus(-200) still works.
