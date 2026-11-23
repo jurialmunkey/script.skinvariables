@@ -177,6 +177,8 @@ class ResultsControl(MultiSearchControl):
         # Python windows skip the media window actions so Kodi does not open the info dialog itself.
         if action_id == xbmcgui.ACTION_SHOW_INFO:
             window.show_info(self.control_id)
+        if action_id == xbmcgui.ACTION_CONTEXT_MENU:
+            window.show_context_menu(self.control_id)
 
 
 UNFOCUSED_CONTROL = MultiSearchControl()
@@ -523,16 +525,38 @@ class MultiSearchWindow(ScriptWindow):
         with self.lock:
             return self.lists.get(control_id).results[self.getControl(control_id).getSelectedPosition()]
 
+    def get_opened_result(self, control_id):
+        return OpenedResult(self.lists.get(control_id), self.getControl(control_id).getSelectedPosition())
+
+    def run_result_builtin(self, builtin, opened_result):
+        self.opened_result = opened_result
+        xbmc.executebuiltin(builtin)
+
     def open_result(self, control_id):
-        self.opened_result = OpenedResult(self.lists.get(control_id), self.getControl(control_id).getSelectedPosition())
-        xbmc.executebuiltin(self.get_selected_result(control_id).builtin)
+        opened_result = self.get_opened_result(control_id)
+        self.run_result_builtin(self.get_selected_result(control_id).builtin, opened_result)
+
+    def show_result_info(self, result):
+        xbmcgui.Dialog().info(result.listitem)
 
     def show_info(self, control_id):
         try:
             result = self.get_selected_result(control_id)
         except (IndexError, KeyError):  # Focus can stay on a results list emptied by a new search or another style.
             return
-        xbmcgui.Dialog().info(result.listitem)
+        self.show_result_info(result)
+
+    def show_context_menu(self, control_id):
+        """Show the menu of the selected result. Its entries stay with that result if a search refills the list."""
+        try:
+            opened_result = self.get_opened_result(control_id)
+            menu = self.get_selected_result(control_id).context_menu
+        except (IndexError, KeyError):  # Focus can stay on a results list emptied by a new search or another style.
+            return
+        position = xbmcgui.Dialog().contextmenu(menu.labels)
+        if position < 0:
+            return
+        menu.entries[position].run(self, opened_result)
 
     def stop(self):
         """Store the search text for the session, drop the queued searches and wait for the running searches."""

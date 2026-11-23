@@ -3,6 +3,7 @@
 from jurialmunkey.ftools import cached_property
 from resources.lib.filterdir.items import FilterDirItems
 from resources.lib.filterdir.paths import FilterDirPaths
+from resources.lib.multisearch.contextmenu import ResultContextMenu
 
 
 UNIQUE_INFOLABELS = (
@@ -99,6 +100,13 @@ class SearchResult:
         if self.item.is_folder:
             return f'ActivateWindow({self.source.target},"{self.item.path}",return)'
         return f'PlayMedia("{self.item.path}")'
+
+    @cached_property
+    def context_menu(self):
+        return self.get_context_menu()
+
+    def get_context_menu(self):
+        return ResultContextMenu(self)
 
 
 class UniqueResults:
