@@ -62,6 +62,9 @@ class Plugin():
         'get_selected_item': {
             'module_name': 'resources.lib.lists.koditools.selected',
             'import_attr': 'ListGetSelectedItem'},
+        'get_dummy_item': {
+            'module_name': 'resources.lib.lists.koditools.dummyitem',
+            'import_attr': 'ListGetDummyItem'},
         'get_dotted_properties': {
             'module_name': 'resources.lib.lists.koditools.dotted',
             'import_attr': 'ListGetDottedProperties'},
